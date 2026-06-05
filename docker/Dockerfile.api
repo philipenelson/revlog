@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# ---- deps stage: install all workspace deps ----
+FROM base AS deps
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY packages/domain/package.json ./packages/domain/
+COPY apps/api/package.json ./apps/api/
+RUN pnpm install --frozen-lockfile --filter @maintenance-log/api...
+
+# ---- build stage ----
+FROM deps AS builder
+WORKDIR /app
+COPY packages/typescript-config/ ./packages/typescript-config/
+COPY packages/domain/ ./packages/domain/
+COPY apps/api/ ./apps/api/
+RUN pnpm --filter @maintenance-log/api build
+
+# ---- production stage ----
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/apps/api/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+EXPOSE 3001
+CMD ["node", "dist/index.js"]

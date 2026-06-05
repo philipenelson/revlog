@@ -1,0 +1,15 @@
+{
+  "name": "@maintenance-log/ui-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./colors": "./src/colors.ts",
+    "./spacing": "./src/spacing.ts",
+    "./typography": "./src/typography.ts"
+  },
+  "devDependencies": {
+    "@maintenance-log/typescript-config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

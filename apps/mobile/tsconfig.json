@@ -1,0 +1,9 @@
+{
+  "extends": "@maintenance-log/typescript-config/react-native.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.d.ts", "expo-env.d.ts"]
+}

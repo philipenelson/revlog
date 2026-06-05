@@ -1,0 +1,12 @@
+{
+  "name": "@maintenance-log/domain",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@maintenance-log/typescript-config": "workspace:*",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules
+dist
+.next
+.expo
+out
+.turbo
+pnpm-lock.yaml

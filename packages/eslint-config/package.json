@@ -1,0 +1,13 @@
+{
+  "name": "@maintenance-log/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-plugin-boundaries": "^5.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0"
+  }
+}

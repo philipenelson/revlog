@@ -1,0 +1,20 @@
+{
+  "name": "@maintenance-log/ui-components",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@maintenance-log/ui-tokens": "workspace:*"
+  },
+  "devDependencies": {
+    "@maintenance-log/typescript-config": "workspace:*",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  }
+}
