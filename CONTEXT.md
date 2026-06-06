@@ -9,7 +9,7 @@ A motorcycle maintenance tracking application. Owners log maintenance events, fu
 ### Identity and access
 
 **Account**:
-A workspace that groups one or more Users. Can be personal (exactly one User — the individual themselves) or organisational (multiple Users with different roles, e.g. a workshop with several mechanics). Vehicles belong to an Account, not to individual Users. An Account is never transferred between people.
+A workspace that groups one or more Users. Can be personal (exactly one User — the individual themselves) or organisational (multiple Users with different roles, e.g. a workshop with several mechanics). Vehicles belong to an Account, not to individual Users. An Account is never transferred between people. In V1, every registration creates a personal Account (`type: PERSONAL`, exactly one Owner User). The `AccountType` field is present from the start to make the V2 organisational model a non-breaking addition. Future organisational Accounts — where an authorised User invites and manages additional Users — will be administered through a dedicated admin panel. Account membership is never managed during registration.
 _Avoid_: Profile, identity, tenant
 
 **User**:
