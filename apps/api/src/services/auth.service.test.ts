@@ -1,0 +1,204 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { AuthService } from './auth.service';
+import type { IEmailService } from './auth.service';
+import { AppError } from '../middleware/error';
+import type {
+  IUserRepository,
+  IRefreshTokenRepository,
+  DomainUser,
+  DomainAccount,
+  DomainRefreshToken,
+} from '@maintenance-log/domain';
+
+// JWT signing requires a secret at module evaluation time
+process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
+process.env['APP_URL'] = 'http://localhost:3000';
+
+const fixedNow = new Date('2026-01-01T00:00:00Z');
+
+const mockAccount: DomainAccount = {
+  id: 'account-1',
+  type: 'PERSONAL',
+  createdAt: fixedNow,
+  updatedAt: fixedNow,
+};
+
+const mockUser: DomainUser = {
+  id: 'user-1',
+  accountId: 'account-1',
+  fullName: 'Test User',
+  email: 'test@example.com',
+  passwordHash: '$2b$12$placeholder',
+  role: 'OWNER',
+  emailVerified: false,
+  verificationToken: 'tok-abc',
+  verificationTokenExpiresAt: new Date(fixedNow.getTime() + 60_000),
+  createdAt: fixedNow,
+  updatedAt: fixedNow,
+};
+
+const mockRefreshTokenRecord: DomainRefreshToken = {
+  id: 'rt-1',
+  userId: 'user-1',
+  tokenHash: 'hashed',
+  expiresAt: new Date(fixedNow.getTime() + 7 * 24 * 60 * 60 * 1000),
+  createdAt: fixedNow,
+};
+
+function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserRepository {
+  return {
+    findByEmail: vi.fn().mockResolvedValue(null),
+    findByVerificationToken: vi.fn().mockResolvedValue(null),
+    create: vi.fn().mockResolvedValue(mockUser),
+    createWithAccount: vi.fn().mockResolvedValue({ account: mockAccount, user: mockUser }),
+    markVerified: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+function makeFakeRefreshTokenRepo(overrides: Partial<IRefreshTokenRepository> = {}): IRefreshTokenRepository {
+  return {
+    create: vi.fn().mockResolvedValue(mockRefreshTokenRecord),
+    findByTokenHash: vi.fn().mockResolvedValue(null),
+    deleteById: vi.fn().mockResolvedValue(undefined),
+    deleteAllForUser: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+const validInput = {
+  fullName: 'Test User',
+  email: 'test@example.com',
+  password: 'SecurePass1',
+  confirmPassword: 'SecurePass1',
+};
+
+describe('AuthService.register', () => {
+  let userRepo: IUserRepository;
+  let refreshTokenRepo: IRefreshTokenRepository;
+  let emailService: IEmailService;
+  let service: AuthService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userRepo = makeFakeUserRepo();
+    refreshTokenRepo = makeFakeRefreshTokenRepo();
+    emailService = { sendVerificationEmail: vi.fn().mockResolvedValue(undefined) } as unknown as IEmailService;
+    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+  });
+
+  it('throws 409 when the email is already registered', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+
+    await expect(service.register(validInput)).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'Email already registered',
+    });
+  });
+
+  it('does not proceed to account creation when email is already registered', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+
+    await expect(service.register(validInput)).rejects.toBeInstanceOf(AppError);
+    expect(userRepo.createWithAccount).not.toHaveBeenCalled();
+  });
+
+  it('creates account and user atomically using createWithAccount', async () => {
+    await service.register(validInput);
+
+    expect(userRepo.createWithAccount).toHaveBeenCalledOnce();
+    expect(userRepo.createWithAccount).toHaveBeenCalledWith(
+      'PERSONAL',
+      expect.objectContaining({
+        fullName: validInput.fullName,
+        email: validInput.email,
+      }),
+    );
+  });
+
+  it('stores a bcrypt-hashed password, not the plain-text value', async () => {
+    await service.register(validInput);
+
+    const [, userData] = (userRepo.createWithAccount as ReturnType<typeof vi.fn>).mock.calls[0] as [string, { passwordHash: string }];
+    expect(userData.passwordHash).not.toBe(validInput.password);
+    expect(userData.passwordHash).toMatch(/^\$2[ab]\$/); // bcrypt prefix
+  });
+
+  it('sends a verification email to the registered address', async () => {
+    await service.register(validInput);
+
+    expect(emailService.sendVerificationEmail).toHaveBeenCalledOnce();
+    expect(emailService.sendVerificationEmail).toHaveBeenCalledWith(
+      validInput.email,
+      expect.any(String),
+      'http://localhost:3000',
+    );
+  });
+
+  it('does not send email when account creation fails', async () => {
+    userRepo = makeFakeUserRepo({
+      createWithAccount: vi.fn().mockRejectedValue(new Error('DB down')),
+    });
+    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+
+    await expect(service.register(validInput)).rejects.toThrow('DB down');
+    expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService.verifyEmail', () => {
+  let userRepo: IUserRepository;
+  let refreshTokenRepo: IRefreshTokenRepository;
+  let service: AuthService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userRepo = makeFakeUserRepo({
+      findByVerificationToken: vi.fn().mockResolvedValue(mockUser),
+    });
+    refreshTokenRepo = makeFakeRefreshTokenRepo();
+    service = new AuthService(userRepo, refreshTokenRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+  });
+
+  it('throws 400 when the token is not found or expired', async () => {
+    userRepo = makeFakeUserRepo({ findByVerificationToken: vi.fn().mockResolvedValue(null) });
+    service = new AuthService(userRepo, refreshTokenRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.verifyEmail('bad-token')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Invalid or expired verification token',
+    });
+  });
+
+  it('marks the user email as verified', async () => {
+    await service.verifyEmail('tok-abc');
+    expect(userRepo.markVerified).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it('stores the hashed refresh token, not the raw token value', async () => {
+    const result = await service.verifyEmail('tok-abc');
+
+    const [storedData] = (refreshTokenRepo.create as ReturnType<typeof vi.fn>).mock.calls[0] as [{ tokenHash: string; userId: string }];
+    expect(storedData.tokenHash).not.toBe(result.refreshToken); // hash ≠ raw token
+    expect(storedData.userId).toBe(mockUser.id);
+  });
+
+  it('returns a JWT access token, a raw 64-char hex refresh token, and user info', async () => {
+    const result = await service.verifyEmail('tok-abc');
+
+    expect(result.accessToken).toMatch(/^eyJ/); // JWT header
+    expect(result.refreshToken).toMatch(/^[0-9a-f]{64}$/); // 32 bytes as hex
+    expect(result.user).toEqual({ id: mockUser.id, accountId: mockUser.accountId, role: mockUser.role });
+  });
+
+  it('the stored hash is the SHA-256 of the returned raw refresh token', async () => {
+    const { createHash } = await import('crypto');
+    const result = await service.verifyEmail('tok-abc');
+
+    const [storedData] = (refreshTokenRepo.create as ReturnType<typeof vi.fn>).mock.calls[0] as [{ tokenHash: string }];
+    const expectedHash = createHash('sha256').update(result.refreshToken).digest('hex');
+    expect(storedData.tokenHash).toBe(expectedHash);
+  });
+});
