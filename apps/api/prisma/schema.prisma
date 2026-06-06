@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountType {
+  PERSONAL
+}
+
+enum Role {
+  OWNER
+}
+
+model Account {
+  id        String      @id @default(uuid())
+  type      AccountType @default(PERSONAL)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  users     User[]
+}
+
+model User {
+  id                         String    @id @default(uuid())
+  accountId                  String
+  account                    Account   @relation(fields: [accountId], references: [id])
+  fullName                   String
+  email                      String    @unique
+  passwordHash               String
+  role                       Role      @default(OWNER)
+  emailVerified              Boolean   @default(false)
+  verificationToken          String?
+  verificationTokenExpiresAt DateTime?
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  @@index([email])
+}

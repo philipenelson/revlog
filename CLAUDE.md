@@ -76,6 +76,29 @@ Any change that affects the user interface must be covered by a Cypress E2E test
 
 ---
 
+## Observability (non-negotiable)
+
+### Logging
+
+Every module that performs I/O, handles requests, or runs background work must emit structured log entries via the shared `logger` (`apps/api/src/lib/logger.ts`). Log levels must be appropriate:
+- `error` — unhandled exceptions, failed operations that affect the user
+- `warn` — recoverable issues, unexpected-but-handled conditions
+- `info` — lifecycle events (server start, DB connection, request completed)
+- `debug` — query details, intermediate state useful for debugging
+
+The log level is controlled by the `LOG_LEVEL` environment variable (default: `info`). Never use `console.log` or `console.error` in application code — use the logger.
+
+### Error handling
+
+Every route and async operation must have explicit error handling. Rules:
+- Express route handlers must pass errors to `next(err)` — never swallow them silently
+- All `async` route handlers must be wrapped so unhandled promise rejections reach the Express error middleware
+- The global error middleware (`apps/api/src/middleware/error.ts`) is the single place where errors are mapped to HTTP responses and logged
+- Never expose raw error messages or stack traces to API clients in production — map to safe, generic messages
+- Error boundaries in React (`apps/web`) must be present at the page level to prevent full-app crashes from component errors
+
+---
+
 ## Workflow
 
 ### Implementation is step-by-step

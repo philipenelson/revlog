@@ -1,6 +1,7 @@
 {
   "extends": "@maintenance-log/typescript-config/node.json",
   "compilerOptions": {
+    "strict": true,
     "outDir": "./dist",
     "rootDir": "./src"
   },
