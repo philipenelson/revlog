@@ -76,6 +76,14 @@ Any change that affects the user interface must be covered by a Cypress E2E test
 
 ---
 
+## Workflow
+
+### Implementation is step-by-step
+
+Complete one logical step, confirm the goal was achieved, commit the changes, then move to the next step. Never batch multiple steps into a single commit unless explicitly asked.
+
+---
+
 ## Domain
 
 Product name in the UI is **Revlog**. Internal package namespace remains `maintenance-log`. See `CONTEXT.md` for full domain language glossary.
