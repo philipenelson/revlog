@@ -6,6 +6,20 @@ A motorcycle maintenance tracking application. Owners log maintenance events, fu
 
 ## Language
 
+### Identity and access
+
+**Account**:
+A workspace that groups one or more Users. Can be personal (exactly one User — the individual themselves) or organisational (multiple Users with different roles, e.g. a workshop with several mechanics). Vehicles belong to an Account, not to individual Users. An Account is never transferred between people.
+_Avoid_: Profile, identity, tenant
+
+**User**:
+A person who authenticates and acts within an Account. Credentials (email, password) live on the User, not the Account. Every User has a role that determines what they can see and do. Authentication is always performed against a User.
+_Avoid_: Member, person, account holder
+
+**Owner**:
+A User role. An Owner manages their own Garage and logs maintenance history for their Vehicles. The sole User role in V1. When copy refers to "the owner" of a Vehicle, it means the Owner-role User whose Account the Vehicle belongs to.
+_Avoid_: Rider, biker (use Owner when the role is specifically relevant)
+
 ### Vehicles
 
 **Garage**:

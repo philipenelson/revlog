@@ -36,6 +36,46 @@ pnpm hooks
 
 ---
 
+## Documentation (non-negotiable)
+
+Documentation comes **before** implementation. Nothing gets built without a document first.
+
+### Architecture decisions → ADR
+
+Every decision about the stack, infrastructure, or technical approach requires an ADR in `docs/adr/`. This includes libraries chosen, patterns adopted, tools selected, and significant trade-offs made. Use the existing ADR format. No ADR = the decision didn't happen.
+
+### Features → Spec with use cases and acceptance criteria
+
+Every feature requires a spec file in `docs/specs/<area>/<feature>.md` before any code is written. The spec must include:
+- **Use cases** — who does what, under what precondition, and what happens
+- **Acceptance criteria** — a checklist of testable conditions that define "done"
+- **Decisions** — significant choices made for this feature and why
+- **V2+ items** — anything explicitly deferred, with rationale
+
+Organize specs into subfolders by feature area (e.g. `docs/specs/auth/`, `docs/specs/garage/`).
+
+### Use cases → Milestone
+
+Every use case must appear in at least one milestone file in `docs/milestones/`. A use case can appear in multiple milestones when it is being iterated on (e.g. basic version in V1, enhanced version in V2). Milestones are the source of truth for what is in scope for a given release.
+
+There are no exceptions to any of the above. Documentation is a first-class deliverable.
+
+---
+
+## Testing (non-negotiable)
+
+### Every UI change requires an E2E test
+
+Any change that affects the user interface must be covered by a Cypress E2E test in `apps/web/cypress/e2e/`. The test must cover:
+- The primary happy path for the changed screen or component
+- Any error states introduced or modified
+
+### A feature is not done without automated tests
+
+"Done" means: spec written, code merged, and automated tests passing. A feature with no test is not done, regardless of how the UI looks. This applies to every screen, every form, and every interactive behaviour.
+
+---
+
 ## Domain
 
 Product name in the UI is **Revlog**. Internal package namespace remains `maintenance-log`. See `CONTEXT.md` for full domain language glossary.

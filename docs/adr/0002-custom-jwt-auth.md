@@ -6,6 +6,26 @@ NextAuth v5 (Auth.js) would be the obvious choice for a Next.js app, but it abst
 
 accepted
 
+## Token design
+
+Authentication is performed against a **User**, not an Account (see `CONTEXT.md` — a single Account can hold multiple Users with different roles). The JWT access token payload must therefore carry User-level identity:
+
+```json
+{
+  "sub": "<userId>",
+  "accountId": "<accountId>",
+  "role": "owner",
+  "iat": 1234567890,
+  "exp": 1234568790
+}
+```
+
+- `sub` — the User's ID (standard JWT subject claim)
+- `accountId` — the Account the User belongs to; used for data scoping
+- `role` — the User's role within their Account; used for authorisation
+
+The refresh token carries only `sub` (userId) and its own expiry. It is stored as an HTTP-only, Secure, SameSite=Strict session cookie (no `Max-Age` in V1). It is rotated on every use.
+
 ## V2 consideration
 
-Add OAuth (Google, Apple) on top of the existing JWT infrastructure. Evaluate whether Auth.js is worth pulling in just for the OAuth dance at that point, keeping the custom JWT layer underneath.
+Add OAuth sign-in on top of the existing JWT infrastructure. The custom JWT layer stays underneath — OAuth only handles the identity verification step, not the session model. Evaluate available auth libraries at implementation time (Auth.js, Lucia, Better Auth, Clerk); provider support depends on the chosen library.
