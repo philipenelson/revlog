@@ -1,7 +1,7 @@
 # Registration API Spec
 
 **Area:** Auth  
-**Status:** Planned  
+**Status:** Implemented  
 **Last updated:** 2026-06-06
 
 ---
@@ -35,11 +35,24 @@ Content-Type: application/json
 }
 ```
 
+### Input sanitization
+
+Applied by Zod transforms in `registerSchema` before the service receives any data:
+
+| Field | Transform |
+|---|---|
+| `email` | Trim whitespace, normalize to lowercase — ensures canonical uniqueness (`Test@Example.COM` → `test@example.com`) |
+| `fullName` | Trim whitespace — `"  John Smith  "` → `"John Smith"` |
+| `password` / `confirmPassword` | **Not trimmed** — spaces in passwords are intentional and valid |
+
+The verification token query param (`GET /auth/verify-email?token=…`) is trimmed in the route handler before the service is called, guarding against copy-paste whitespace.
+
 ### Password rules
 
 Validated by the shared `registerSchema` in `packages/domain` (see [ADR 0010](../../adr/0010-zod-validation.md)):
 
 - Minimum 8 Unicode code points (not bytes)
+- Maximum 128 characters — prevents bcrypt DoS (bcrypt truncates at 72 bytes; 128 is the safe conventional ceiling without revealing the implementation detail)
 - At least one Unicode letter (`\p{L}`) — covers Latin, CJK, Arabic, etc.
 - At least one Unicode digit (`\p{N}`) — covers full-width and half-width numerals
 
@@ -100,7 +113,7 @@ On a 200 response, the server also sets the refresh token as a cookie:
 Set-Cookie: refreshToken=<token>; HttpOnly; Secure; SameSite=Strict; Path=/
 ```
 
-No `Max-Age` — session cookie only (expires on browser close). See [ADR 0002](../../adr/0002-custom-jwt-auth.md).
+No `Max-Age` on the cookie — session cookie (expires on browser close). The corresponding `RefreshToken` DB record has a 7-day `expiresAt` enforced server-side. See [ADR 0002](../../adr/0002-custom-jwt-auth.md) and [ADR 0012](../../adr/0012-refresh-token-storage.md).
 
 ### Token validation logic
 
@@ -109,8 +122,8 @@ No `Max-Age` — session cookie only (expires on browser close). See [ADR 0002](
 3. If found:
    - Set `emailVerified = true`
    - Clear `verificationToken` and `verificationTokenExpiresAt` (set to `null`)
-   - Issue access token (15 min, payload: `sub`, `accountId`, `role`)
-   - Issue refresh token (session cookie, payload: `sub` only)
+   - Issue access token — stateless JWT, 15 min TTL, payload: `sub`, `accountId`, `role`
+   - Issue refresh token — opaque random value (`crypto.randomBytes(32)`); SHA-256 hash stored in `RefreshToken` table with `expiresAt` (7 days); raw value placed in cookie (see [ADR 0012](../../adr/0012-refresh-token-storage.md))
 4. Return 200 with access token and minimal user payload
 
 ### Client behaviour after 200
@@ -127,16 +140,16 @@ The `/verify-email` screen shows an error state with a "Resend verification emai
 
 ## Acceptance Criteria
 
-- [ ] `POST /auth/register` with valid body creates one Account row and one User row in a single transaction
-- [ ] `POST /auth/register` with valid body sends an email to the provided address (verifiable in Mailpit at `http://localhost:8025` during dev)
-- [ ] `POST /auth/register` with an already-registered email returns 409
-- [ ] `POST /auth/register` with invalid body (short password, mismatched passwords, missing field) returns 400 with Zod details
-- [ ] `POST /auth/register` does not reveal whether an email exists (UI shows same message for 400 and 409)
-- [ ] `GET /auth/verify-email?token=<valid>` returns 200, sets refresh cookie, returns access token
-- [ ] `GET /auth/verify-email?token=<valid>` marks the User as `emailVerified: true` and clears the token fields
-- [ ] `GET /auth/verify-email?token=<expired>` returns 400
-- [ ] `GET /auth/verify-email?token=<invalid>` returns 400
-- [ ] `GET /auth/verify-email?token=<already-used>` returns 400 (token cleared after first use)
+- [x] `POST /auth/register` with valid body creates one Account row and one User row in a single transaction
+- [x] `POST /auth/register` with valid body sends an email to the provided address (verifiable in Mailpit at `http://localhost:8025` during dev)
+- [x] `POST /auth/register` with an already-registered email returns 409
+- [x] `POST /auth/register` with invalid body (short password, mismatched passwords, missing field) returns 400 with Zod details
+- [x] `POST /auth/register` does not reveal whether an email exists (UI shows same message for 400 and 409)
+- [x] `GET /auth/verify-email?token=<valid>` returns 200, sets refresh cookie, returns access token
+- [x] `GET /auth/verify-email?token=<valid>` marks the User as `emailVerified: true` and clears the token fields
+- [x] `GET /auth/verify-email?token=<expired>` returns 400
+- [x] `GET /auth/verify-email?token=<invalid>` returns 400
+- [x] `GET /auth/verify-email?token=<already-used>` returns 400 (token cleared after first use)
 
 ---
 
@@ -144,7 +157,8 @@ The `/verify-email` screen shows an error state with a "Resend verification emai
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Verification token type | `crypto.randomUUID()` stored on User row | Single-use, overwritable on resend, no extra table — see grilling session notes |
+| Verification token type | `crypto.randomUUID()` stored on User row | Single-use, overwritable on resend; 1:1 with User so no extra table needed |
+| Refresh token type | Opaque `crypto.randomBytes(32)`, SHA-256 hash in `RefreshToken` table | DB-backed = truly revocable per session; opaque = no payload leakage; SHA-256 sufficient for high-entropy tokens (see [ADR 0012](../../adr/0012-refresh-token-storage.md)) |
 | Token expiry | 24 hours | Standard industry default; long enough to survive "I'll do it later", short enough to limit exposure |
 | Account creation | Atomic Prisma transaction with User | Registration cannot leave an orphaned Account or User |
 | Account type on creation | `PERSONAL` | Only type supported in V1; field present for non-breaking V2 extension |
