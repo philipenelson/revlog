@@ -70,9 +70,26 @@ Any change that affects the user interface must be covered by a Cypress E2E test
 - The primary happy path for the changed screen or component
 - Any error states introduced or modified
 
+### Every API service and route requires unit tests
+
+Every service method and route handler in `apps/api` must have a Vitest unit test covering the primary happy path and all guard clauses (error conditions, validation failures). Run with `pnpm --filter @maintenance-log/api test`. See `apps/api/CLAUDE.md` for what to test and what not to test.
+
 ### A feature is not done without automated tests
 
 "Done" means: spec written, code merged, and automated tests passing. A feature with no test is not done, regardless of how the UI looks. This applies to every screen, every form, and every interactive behaviour.
+
+---
+
+## Input handling (non-negotiable)
+
+All string input from external sources (request bodies, query params) must be sanitized at the validation boundary before reaching service methods:
+
+- **Email fields** — trim whitespace, normalize to lowercase
+- **Name and text fields** — trim whitespace
+- **Passwords** — never trim; spaces in passwords are intentional and valid
+- **All fields** — enforce a maximum length appropriate to the field
+
+Sanitization is applied via Zod transforms in `packages/domain/src/schemas/` (for request bodies) and in the route handler for query params. Nothing arrives at a service method unsanitized.
 
 ---
 
