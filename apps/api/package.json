@@ -12,11 +12,13 @@
   },
   "dependencies": {
     "@maintenance-log/domain": "workspace:*",
+    "@prisma/client": "^7.8.0",
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "helmet": "^8.0.0",
     "jose": "^5.10.0",
-    "bcrypt": "^5.1.1"
+    "nodemailer": "^8.0.10"
   },
   "devDependencies": {
     "@maintenance-log/eslint-config": "workspace:*",
@@ -25,6 +27,8 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.3",
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.0",
+    "prisma": "^7.8.0",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3"
   }

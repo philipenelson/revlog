@@ -200,7 +200,7 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 | "Remember me" checkbox | Removed for V1 | Persistent sessions require token rotation strategy; deferred to V2 |
 | OAuth | Placeholder button only for V1 | See V2 section |
 | Auth implementation | Custom JWT (`jose` + `bcrypt`), no auth framework | See [ADR 0002](../../adr/0002-custom-jwt-auth.md) |
-| Dev email testing | MailHog (Docker) | Avoid bypassing verification in dev — real code path catches real bugs |
+| Dev email testing | Mailpit (Docker) | Avoid bypassing verification in dev — real code path catches real bugs |
 
 ---
 

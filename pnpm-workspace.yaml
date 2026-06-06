@@ -4,8 +4,10 @@ packages:
   - "packages/ui/*"
 
 allowBuilds:
+  '@prisma/engines': true
   bcrypt: true
   cypress: true
   esbuild: true
+  prisma: true
   sharp: true
   unrs-resolver: true

@@ -128,7 +128,7 @@ The `/verify-email` screen shows an error state with a "Resend verification emai
 ## Acceptance Criteria
 
 - [ ] `POST /auth/register` with valid body creates one Account row and one User row in a single transaction
-- [ ] `POST /auth/register` with valid body sends an email to the provided address (verifiable in MailHog during dev)
+- [ ] `POST /auth/register` with valid body sends an email to the provided address (verifiable in Mailpit at `http://localhost:8025` during dev)
 - [ ] `POST /auth/register` with an already-registered email returns 409
 - [ ] `POST /auth/register` with invalid body (short password, mismatched passwords, missing field) returns 400 with Zod details
 - [ ] `POST /auth/register` does not reveal whether an email exists (UI shows same message for 400 and 409)
