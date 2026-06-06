@@ -105,6 +105,8 @@ Every module that performs I/O, handles requests, or runs background work must e
 
 The log level is controlled by the `LOG_LEVEL` environment variable (default: `info`). Never use `console.log` or `console.error` in application code — use the logger.
 
+**V2 — OpenTelemetry across all apps.** Pino structured logs are V1's observability floor. In V2, OpenTelemetry adds distributed tracing (API + web), Prisma query spans, and log/trace correlation via `trace_id`. The `logger` interface stays the same; the transport changes. See `docs/milestones/v2.md` — Observability.
+
 ### Error handling
 
 Every route and async operation must have explicit error handling. Rules:

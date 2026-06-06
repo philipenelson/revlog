@@ -61,6 +61,19 @@ API translates between Prisma models and domain types.
 
 ---
 
+## Observability — V2 roadmap
+
+V1 uses Pino structured logging. In V2, OpenTelemetry layers on top:
+- `@opentelemetry/sdk-node` with Express and Prisma instrumentation for distributed tracing
+- Pino log correlation: `trace_id` and `span_id` injected into every log entry
+- OTLP export to a managed backend (Grafana Cloud or Honeycomb — TBD at implementation time)
+
+The `logger` interface (`src/lib/logger.ts`) stays the same; only the transport changes. No call sites need updating.
+
+See `docs/milestones/v2.md` — Observability for the full task list.
+
+---
+
 ## Error handling
 
 All errors flow to the global error middleware (`src/middleware/error.ts`):
