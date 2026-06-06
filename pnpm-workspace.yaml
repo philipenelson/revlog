@@ -5,6 +5,7 @@ packages:
 
 allowBuilds:
   bcrypt: true
+  cypress: true
   esbuild: true
   sharp: true
   unrs-resolver: true

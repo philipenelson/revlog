@@ -24,8 +24,9 @@ export const lineHeight = {
 } as const;
 
 export const fontFamily = {
-  sans: 'System',
-  mono: 'monospace',
+  display: 'Outfit',
+  sans: 'DM Sans',
+  mono: 'Geist Mono',
 } as const;
 
 export type TypographyTokens = {

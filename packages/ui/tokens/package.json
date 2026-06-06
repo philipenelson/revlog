@@ -6,7 +6,8 @@
     ".": "./src/index.ts",
     "./colors": "./src/colors.ts",
     "./spacing": "./src/spacing.ts",
-    "./typography": "./src/typography.ts"
+    "./typography": "./src/typography.ts",
+    "./tokens.css": "./src/tokens.css"
   },
   "devDependencies": {
     "@maintenance-log/typescript-config": "workspace:*",

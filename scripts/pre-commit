@@ -1,0 +1,23 @@
+#!/bin/sh
+# Pre-commit hook — enforces style architecture rules.
+# Installed to .git/hooks/pre-commit via `pnpm hooks`.
+# Source of truth: scripts/pre-commit (committed to repo).
+
+set -e
+ROOT=$(git rev-parse --show-toplevel)
+
+echo "⏳ Running pre-commit checks..."
+
+# ── Rule A: no raw token values outside packages/ui/tokens ────────
+node "$ROOT/scripts/check-raw-tokens.mjs"
+
+# ── Rule B: no inline style props (ESLint) ────────────────────────
+# Strip the "apps/web/" prefix so paths are relative to the ESLint cwd
+STAGED_TSX=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$' | grep "^apps/web/" | sed 's|^apps/web/||' || true)
+if [ -n "$STAGED_TSX" ]; then
+  cd "$ROOT/apps/web"
+  echo "$STAGED_TSX" | xargs pnpm exec eslint --max-warnings 0 --no-warn-ignored
+  cd "$ROOT"
+fi
+
+echo "✔ Pre-commit checks passed."

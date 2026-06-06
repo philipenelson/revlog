@@ -1,0 +1,56 @@
+/* ─────────────────────────────────────────────────────────────────
+   Revlog design tokens — CSS custom properties
+   Source of truth: packages/ui/tokens/src/
+   Imported by apps/web/src/app/globals.css
+   ───────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces */
+  --surface-base:     #0B0D14;
+  --surface-raised:   #131620;
+  --surface-elevated: #1A1D2E;
+  --surface-subtle:   #1F2338;
+
+  /* Borders */
+  --border-muted:   #1E2235;
+  --border-default: #2A2E46;
+  --border-strong:  #3E4260;
+
+  /* Text */
+  --text-primary:   #EDF0F8;
+  --text-secondary: #8C8FA8;
+  --text-tertiary:  #50527A;
+  --text-disabled:  #34375A;
+
+  /* Accent — electric teal */
+  --accent:       #14B8D4;
+  --accent-hover: #22CBEA;
+  --accent-light: #67E2F0;
+  --accent-muted: rgba(20, 184, 212, 0.12);
+  --accent-glow:  rgba(20, 184, 212, 0.06);
+
+  /* Accent alpha variants (for glows & shadows) */
+  --accent-panel-glow:    rgba(20, 184, 212, 0.09);
+  --shadow-accent-pip:    0 0 10px rgba(20, 184, 212, 0.60);
+  --shadow-accent-btn:    0 0 24px rgba(20, 184, 212, 0.18);
+  --shadow-accent-btn-hover: 0 4px 28px rgba(20, 184, 212, 0.28);
+  --shadow-focus-ring:    0 0 0 3px var(--accent-muted);
+
+  /* Accent contrast (text on teal backgrounds) */
+  --accent-contrast: #080A10;
+
+  /* Semantic */
+  --success: #34D399;
+  --warning: #FB923C;
+  --danger:  #F87171;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Transitions */
+  --transition-fast:   150ms ease;
+  --transition-medium: 250ms ease;
+}

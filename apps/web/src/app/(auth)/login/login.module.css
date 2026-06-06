@@ -1,0 +1,364 @@
+/* ── Root ─────────────────────────────────────────────────────── */
+.root {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface-base);
+}
+
+/* ── Brand panel ──────────────────────────────────────────────── */
+.brand {
+  width: 42%;
+  min-width: 360px;
+  background: var(--surface-base);
+  border-right: 1px solid var(--border-muted);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 44px 48px 72px;
+  overflow: hidden;
+}
+
+.dotGrid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--border-default) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.tealGlow {
+  position: absolute;
+  bottom: -120px;
+  left: -120px;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(ellipse at center, var(--accent-panel-glow) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.brandContent {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Logo ─────────────────────────────────────────────────────── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 72px;
+}
+
+.wordmark {
+  font-family: var(--font-outfit);
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.wordmarkLight {
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.wordmarkBold {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── Headline ─────────────────────────────────────────────────── */
+.headline {
+  font-family: var(--font-outfit);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
+  margin-bottom: 22px;
+}
+
+.headlineAccent {
+  color: var(--accent);
+}
+
+.tagline {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  max-width: 320px;
+}
+
+/* ── Feature list ─────────────────────────────────────────────── */
+.featureList {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--shadow-accent-pip);
+  flex-shrink: 0;
+  margin-top: 9px;
+}
+
+.featureTitle {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.featureBody {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 1.55;
+}
+
+/* ── Form panel ───────────────────────────────────────────────── */
+.form {
+  flex: 1;
+  background: var(--surface-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 56px;
+}
+
+.formInner {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* ── Eyebrow ──────────────────────────────────────────────────── */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.eyebrowLine {
+  display: block;
+  width: 18px;
+  height: 1.5px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+.formTitle {
+  font-family: var(--font-outfit);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  margin-bottom: 32px;
+}
+
+/* ── Tab switcher ─────────────────────────────────────────────── */
+.tabList {
+  display: flex;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  margin-bottom: 28px;
+}
+
+.tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-tertiary);
+  font-family: var(--font-dm-sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.tabActive {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+/* ── Form fields ──────────────────────────────────────────────── */
+.field {
+  margin-bottom: 14px;
+}
+
+.fieldLast {
+  margin-bottom: 22px;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+}
+
+.input {
+  width: 100%;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-dm-sans);
+  font-size: 14.5px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus-ring);
+}
+
+/* ── Remember / forgot row ────────────────────────────────────── */
+.rememberRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  margin-bottom: 22px;
+}
+
+.rememberLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.rememberCheckbox {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
+
+.forgotLink {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.forgotLink:hover {
+  color: var(--text-secondary);
+}
+
+/* ── Primary button ───────────────────────────────────────────── */
+.primaryBtn {
+  width: 100%;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent-contrast);
+  font-family: var(--font-dm-sans);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow-accent-btn);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.primaryBtn:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-accent-btn-hover);
+}
+
+/* ── Divider ──────────────────────────────────────────────────── */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border-muted);
+}
+
+.dividerText {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-disabled);
+}
+
+/* ── Google button ────────────────────────────────────────────── */
+.googleBtn {
+  width: 100%;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-dm-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 11px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.googleBtn:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-disabled);
+  line-height: 1.6;
+}
+
+.footerLink {
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  color: var(--text-secondary);
+}

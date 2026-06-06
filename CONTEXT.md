@@ -2,6 +2,8 @@
 
 A motorcycle maintenance tracking application. Owners log maintenance events, fuel fills, and scheduled service items against their vehicles. Service history belongs to the owner, not the dealership.
 
+**Product name (UI):** Revlog. Use "Revlog" in all user-facing copy, branding, and page titles. The internal project and package namespace remains `maintenance-log`.
+
 ## Language
 
 ### Vehicles
