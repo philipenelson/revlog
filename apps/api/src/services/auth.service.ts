@@ -1,5 +1,11 @@
 import bcrypt from 'bcrypt';
-import type { RegisterInput, IUserRepository, IRefreshTokenRepository } from '@maintenance-log/domain';
+import type {
+  RegisterInput,
+  IUserRepository,
+  IRefreshTokenRepository,
+  IAccountRepository,
+  AccountStatus,
+} from '@maintenance-log/domain';
 import { signAccessToken, generateRefreshToken } from '../lib/tokens';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
@@ -29,12 +35,14 @@ export interface VerifyEmailResult {
   accessToken: string;
   refreshToken: string;
   user: { id: string; accountId: string; role: string };
+  account: { id: string; status: AccountStatus };
 }
 
 export class AuthService {
   constructor(
     private readonly userRepo: IUserRepository,
     private readonly refreshTokenRepo: IRefreshTokenRepository,
+    private readonly accountRepo: IAccountRepository,
     private readonly emailService: IEmailService,
   ) {}
 
@@ -68,12 +76,20 @@ export class AuthService {
     const { raw, hash } = generateRefreshToken();
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
+    // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
+    const account = (await this.accountRepo.findById(user.accountId))!;
+
     const [accessToken] = await Promise.all([
       signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
     ]);
 
     logger.info({ userId: user.id }, 'email verified');
-    return { accessToken, refreshToken: raw, user: { id: user.id, accountId: user.accountId, role: user.role } };
+    return {
+      accessToken,
+      refreshToken: raw,
+      user: { id: user.id, accountId: user.accountId, role: user.role },
+      account: { id: account.id, status: account.status },
+    };
   }
 }

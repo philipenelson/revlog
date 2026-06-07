@@ -23,7 +23,7 @@ export function createApp(): Express {
   const refreshTokenRepo = new PrismaRefreshTokenRepository(prisma);
   const accountRepo = new PrismaAccountRepository(prisma);
   const vehicleRepo = new PrismaVehicleRepository(prisma);
-  const authService = new AuthService(userRepo, refreshTokenRepo, { sendVerificationEmail });
+  const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail });
   const vehicleService = new VehicleService(vehicleRepo, accountRepo);
   const accountService = new AccountService(accountRepo);
 

@@ -5,6 +5,7 @@ import { AppError } from '../middleware/error';
 import type {
   IUserRepository,
   IRefreshTokenRepository,
+  IAccountRepository,
   DomainUser,
   DomainAccount,
   DomainRefreshToken,
@@ -19,6 +20,7 @@ const fixedNow = new Date('2026-01-01T00:00:00Z');
 const mockAccount: DomainAccount = {
   id: 'account-1',
   type: 'PERSONAL',
+  status: 'ONBOARDING',
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
@@ -66,6 +68,15 @@ function makeFakeRefreshTokenRepo(overrides: Partial<IRefreshTokenRepository> = 
   };
 }
 
+function makeFakeAccountRepo(overrides: Partial<IAccountRepository> = {}): IAccountRepository {
+  return {
+    create: vi.fn().mockResolvedValue(mockAccount),
+    findById: vi.fn().mockResolvedValue(mockAccount),
+    markActive: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
 const validInput = {
   fullName: 'Test User',
   email: 'test@example.com',
@@ -76,6 +87,7 @@ const validInput = {
 describe('AuthService.register', () => {
   let userRepo: IUserRepository;
   let refreshTokenRepo: IRefreshTokenRepository;
+  let accountRepo: IAccountRepository;
   let emailService: IEmailService;
   let service: AuthService;
 
@@ -83,13 +95,14 @@ describe('AuthService.register', () => {
     vi.clearAllMocks();
     userRepo = makeFakeUserRepo();
     refreshTokenRepo = makeFakeRefreshTokenRepo();
+    accountRepo = makeFakeAccountRepo();
     emailService = { sendVerificationEmail: vi.fn().mockResolvedValue(undefined) } as unknown as IEmailService;
-    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
   });
 
   it('throws 409 when the email is already registered', async () => {
     userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockUser) });
-    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
 
     await expect(service.register(validInput)).rejects.toMatchObject({
       statusCode: 409,
@@ -99,7 +112,7 @@ describe('AuthService.register', () => {
 
   it('does not proceed to account creation when email is already registered', async () => {
     userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockUser) });
-    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
 
     await expect(service.register(validInput)).rejects.toBeInstanceOf(AppError);
     expect(userRepo.createWithAccount).not.toHaveBeenCalled();
@@ -141,7 +154,7 @@ describe('AuthService.register', () => {
     userRepo = makeFakeUserRepo({
       createWithAccount: vi.fn().mockRejectedValue(new Error('DB down')),
     });
-    service = new AuthService(userRepo, refreshTokenRepo, emailService);
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
 
     await expect(service.register(validInput)).rejects.toThrow('DB down');
     expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
@@ -151,6 +164,7 @@ describe('AuthService.register', () => {
 describe('AuthService.verifyEmail', () => {
   let userRepo: IUserRepository;
   let refreshTokenRepo: IRefreshTokenRepository;
+  let accountRepo: IAccountRepository;
   let service: AuthService;
 
   beforeEach(() => {
@@ -159,12 +173,13 @@ describe('AuthService.verifyEmail', () => {
       findByVerificationToken: vi.fn().mockResolvedValue(mockUser),
     });
     refreshTokenRepo = makeFakeRefreshTokenRepo();
-    service = new AuthService(userRepo, refreshTokenRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+    accountRepo = makeFakeAccountRepo();
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
   });
 
   it('throws 400 when the token is not found or expired', async () => {
     userRepo = makeFakeUserRepo({ findByVerificationToken: vi.fn().mockResolvedValue(null) });
-    service = new AuthService(userRepo, refreshTokenRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
 
     await expect(service.verifyEmail('bad-token')).rejects.toMatchObject({
       statusCode: 400,
@@ -175,6 +190,13 @@ describe('AuthService.verifyEmail', () => {
   it('marks the user email as verified', async () => {
     await service.verifyEmail('tok-abc');
     expect(userRepo.markVerified).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it('looks up and returns the account associated with the user', async () => {
+    const result = await service.verifyEmail('tok-abc');
+
+    expect(accountRepo.findById).toHaveBeenCalledWith(mockUser.accountId);
+    expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
   });
 
   it('stores the hashed refresh token, not the raw token value', async () => {
@@ -191,6 +213,7 @@ describe('AuthService.verifyEmail', () => {
     expect(result.accessToken).toMatch(/^eyJ/); // JWT header
     expect(result.refreshToken).toMatch(/^[0-9a-f]{64}$/); // 32 bytes as hex
     expect(result.user).toEqual({ id: mockUser.id, accountId: mockUser.accountId, role: mockUser.role });
+    expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
   });
 
   it('the stored hash is the SHA-256 of the returned raw refresh token', async () => {

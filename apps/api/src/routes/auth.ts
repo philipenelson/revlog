@@ -35,7 +35,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
         sameSite: 'strict',
         path: '/',
       });
-      res.status(200).json({ accessToken: result.accessToken, user: result.user });
+      res.status(200).json({ accessToken: result.accessToken, user: result.user, account: result.account });
     } catch (err) {
       next(err);
     }

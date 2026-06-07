@@ -29,6 +29,7 @@ const verifyEmailResult = {
   accessToken: 'eyJmake.token.here',
   refreshToken: 'a'.repeat(64),
   user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
+  account: { id: 'acc-1', status: 'ONBOARDING' },
 };
 
 describe('POST /auth/register', () => {
@@ -102,7 +103,11 @@ describe('GET /auth/verify-email', () => {
     const res = await supertest(buildApp()).get('/auth/verify-email?token=valid-token');
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ accessToken: verifyEmailResult.accessToken, user: verifyEmailResult.user });
+    expect(res.body).toMatchObject({
+      accessToken: verifyEmailResult.accessToken,
+      user: verifyEmailResult.user,
+      account: verifyEmailResult.account,
+    });
   });
 
   it('calls authService.verifyEmail with the token from the query string', async () => {

@@ -147,6 +147,7 @@ The `/verify-email` screen shows an error state with a "Resend verification emai
 - [x] `POST /auth/register` with invalid body (short password, mismatched passwords, missing field) returns 400 with Zod details
 - [x] `POST /auth/register` does not reveal whether an email exists (UI shows same message for 400 and 409)
 - [x] `GET /auth/verify-email?token=<valid>` returns 200, sets refresh cookie, returns access token
+- [x] `GET /auth/verify-email?token=<valid>` response includes `account: { id, status }` so the client can apply the post-verification routing rule (see [ADR 0015](../../adr/0015-account-status-state-machine.md))
 - [x] `GET /auth/verify-email?token=<valid>` marks the User as `emailVerified: true` and clears the token fields
 - [x] `GET /auth/verify-email?token=<expired>` returns 400
 - [x] `GET /auth/verify-email?token=<invalid>` returns 400
