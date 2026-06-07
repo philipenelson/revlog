@@ -1,0 +1,366 @@
+"use client";
+
+import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import styles from "./onboarding.module.css";
+
+type Step = 1 | 2 | 3;
+
+const STEP_LABELS = ["Welcome", "Your vehicle", "Ready"] as const;
+
+interface VehicleDraft {
+  nickname: string;
+  make: string;
+  model: string;
+  year: string;
+  mileage: string;
+}
+
+const EMPTY_DRAFT: VehicleDraft = { nickname: "", make: "", model: "", year: "", mileage: "" };
+
+type FieldErrors = Partial<Record<keyof VehicleDraft, string>>;
+
+export default function OnboardingPage() {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>(1);
+  const [draft, setDraft] = useState<VehicleDraft>(EMPTY_DRAFT);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [vehicle, setVehicle] = useState<VehicleDraft | null>(null);
+
+  function updateField(field: keyof VehicleDraft) {
+    return (e: ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.target;
+      setDraft((d) => ({ ...d, [field]: value }));
+      setErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
+    };
+  }
+
+  function validateDraft(): FieldErrors {
+    const next: FieldErrors = {};
+    if (!draft.make.trim()) next.make = "Enter the manufacturer.";
+    if (!draft.model.trim()) next.model = "Enter the model.";
+    if (!/^\d+$/.test(draft.year.trim())) next.year = "Enter a numeric year.";
+    if (!/^[\d,]+$/.test(draft.mileage.trim())) next.mileage = "Enter the current mileage.";
+    return next;
+  }
+
+  function handleContinue(e: FormEvent) {
+    e.preventDefault();
+    const nextErrors = validateDraft();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+    setVehicle({ ...draft });
+    setStep(3);
+  }
+
+  function goToGarage() {
+    router.push("/garage");
+  }
+
+  return (
+    <div className={styles.scene}>
+      <div className={styles.card}>
+        <div className={styles.cardLogo}>
+          <Logo />
+          <div className={styles.wordmark}>
+            <span className={styles.wordmarkLight}>Rev</span>
+            <span className={styles.wordmarkBold}>log</span>
+          </div>
+        </div>
+
+        <StepIndicator step={step} />
+
+        {step === 1 && (
+          <section className={styles.wizardStep} data-testid="step-welcome">
+            <div className={styles.eyebrow}>Welcome to Revlog</div>
+            <h1 className={styles.headline}>Let&apos;s set up your garage</h1>
+            <p className={styles.bodyCopy}>
+              Add the vehicle you ride most — you can always add more later. It
+              takes less than a minute, and it&apos;s the start of a service
+              history that&apos;s truly yours.
+            </p>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              data-testid="add-first-vehicle-btn"
+              onClick={() => setStep(2)}
+            >
+              Add my first vehicle
+              <ArrowIcon />
+            </button>
+            <button
+              type="button"
+              className={styles.textLink}
+              data-testid="skip-onboarding-btn"
+              onClick={goToGarage}
+            >
+              Skip for now
+            </button>
+          </section>
+        )}
+
+        {step === 2 && (
+          <section className={styles.wizardStep} data-testid="step-vehicle">
+            <div className={styles.eyebrow}>Step 2 of 3 — Your vehicle</div>
+            <h1 className={styles.headline}>Tell us about your bike</h1>
+            <p className={styles.bodyCopy}>
+              Just the basics for now — you can fill in the rest from its detail
+              page anytime.
+            </p>
+
+            <form className={styles.formFields} onSubmit={handleContinue} noValidate>
+              <Field label="Nickname" id="fNickname" optional>
+                <input
+                  id="fNickname"
+                  type="text"
+                  placeholder="e.g. The Daily"
+                  autoComplete="off"
+                  className={styles.fieldInput}
+                  data-testid="nickname-input"
+                  value={draft.nickname}
+                  onChange={updateField("nickname")}
+                />
+              </Field>
+
+              <div className={styles.fieldRow}>
+                <Field label="Make" id="fMake" error={errors.make}>
+                  <input
+                    id="fMake"
+                    type="text"
+                    placeholder="Triumph"
+                    autoComplete="off"
+                    className={`${styles.fieldInput} ${errors.make ? styles.fieldInputError : ""}`}
+                    data-testid="make-input"
+                    value={draft.make}
+                    onChange={updateField("make")}
+                  />
+                </Field>
+                <Field label="Model" id="fModel" error={errors.model}>
+                  <input
+                    id="fModel"
+                    type="text"
+                    placeholder="Street Triple RS"
+                    autoComplete="off"
+                    className={`${styles.fieldInput} ${errors.model ? styles.fieldInputError : ""}`}
+                    data-testid="model-input"
+                    value={draft.model}
+                    onChange={updateField("model")}
+                  />
+                </Field>
+              </div>
+
+              <div className={styles.fieldRow}>
+                <Field label="Year" id="fYear" error={errors.year}>
+                  <input
+                    id="fYear"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="2021"
+                    autoComplete="off"
+                    className={`${styles.fieldInput} ${errors.year ? styles.fieldInputError : ""}`}
+                    data-testid="year-input"
+                    value={draft.year}
+                    onChange={updateField("year")}
+                  />
+                </Field>
+                <Field label="Current mileage" id="fMileage" error={errors.mileage}>
+                  <div className={styles.inputSuffixWrap}>
+                    <input
+                      id="fMileage"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="14,230"
+                      autoComplete="off"
+                      className={`${styles.fieldInput} ${errors.mileage ? styles.fieldInputError : ""}`}
+                      data-testid="mileage-input"
+                      value={draft.mileage}
+                      onChange={updateField("mileage")}
+                    />
+                    <span className={styles.inputSuffix}>mi</span>
+                  </div>
+                </Field>
+              </div>
+
+              <div className={styles.wizardActions}>
+                <button
+                  type="button"
+                  className={styles.btnGhost}
+                  data-testid="back-btn"
+                  onClick={() => setStep(1)}
+                >
+                  Back
+                </button>
+                <button type="submit" className={styles.btnPrimary} data-testid="continue-btn">
+                  Continue
+                  <ArrowIcon />
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {step === 3 && vehicle && (
+          <section className={styles.wizardStep} data-testid="step-ready">
+            <SuccessOrb />
+            <div className={`${styles.eyebrow} ${styles.eyebrowSuccess}`}>All set</div>
+            <h1 className={styles.headline} data-testid="ready-headline">
+              {readyHeadline(vehicle)}
+            </h1>
+            <p className={styles.bodyCopy}>
+              You&apos;re ready to start logging its service history — every oil
+              change, tyre swap, and repair, all in one place.
+            </p>
+
+            <div className={styles.vehiclePlate} data-testid="vehicle-plate">
+              <div className={styles.plateRow}>
+                <span>Nickname</span>
+                <strong>{vehicle.nickname.trim() || "—"}</strong>
+              </div>
+              <div className={styles.plateRow}>
+                <span>Make &amp; model</span>
+                <strong>{`${vehicle.make.trim()} ${vehicle.model.trim()}`.trim()}</strong>
+              </div>
+              <div className={styles.plateRow}>
+                <span>Year</span>
+                <strong>{vehicle.year.trim()}</strong>
+              </div>
+              <div className={styles.plateRow}>
+                <span>Mileage</span>
+                <strong className={styles.mono}>{`${vehicle.mileage.trim()} mi`}</strong>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              data-testid="go-to-garage-btn"
+              onClick={goToGarage}
+            >
+              Go to my garage
+              <ArrowIcon />
+            </button>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Helpers ────────────────────────────────────────────────────── */
+
+function readyHeadline(vehicle: VehicleDraft): string {
+  const displayName = vehicle.nickname.trim() || `${vehicle.make.trim()} ${vehicle.model.trim()}`.trim();
+  return `${displayName} is in your garage`;
+}
+
+/* ── Sub-components ─────────────────────────────────────────────── */
+
+function StepIndicator({ step }: { step: Step }) {
+  return (
+    <div data-testid="step-indicator" data-active-step={step}>
+      <div className={styles.stepTrack}>
+        {([1, 2, 3] as Step[]).map((n) => (
+          <div
+            key={n}
+            className={`${styles.stepTick} ${
+              n < step ? styles.stepTickDone : n === step ? styles.stepTickActive : ""
+            }`}
+          />
+        ))}
+      </div>
+      <div className={styles.stepLabels}>
+        {STEP_LABELS.map((label, i) => {
+          const n = (i + 1) as Step;
+          return (
+            <span
+              key={label}
+              className={n === step ? styles.stepLabelActive : n < step ? styles.stepLabelDone : ""}
+            >
+              {label}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  id,
+  optional,
+  error,
+  children,
+}: {
+  label: string;
+  id: string;
+  optional?: boolean;
+  error?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={styles.field}>
+      <label className={styles.fieldLabel} htmlFor={id}>
+        {label}
+        {optional && <span className={styles.optional}> (optional)</span>}
+      </label>
+      {children}
+      {error && (
+        <span className={styles.fieldError} role="alert">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Logo() {
+  return (
+    <svg width="30" height="30" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+      <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="var(--surface-subtle)" strokeWidth="3" strokeLinecap="round" />
+      <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
+      <line x1="18" y1="18" x2="27.5" y2="13" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="18" cy="18" r="2.2" fill="var(--accent)" />
+      <circle cx="30.1" cy="11" r="1.5" fill="var(--danger)" opacity="0.8" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 7.5h10M8.5 4.5l3 3-3 3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SuccessOrb() {
+  return (
+    <div className={styles.statusOrb}>
+      <div aria-hidden="true" className={styles.orbGlow} />
+      <svg className={styles.orbRing} viewBox="0 0 100 100" aria-hidden="true">
+        <circle className={styles.ringTrack} cx="50" cy="50" r="42" />
+        <circle className={styles.ringArc} cx="50" cy="50" r="42" transform="rotate(-90 50 50)" />
+      </svg>
+      <div className={styles.orbIcon}>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            className={styles.checkPath}
+            d="M7.5 12.4l3 3 6-6.4"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
