@@ -1,7 +1,7 @@
 # Onboarding Wizard Spec
 
 **Route:** `/onboarding`
-**Status:** UI in progress, backend integration pending
+**Status:** UI complete (stubbed submit), backend integration pending
 **Last updated:** 2026-06-07
 
 ---
