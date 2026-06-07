@@ -9,4 +9,15 @@ export class PrismaAccountRepository implements IAccountRepository {
   async create(type: AccountType): Promise<DomainAccount> {
     return this.db.account.create({ data: { type } });
   }
+
+  async findById(id: string): Promise<DomainAccount | null> {
+    return this.db.account.findUnique({ where: { id } });
+  }
+
+  async markActive(id: string): Promise<void> {
+    await this.db.account.updateMany({
+      where: { id, status: 'ONBOARDING' },
+      data: { status: 'ACTIVE' },
+    });
+  }
 }
