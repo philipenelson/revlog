@@ -11,16 +11,23 @@ enum AccountType {
   PERSONAL
 }
 
+enum AccountStatus {
+  ONBOARDING
+  ACTIVE
+}
+
 enum Role {
   OWNER
 }
 
 model Account {
-  id        String      @id @default(uuid())
-  type      AccountType @default(PERSONAL)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id        String        @id @default(uuid())
+  type      AccountType   @default(PERSONAL)
+  status    AccountStatus @default(ONBOARDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   users     User[]
+  vehicles  Vehicle[]
 }
 
 model User {
@@ -50,4 +57,19 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model Vehicle {
+  id        String   @id @default(uuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id])
+  nickname  String?
+  make      String
+  model     String
+  year      Int
+  mileage   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
 }
