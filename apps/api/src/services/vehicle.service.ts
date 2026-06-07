@@ -18,4 +18,8 @@ export class VehicleService {
     logger.info({ accountId, vehicleId: vehicle.id }, 'vehicle created');
     return vehicle;
   }
+
+  async listVehicles(accountId: string): Promise<DomainVehicle[]> {
+    return this.vehicleRepo.findAllByAccountId(accountId);
+  }
 }

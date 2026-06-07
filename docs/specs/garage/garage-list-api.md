@@ -1,7 +1,7 @@
 # Garage List API Spec
 
 **Area:** Garage
-**Status:** In progress
+**Status:** Implemented
 **Last updated:** 2026-06-07
 
 ---
@@ -67,12 +67,12 @@ None — this is a read-only query. It does not touch `Account.status`; onboardi
 
 ## Acceptance Criteria
 
-- [ ] `GET /vehicles` with a valid bearer token returns 200 and every Vehicle scoped to the caller's Account — never another Account's Vehicles
-- [ ] `GET /vehicles` for an Account with no Vehicles returns 200 `{ vehicles: [] }` (not a 404 — an empty garage is a valid, expected state, not an error)
-- [ ] `GET /vehicles` orders results by `updatedAt` descending (most-recently-touched Vehicle first — see Decisions — "Sort order proxy")
-- [ ] `GET /vehicles` with no/invalid/expired bearer token returns 401 and performs no query
-- [ ] Each Vehicle in the response includes `logEntryCount: 0` (see Decisions — "`logEntryCount` is a hardcoded placeholder")
-- [ ] Response payload matches the stat blocks the Garage screen design renders per card (nickname/make/model/year, odometer reading with its unit, log entry count or "No entries yet")
+- [x] `GET /vehicles` with a valid bearer token returns 200 and every Vehicle scoped to the caller's Account — never another Account's Vehicles
+- [x] `GET /vehicles` for an Account with no Vehicles returns 200 `{ vehicles: [] }` (not a 404 — an empty garage is a valid, expected state, not an error)
+- [x] `GET /vehicles` orders results by `updatedAt` descending (most-recently-touched Vehicle first — see Decisions — "Sort order proxy")
+- [x] `GET /vehicles` with no/invalid/expired bearer token returns 401 and performs no query
+- [x] Each Vehicle in the response includes `logEntryCount: 0` (see Decisions — "`logEntryCount` is a hardcoded placeholder")
+- [x] Response payload matches the stat blocks the Garage screen design renders per card (nickname/make/model/year, odometer reading with its unit, log entry count or "No entries yet")
 
 ---
 

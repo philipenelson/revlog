@@ -14,8 +14,23 @@ function toVehicleResponse(vehicle: DomainVehicle) {
   };
 }
 
+// logEntryCount is a hardcoded placeholder until the LogEntry model exists —
+// see garage-list-api.md "Decisions — logEntryCount is a hardcoded placeholder".
+function toVehicleListItemResponse(vehicle: DomainVehicle) {
+  return { ...toVehicleResponse(vehicle), logEntryCount: 0 };
+}
+
 export function createVehicleRouter(vehicleService: VehicleService): ExpressRouter {
   const router = Router();
+
+  router.get('/', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const vehicles = await vehicleService.listVehicles(req.auth!.accountId);
+      res.status(200).json({ vehicles: vehicles.map(toVehicleListItemResponse) });
+    } catch (err) {
+      next(err);
+    }
+  });
 
   router.post('/', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     const parsed = createVehicleSchema.safeParse(req.body);

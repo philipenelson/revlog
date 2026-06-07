@@ -35,6 +35,7 @@ const validInput: CreateVehicleInput = {
 function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
   return {
     create: vi.fn().mockResolvedValue(mockVehicle),
+    findAllByAccountId: vi.fn().mockResolvedValue([mockVehicle]),
     ...overrides,
   };
 }
@@ -78,5 +79,46 @@ describe('VehicleService.createVehicle', () => {
     const result = await service.createVehicle('account-1', validInput);
 
     expect(result).toEqual(mockVehicle);
+  });
+});
+
+describe('VehicleService.listVehicles', () => {
+  let vehicleRepo: IVehicleRepository;
+  let accountRepo: IAccountRepository;
+  let service: VehicleService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vehicleRepo = makeFakeVehicleRepo();
+    accountRepo = makeFakeAccountRepo();
+    service = new VehicleService(vehicleRepo, accountRepo);
+  });
+
+  it('lists vehicles scoped to the given accountId', async () => {
+    await service.listVehicles('account-1');
+
+    expect(vehicleRepo.findAllByAccountId).toHaveBeenCalledOnce();
+    expect(vehicleRepo.findAllByAccountId).toHaveBeenCalledWith('account-1');
+  });
+
+  it('returns the vehicles from the repository', async () => {
+    const result = await service.listVehicles('account-1');
+
+    expect(result).toEqual([mockVehicle]);
+  });
+
+  it('returns an empty array for an account with no vehicles', async () => {
+    vehicleRepo = makeFakeVehicleRepo({ findAllByAccountId: vi.fn().mockResolvedValue([]) });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    const result = await service.listVehicles('account-1');
+
+    expect(result).toEqual([]);
+  });
+
+  it('does not touch account status', async () => {
+    await service.listVehicles('account-1');
+
+    expect(accountRepo.markActive).not.toHaveBeenCalled();
   });
 });

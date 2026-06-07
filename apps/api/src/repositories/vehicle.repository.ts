@@ -9,4 +9,11 @@ export class PrismaVehicleRepository implements IVehicleRepository {
   async create(data: CreateVehicleData): Promise<DomainVehicle> {
     return this.db.vehicle.create({ data });
   }
+
+  async findAllByAccountId(accountId: string): Promise<DomainVehicle[]> {
+    return this.db.vehicle.findMany({
+      where: { accountId },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
 }

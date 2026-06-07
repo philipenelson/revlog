@@ -9,8 +9,9 @@ import type { DomainVehicle } from '@maintenance-log/domain';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
-const mockVehicleService: Pick<VehicleService, 'createVehicle'> = {
+const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles'> = {
   createVehicle: vi.fn(),
+  listVehicles: vi.fn(),
 };
 
 function buildApp() {
@@ -48,6 +49,82 @@ let authHeader: string;
 beforeAll(async () => {
   const token = await signAccessToken({ sub: 'user-1', accountId: 'account-1', role: 'OWNER' });
   authHeader = `Bearer ${token}`;
+});
+
+describe('GET /vehicles', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 401 when no authorization header is present', async () => {
+    const res = await supertest(buildApp()).get('/vehicles');
+
+    expect(res.status).toBe(401);
+    expect(mockVehicleService.listVehicles).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the authorization header is invalid', async () => {
+    const res = await supertest(buildApp()).get('/vehicles').set('Authorization', 'Bearer not-a-real-token');
+
+    expect(res.status).toBe(401);
+    expect(mockVehicleService.listVehicles).not.toHaveBeenCalled();
+  });
+
+  it('returns 200 and the vehicles scoped to the caller account', async () => {
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([mockVehicle]);
+
+    const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      vehicles: [
+        {
+          id: mockVehicle.id,
+          nickname: mockVehicle.nickname,
+          make: mockVehicle.make,
+          model: mockVehicle.model,
+          year: mockVehicle.year,
+          mileage: mockVehicle.mileage,
+          logEntryCount: 0,
+        },
+      ],
+    });
+  });
+
+  it('calls vehicleService.listVehicles with the accountId from the access token', async () => {
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([mockVehicle]);
+
+    await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
+
+    expect(mockVehicleService.listVehicles).toHaveBeenCalledOnce();
+    expect(mockVehicleService.listVehicles).toHaveBeenCalledWith('account-1');
+  });
+
+  it('returns 200 and an empty list for an account with no vehicles', async () => {
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ vehicles: [] });
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
+
+    expect(res.status).toBe(500);
+  });
+
+  it('forwards AppError from the service to the error middleware', async () => {
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(400, 'Something went wrong'),
+    );
+
+    const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'Something went wrong' });
+  });
 });
 
 describe('POST /vehicles', () => {
