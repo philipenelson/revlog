@@ -39,9 +39,9 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 2. Enters email and password
 3. Submits the form
 4. System validates credentials and issues an access token + refresh token
-5. System checks whether the user has any vehicles in their garage
-   - **0 vehicles** → redirect to Onboarding wizard
-   - **1+ vehicles** → redirect to Garage
+5. System checks the signed-in User's Account status ([ADR 0015](../../adr/0015-account-status-state-machine.md))
+   - **`ONBOARDING`** (Garage not yet resolved) → redirect to Onboarding wizard
+   - **`ACTIVE`** (Garage resolved — first Vehicle added, or onboarding explicitly skipped) → redirect to Garage
 
 **Errors:**
 
@@ -180,8 +180,8 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [x] Switching back to Login tab hides name field — `auth.cy.ts`
 - [ ] Inline user-error message shown on bad credentials
 - [ ] Inline service-error message shown on 5xx response
-- [ ] Successful login redirects to Garage (1+ vehicles)
-- [ ] Successful login redirects to Onboarding (0 vehicles)
+- [ ] Successful login redirects to Garage (Account status `ACTIVE`)
+- [ ] Successful login redirects to Onboarding (Account status `ONBOARDING`)
 - [ ] Authenticated user visiting `/login` is redirected
 
 ---

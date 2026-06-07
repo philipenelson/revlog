@@ -103,7 +103,7 @@ GET /auth/verify-email?token={verificationToken}
 
 | Status | Body | When |
 |---|---|---|
-| 200 | `{ "accessToken": "...", "user": { "id": "...", "accountId": "...", "role": "owner" } }` | Token valid — user auto-signed in |
+| 200 | `{ "accessToken": "...", "user": { "id": "...", "accountId": "...", "role": "owner" }, "account": { "id": "...", "status": "ONBOARDING" } }` | Token valid — user auto-signed in |
 | 400 | `{ "error": "Invalid or expired verification token" }` | Token not found, already used, or past expiry |
 | 500 | `{ "error": "Internal server error" }` | Unexpected failure |
 
@@ -124,13 +124,14 @@ No `Max-Age` on the cookie — session cookie (expires on browser close). The co
    - Clear `verificationToken` and `verificationTokenExpiresAt` (set to `null`)
    - Issue access token — stateless JWT, 15 min TTL, payload: `sub`, `accountId`, `role`
    - Issue refresh token — opaque random value (`crypto.randomBytes(32)`); SHA-256 hash stored in `RefreshToken` table with `expiresAt` (7 days); raw value placed in cookie (see [ADR 0012](../../adr/0012-refresh-token-storage.md))
-4. Return 200 with access token and minimal user payload
+   - Look up the User's Account and include its `id` and `status` in the response — the client needs this to apply the post-verification routing rule without an extra round trip (see [ADR 0015](../../adr/0015-account-status-state-machine.md))
+4. Return 200 with access token and minimal user + account payload
 
 ### Client behaviour after 200
 
-The web app receives the access token, stores it in memory (React state), and applies the post-login routing logic from UC-AUTH-1 step 5:
-- 0 vehicles in Garage → redirect to Onboarding wizard
-- 1+ vehicles → redirect to Garage
+The web app receives the access token, stores it in memory (React state), and applies the post-login routing logic from UC-AUTH-1 step 5 — based on the `account.status` field in this response:
+- `account.status === "ONBOARDING"` → redirect to Onboarding wizard
+- `account.status === "ACTIVE"` → redirect to Garage
 
 ### Client behaviour after 400
 

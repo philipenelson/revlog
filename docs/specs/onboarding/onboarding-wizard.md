@@ -1,7 +1,7 @@
 # Onboarding Wizard Spec
 
 **Route:** `/onboarding`
-**Status:** UI complete (stubbed submit), backend integration pending
+**Status:** UI complete; backend implemented ([vehicle-creation-api.md](../garage/vehicle-creation-api.md), [onboarding-api.md](./onboarding-api.md), [ADR 0015](../../adr/0015-account-status-state-machine.md)) — wiring Step 2's stubbed submit to the real endpoints is the remaining tracked follow-up (see Next steps)
 **Last updated:** 2026-06-07
 
 ---
@@ -133,7 +133,7 @@ Responsive behaviour follows the same `@media (max-width: 860px)` card-collapse 
 | Layout pattern | Centered single card (not split brand/form) | Matches `/verify-email` — interstitial screens have no marketing copy to show; consistency reduces visual whiplash in the first-five-minutes flow |
 | Step indicator | New "gauge-tick" component (filling segments, `transform: scaleX()`) | Extends the tachometer-gauge visual language from the logo rather than introducing a generic dot-stepper |
 | Step 3 success feedback | Reuse the `/verify-email` status-orb "verified" state | One motif for "operation succeeded" across the app — consistency over novelty |
-| Vehicle creation | **Stubbed** — Step 2 → Step 3 transition happens entirely client-side; no network call | No Vehicle Prisma model or `POST /vehicles` endpoint exists yet (greenfield). Building the wizard UI first lets the design get validated without blocking on backend work; wiring to the real endpoint is a tracked follow-up |
+| Vehicle creation | **Stubbed in the UI; backend now exists** — Step 2 → Step 3 transition still happens entirely client-side with no network call. `POST /vehicles` is implemented ([vehicle-creation-api.md](../garage/vehicle-creation-api.md)) and ready to wire up | The wizard UI shipped first to validate the design without blocking on backend work, per the original plan. With the endpoint now built, replacing the stubbed transition with a real submission is the next concrete step — see "Wire Step 2 to the real Vehicle creation endpoint" below |
 | Form validation approach | Plain controlled inputs + inline client-side checks (no React Hook Form / Zod yet) | Matches the current `/login` implementation precedent — introducing RHF + a Zod schema in `@maintenance-log/domain` for a Vehicle that has no backing Prisma model or API would be premature; both will be added together when the real `POST /vehicles` contract is defined |
 | Make / Model input | Free text for this iteration; structured selection from a reference dataset is a tracked follow-up | Avoids blocking the wizard ship on an undecided data source/schema shape (see Next steps); free text matches the approved design preview and is good enough until the dataset lands — at which point Make/Model become a refactor, not a rebuild |
 | Wizard restart on revisit | No partial-progress persistence | Keeps V1 simple; the flow is short (3 steps, ~1 minute). Persisting partial state is a V2 nice-to-have if user research shows drop-off |
@@ -145,20 +145,15 @@ Responsive behaviour follows the same `@media (max-width: 860px)` card-collapse 
 ## Next steps (tracked follow-up — still V1 scope)
 
 ### Wire Step 2 to the real Vehicle creation endpoint
-Once `POST /vehicles` exists (Prisma model + service + route + unit tests, per `apps/api/CLAUDE.md` conventions, and a Zod schema in `@maintenance-log/domain/src/schemas/`):
+`POST /vehicles` now exists ([vehicle-creation-api.md](../garage/vehicle-creation-api.md) — Prisma model, service, route, and unit tests, per `apps/api/CLAUDE.md` conventions, plus `createVehicleSchema` in `@maintenance-log/domain/src/schemas/`). The wizard's stubbed client-side transition still needs to be wired to it:
 - Replace the stubbed client-side transition with a real submission; show a pending state on "Continue" while the request is in flight
 - Migrate the form to React Hook Form + the new Zod schema (resolver), per the Forms convention in `apps/web/CLAUDE.md`
 - Map service errors to the same two-tier (user-error / service-error) messaging strategy used on `/login`
-- Add the corresponding unit tests on the API side and update this spec's E2E checklist to cover the network-backed happy path and failure states
+- Wire "Skip for now" to `POST /onboarding/skip` ([onboarding-api.md](./onboarding-api.md)) before navigating to `/garage`
+- Update this spec's E2E checklist to cover the network-backed happy path and failure states for both actions
 
-### Persist onboarding completion/skip status
-Currently the "Skip for now" action is a UI-only stub that navigates straight to `/garage` without writing any state. That's a real gap: the post-login routing rule is "0 vehicles → Onboarding" (see [UC-AUTH-1 step 5](../auth/login.md#uc-auth-1--sign-in-with-email-and-password)), so an Owner who skips still has 0 vehicles and would be routed straight back into the wizard on their next sign-in — a redirect loop.
-
-Resolving this needs a decision on **where "has this Owner completed/skipped onboarding" lives**, with at least two candidate shapes:
-- **Account-level status field** — e.g. `onboardingStatus: PENDING | SKIPPED | COMPLETED` on `Account`. Fits "the Garage belongs to the Account, not the User" (see `CONTEXT.md`); naturally extends to multi-User Accounts in V2 (the Account "completes" onboarding once, not each User)
-- **User-level preference/config object** — finer-grained if onboarding ever becomes a per-User concern (e.g. an invited mechanic in an org Account gets their own onboarding)
-
-This is an architecture decision (changes the post-login routing contract and requires a Prisma migration) — it needs an [ADR](../../adr/) once chosen, and the login spec's UC-AUTH-1 step 5 should be updated to reference the resolved rule (e.g. "0 vehicles **and onboarding not skipped/completed** → Onboarding").
+### ~~Persist onboarding completion/skip status~~ — Resolved
+**Decided:** [ADR 0015](../../adr/0015-account-status-state-machine.md) adds a two-state `AccountStatus` (`ONBOARDING | ACTIVE`) directly on `Account`. `POST /vehicles` and `POST /onboarding/skip` ([vehicle-creation-api.md](../garage/vehicle-creation-api.md), [onboarding-api.md](./onboarding-api.md)) both resolve onboarding by transitioning the Account from `ONBOARDING` to `ACTIVE` — closing the redirect-loop gap this section originally described. The [login spec](../auth/login.md)'s UC-AUTH-1 step 5 and UC-AUTH-3 step 4 have been updated to reference the resolved rule. Remaining work is purely client-side — see "Wire Step 2..." above.
 
 ### Build a reference dataset of vehicle makes, models, and years
 Free-text Make/Model/Year invites duplicate/inconsicent data ("Triumph" vs "TRIUMPH" vs "Triumph Motorcycles Ltd") that would otherwise need a data-migration/normalization pass later. The plan is to seed a **comprehensive makes/models/years dataset into the database as V1 data** — getting this right from day one avoids that migration entirely.
@@ -184,7 +179,7 @@ Allow adding a second Vehicle directly from Step 3 ("Add another") instead of ro
 ## Out of scope
 
 - `/garage` screen and its empty state (separate spec: [garage-screen.md](../garage/garage-screen.md) when created)
-- `POST /vehicles` API contract and Vehicle Prisma model (separate backend spec, tracked above as a Next step)
+- `POST /vehicles` API contract and Vehicle Prisma model — implemented; see [vehicle-creation-api.md](../garage/vehicle-creation-api.md)
 - Vehicle makes/models/years reference dataset and its data source (separate spec + ADR, tracked above as a Next step)
 - Add/edit Vehicle screen reachable from the Garage post-onboarding (separate spec)
 - Mobile app onboarding (separate spec)
