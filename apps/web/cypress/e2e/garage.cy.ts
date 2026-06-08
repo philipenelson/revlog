@@ -171,19 +171,52 @@ describe("Garage screen", () => {
     });
   });
 
-  describe("session lost on reload", () => {
-    it("redirects to sign-in instead of showing a load error with a dead retry button", () => {
+  describe("session restored on reload", () => {
+    it("silently restores the session via POST /auth/refresh and re-renders the garage without bouncing through /login", () => {
       signIntoGarage(stubVehiclesWith({ statusCode: 200, body: { vehicles: VEHICLES_FIXTURE } }));
       cy.wait("@getVehicles");
 
-      // A reload wipes AuthProvider's in-memory session (ADR 0016 — "no
-      // session restoration on reload"); the refresh-token cookie still gets
-      // a visitor past middleware, but there's no access token left to fetch
-      // with. The screen should send the user to re-authenticate rather than
-      // show a "couldn't load your garage" error whose "Try again" could
-      // never succeed without a session.
+      // A reload wipes AuthProvider's in-memory session (ADR 0016), but the
+      // HttpOnly refreshToken cookie survives — AuthProvider now attempts a
+      // silent restore via POST /auth/refresh on mount (UC-AUTH-7 / ADR 0017).
+      // Stub it to succeed with a fresh access token so the garage can re-fetch
+      // and render in place, with no detour through /login.
+      cy.intercept("POST", "**/auth/refresh", {
+        statusCode: 200,
+        body: {
+          accessToken: "e2e-garage-restored-access-token",
+          user: { id: "e2e-user", accountId: "e2e-account", role: "OWNER" },
+          account: { id: "e2e-account", status: "ACTIVE" },
+        },
+      }).as("refresh");
+      cy.intercept("GET", "**/vehicles", { statusCode: 200, body: { vehicles: VEHICLES_FIXTURE } }).as("getVehiclesAfterReload");
+
       cy.reload();
 
+      cy.wait("@refresh");
+      cy.wait("@getVehiclesAfterReload");
+      cy.location("pathname").should("eq", "/garage");
+      cy.get('[data-testid="vehicle-grid"]').should("be.visible");
+      cy.get('[data-testid="email-input"]').should("not.exist");
+    });
+  });
+
+  describe("session lost on reload", () => {
+    it("redirects to sign-in when the silent restore genuinely fails, instead of showing a load error with a dead retry button", () => {
+      signIntoGarage(stubVehiclesWith({ statusCode: 200, body: { vehicles: VEHICLES_FIXTURE } }));
+      cy.wait("@getVehicles");
+
+      // The refresh-token cookie can survive a reload but still be invalid,
+      // expired, or revoked — AuthProvider's silent restore (UC-AUTH-7 / ADR
+      // 0017) genuinely fails in that case, and there's no access token left
+      // to fetch with. The screen should send the user to re-authenticate
+      // rather than show a "couldn't load your garage" error whose "Try
+      // again" could never succeed without a session.
+      cy.intercept("POST", "**/auth/refresh", { statusCode: 401, body: { error: "Invalid or expired session" } }).as("refresh");
+
+      cy.reload();
+
+      cy.wait("@refresh");
       cy.location("pathname").should("eq", "/login");
       cy.get('[data-testid="email-input"]').should("be.visible");
       cy.get('[data-testid="error-state"]').should("not.exist");
