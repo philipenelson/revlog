@@ -245,6 +245,67 @@
   pointer-events: none;
 }
 
+/* ── Photo upload zone ─────────────────────────────────────────── */
+.photoZone {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  color: var(--text-tertiary);
+}
+.photoZone:hover { border-color: var(--accent); background: var(--accent-muted); }
+
+.photoZoneInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.photoZoneLabel { font-size: 12.5px; font-weight: 500; color: var(--text-secondary); }
+.photoZoneSub   { font-size: 11px; color: var(--text-tertiary); }
+
+.photoPreview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoRemoveBtn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-base);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  z-index: 1;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.photoRemoveBtn:hover { background: var(--danger); color: var(--text-primary); border-color: var(--danger); }
+
 /* ── Buttons ───────────────────────────────────────────────────── */
 .btnPrimary {
   width: 100%;

@@ -4,6 +4,7 @@ import type {
   IVehicleRepository,
   IAccountRepository,
 } from '@maintenance-log/domain';
+import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 
 export class VehicleService {
@@ -12,8 +13,12 @@ export class VehicleService {
     private readonly accountRepo: IAccountRepository,
   ) {}
 
-  async createVehicle(accountId: string, input: CreateVehicleInput): Promise<DomainVehicle> {
-    const vehicle = await this.vehicleRepo.create({ accountId, ...input });
+  async createVehicle(
+    accountId: string,
+    input: CreateVehicleInput,
+    photoPath: string | null = null,
+  ): Promise<DomainVehicle> {
+    const vehicle = await this.vehicleRepo.create({ accountId, ...input, photoPath });
     await this.accountRepo.markActive(accountId);
     logger.info({ accountId, vehicleId: vehicle.id }, 'vehicle created');
     return vehicle;
@@ -21,5 +26,12 @@ export class VehicleService {
 
   async listVehicles(accountId: string): Promise<DomainVehicle[]> {
     return this.vehicleRepo.findAllByAccountId(accountId);
+  }
+
+  async setVehiclePhoto(vehicleId: string, accountId: string, photoPath: string): Promise<DomainVehicle> {
+    const vehicle = await this.vehicleRepo.setPhoto(vehicleId, accountId, photoPath);
+    if (!vehicle) throw new AppError(404, 'Vehicle not found');
+    logger.info({ accountId, vehicleId, photoPath }, 'vehicle photo updated');
+    return vehicle;
   }
 }

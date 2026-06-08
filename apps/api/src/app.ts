@@ -1,8 +1,10 @@
-import express, { type Express } from 'express';
+import path from 'path';
+import express, { type Express, type Request, type Response, type NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { prisma } from './lib/prisma';
+import { UPLOADS_DIR } from './lib/upload';
 import { sendVerificationEmail } from './lib/email';
 import { PrismaUserRepository } from './repositories/user.repository';
 import { PrismaRefreshTokenRepository } from './repositories/refresh-token.repository';
@@ -37,6 +39,13 @@ export function createApp(): Express {
       credentials: true,
     }),
   );
+  // Allow the web app (cross-origin) to load uploaded images directly via <img>.
+  // Helmet sets Cross-Origin-Resource-Policy: same-origin by default, which
+  // blocks cross-origin image fetches without CORS. Override for /uploads only.
+  app.use('/uploads', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  }, express.static(path.join(UPLOADS_DIR)));
   app.use(express.json());
   app.use(cookieParser());
 

@@ -109,6 +109,31 @@ describe("Onboarding wizard", () => {
       cy.get('[data-testid="step-indicator"]').should("have.attr", "data-active-step", "1");
       cy.get('[data-testid="skip-onboarding-btn"]').should("be.visible");
     });
+
+    it("shows the optional photo zone in step 2", () => {
+      cy.get('[data-testid="add-first-vehicle-btn"]').click();
+
+      cy.get('[data-testid="photo-zone"]').should("be.visible");
+      cy.get('[data-testid="photo-input"]').should("exist");
+    });
+
+    it("shows a thumbnail preview and remove button once a photo is selected, and clears on remove", () => {
+      cy.get('[data-testid="add-first-vehicle-btn"]').click();
+
+      cy.get('[data-testid="photo-input"]').selectFile({
+        contents: Cypress.Buffer.from("fake-image-bytes"),
+        fileName: "bike.jpg",
+        mimeType: "image/jpeg",
+      }, { force: true });
+
+      cy.get('[data-testid="photo-zone"]').find("img").should("be.visible");
+      cy.get('[data-testid="remove-photo-btn"]').should("be.visible");
+
+      cy.get('[data-testid="remove-photo-btn"]').click();
+
+      cy.get('[data-testid="photo-zone"]').find("img").should("not.exist");
+      cy.get('[data-testid="remove-photo-btn"]').should("not.exist");
+    });
   });
 
   describe("completing onboarding by adding a first vehicle", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import express from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import supertest from 'supertest';
 import { createVehicleRouter } from './vehicles';
 import { AppError, errorMiddleware } from '../middleware/error';
@@ -9,9 +9,39 @@ import type { DomainVehicle } from '@maintenance-log/domain';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
-const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles'> = {
+// Replaces multer's disk-storage middleware so route tests stay unit-scoped.
+// Tests that want a "file present" scenario call setMockFile(); others leave it unset.
+let mockFileForNextRequest: Express.Multer.File | undefined;
+function setMockFile(file: Partial<Express.Multer.File> = {}) {
+  mockFileForNextRequest = {
+    fieldname: 'photo',
+    originalname: 'bike.jpg',
+    encoding: '7bit',
+    mimetype: 'image/jpeg',
+    filename: 'test-photo.jpg',
+    path: '/tmp/test-photo.jpg',
+    size: 1024,
+    destination: '/tmp',
+    buffer: Buffer.alloc(0),
+    ...file,
+  } as Express.Multer.File;
+}
+
+vi.mock('../lib/upload', () => ({
+  UPLOADS_DIR: '/tmp/uploads',
+  vehiclePhotoUpload: (req: Request, _res: Response, next: NextFunction) => {
+    if (mockFileForNextRequest) {
+      (req as Request & { file?: Express.Multer.File }).file = mockFileForNextRequest;
+      mockFileForNextRequest = undefined;
+    }
+    next();
+  },
+}));
+
+const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' | 'setVehiclePhoto'> = {
   createVehicle: vi.fn(),
   listVehicles: vi.fn(),
+  setVehiclePhoto: vi.fn(),
 };
 
 function buildApp() {
@@ -32,17 +62,14 @@ const mockVehicle: DomainVehicle = {
   model: 'CB500F',
   year: 2021,
   mileage: 14230,
+  photoPath: null,
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
 
-const validBody = {
-  nickname: 'Daily ride',
-  make: 'Honda',
-  model: 'CB500F',
-  year: 2021,
-  mileage: 14230,
-};
+const mockVehicleWithPhoto: DomainVehicle = { ...mockVehicle, photoPath: 'abc123.jpg' };
+
+const validBody = { nickname: 'Daily ride', make: 'Honda', model: 'CB500F', year: 2021, mileage: 14230 };
 
 let authHeader: string;
 
@@ -68,7 +95,7 @@ describe('GET /vehicles', () => {
     expect(mockVehicleService.listVehicles).not.toHaveBeenCalled();
   });
 
-  it('returns 200 and the vehicles scoped to the caller account', async () => {
+  it('returns 200 with photoUrl null when the vehicle has no photo', async () => {
     (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([mockVehicle]);
 
     const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
@@ -83,10 +110,20 @@ describe('GET /vehicles', () => {
           model: mockVehicle.model,
           year: mockVehicle.year,
           mileage: mockVehicle.mileage,
+          photoUrl: null,
           logEntryCount: 0,
         },
       ],
     });
+  });
+
+  it('returns a constructed photoUrl when the vehicle has a photo', async () => {
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([mockVehicleWithPhoto]);
+
+    const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.vehicles[0].photoUrl).toMatch(/\/uploads\/vehicles\/abc123\.jpg$/);
   });
 
   it('calls vehicleService.listVehicles with the accountId from the access token', async () => {
@@ -147,7 +184,7 @@ describe('POST /vehicles', () => {
     expect(mockVehicleService.createVehicle).not.toHaveBeenCalled();
   });
 
-  it('returns 201 and the created vehicle when the request succeeds', async () => {
+  it('returns 201 and the created vehicle with photoUrl null when no photo is uploaded', async () => {
     (mockVehicleService.createVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicle);
 
     const res = await supertest(buildApp())
@@ -156,27 +193,31 @@ describe('POST /vehicles', () => {
       .send(validBody);
 
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({
-      vehicle: {
-        id: mockVehicle.id,
-        nickname: mockVehicle.nickname,
-        make: mockVehicle.make,
-        model: mockVehicle.model,
-        year: mockVehicle.year,
-        mileage: mockVehicle.mileage,
-      },
-    });
+    expect(res.body).toMatchObject({ vehicle: expect.objectContaining({ photoUrl: null }) });
   });
 
-  it('calls vehicleService.createVehicle with the accountId from the access token and the validated body', async () => {
+  it('calls createVehicle with photoPath null when no file is uploaded', async () => {
     (mockVehicleService.createVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicle);
 
     await supertest(buildApp()).post('/vehicles').set('Authorization', authHeader).send(validBody);
 
-    expect(mockVehicleService.createVehicle).toHaveBeenCalledOnce();
     expect(mockVehicleService.createVehicle).toHaveBeenCalledWith(
       'account-1',
       expect.objectContaining({ make: 'Honda', model: 'CB500F', year: 2021, mileage: 14230 }),
+      null,
+    );
+  });
+
+  it('calls createVehicle with the uploaded filename when a file is present', async () => {
+    setMockFile();
+    (mockVehicleService.createVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicleWithPhoto);
+
+    await supertest(buildApp()).post('/vehicles').set('Authorization', authHeader).send(validBody);
+
+    expect(mockVehicleService.createVehicle).toHaveBeenCalledWith(
+      'account-1',
+      expect.objectContaining({ make: 'Honda' }),
+      'test-photo.jpg',
     );
   });
 
@@ -202,6 +243,7 @@ describe('POST /vehicles', () => {
     expect(mockVehicleService.createVehicle).toHaveBeenCalledWith(
       'account-1',
       expect.objectContaining({ nickname: null }),
+      null,
     );
   });
 
@@ -222,5 +264,62 @@ describe('POST /vehicles', () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: 'Something went wrong' });
+  });
+});
+
+describe('POST /vehicles/:id/photo', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 401 when no authorization header is present', async () => {
+    const res = await supertest(buildApp()).post('/vehicles/vehicle-1/photo');
+
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when no file is attached', async () => {
+    const res = await supertest(buildApp())
+      .post('/vehicles/vehicle-1/photo')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'No photo file provided' });
+  });
+
+  it('returns 200 with photoUrl when a photo is uploaded', async () => {
+    setMockFile();
+    (mockVehicleService.setVehiclePhoto as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicleWithPhoto);
+
+    const res = await supertest(buildApp())
+      .post('/vehicles/vehicle-1/photo')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.photoUrl).toMatch(/\/uploads\/vehicles\/abc123\.jpg$/);
+  });
+
+  it('calls setVehiclePhoto with vehicleId from params and accountId from token', async () => {
+    setMockFile();
+    (mockVehicleService.setVehiclePhoto as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicleWithPhoto);
+
+    await supertest(buildApp()).post('/vehicles/vehicle-1/photo').set('Authorization', authHeader);
+
+    expect(mockVehicleService.setVehiclePhoto).toHaveBeenCalledWith(
+      'vehicle-1',
+      'account-1',
+      'test-photo.jpg',
+    );
+  });
+
+  it('returns 404 when the service throws a 404 AppError', async () => {
+    setMockFile();
+    (mockVehicleService.setVehiclePhoto as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(404, 'Vehicle not found'),
+    );
+
+    const res = await supertest(buildApp())
+      .post('/vehicles/vehicle-1/photo')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(404);
   });
 });

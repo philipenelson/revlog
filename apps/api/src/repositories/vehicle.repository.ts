@@ -16,4 +16,13 @@ export class PrismaVehicleRepository implements IVehicleRepository {
       orderBy: { updatedAt: 'desc' },
     });
   }
+
+  async setPhoto(vehicleId: string, accountId: string, photoPath: string): Promise<DomainVehicle | null> {
+    const updated = await this.db.vehicle.updateMany({
+      where: { id: vehicleId, accountId },
+      data: { photoPath },
+    });
+    if (updated.count === 0) return null;
+    return this.db.vehicle.findUnique({ where: { id: vehicleId } }) as Promise<DomainVehicle>;
+  }
 }
