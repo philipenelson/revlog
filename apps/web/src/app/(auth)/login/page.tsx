@@ -35,7 +35,7 @@ export default function LoginPage() {
     setRegisterError(null);
     try {
       await apiFetch("/auth/register", { method: "POST", body: JSON.stringify(data) });
-      router.push("/verify-email");
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch (err) {
       if (err instanceof ApiError && err.status < 500) {
         setRegisterError(REGISTER_USER_ERROR);

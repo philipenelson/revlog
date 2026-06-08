@@ -2,6 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { StatusOrb } from "@/components/StatusOrb";
 import styles from "./onboarding.module.css";
 
 type Step = 1 | 2 | 3;
@@ -201,7 +202,7 @@ export default function OnboardingPage() {
 
         {step === 3 && vehicle && (
           <section className={styles.wizardStep} data-testid="step-ready">
-            <SuccessOrb />
+            <StatusOrb state="verified" />
             <div className={`${styles.eyebrow} ${styles.eyebrowSuccess}`}>All set</div>
             <h1 className={styles.headline} data-testid="ready-headline">
               {readyHeadline(vehicle)}
@@ -337,30 +338,5 @@ function ArrowIcon() {
         strokeLinejoin="round"
       />
     </svg>
-  );
-}
-
-function SuccessOrb() {
-  return (
-    <div className={styles.statusOrb}>
-      <div aria-hidden="true" className={styles.orbGlow} />
-      <svg className={styles.orbRing} viewBox="0 0 100 100" aria-hidden="true">
-        <circle className={styles.ringTrack} cx="50" cy="50" r="42" />
-        <circle className={styles.ringArc} cx="50" cy="50" r="42" transform="rotate(-90 50 50)" />
-      </svg>
-      <div className={styles.orbIcon}>
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            className={styles.checkPath}
-            d="M7.5 12.4l3 3 6-6.4"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </svg>
-      </div>
-    </div>
   );
 }

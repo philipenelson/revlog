@@ -312,58 +312,6 @@
 }
 .textLink:hover { color: var(--accent); }
 
-/* ── Success orb (step 3) ──────────────────────────────────────── */
-.statusOrb {
-  position: relative;
-  width: 84px;
-  height: 84px;
-  margin: 0 auto 24px;
-}
-
-.orbGlow {
-  position: absolute;
-  inset: -14px;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--success-glow) 0%, transparent 70%);
-  animation: orbPulse 2.4s ease-in-out infinite;
-}
-
-@keyframes orbPulse {
-  0%, 100% { opacity: 0.35; transform: scale(0.92); }
-  50%      { opacity: 0.85; transform: scale(1.06); }
-}
-
-.orbRing { width: 100%; height: 100%; display: block; }
-.ringTrack { fill: none; stroke: var(--border-default); stroke-width: 2.5; }
-.ringArc {
-  fill: none;
-  stroke: var(--success);
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-dasharray: 264 264;
-  filter: drop-shadow(var(--shadow-success-ring));
-}
-
-.orbIcon {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--success);
-}
-.orbIcon svg { width: 28px; height: 28px; }
-
-.checkPath {
-  stroke-dasharray: 22;
-  stroke-dashoffset: 22;
-  animation: drawCheck 460ms 200ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
-}
-
-@keyframes drawCheck {
-  to { stroke-dashoffset: 0; }
-}
-
 /* ── Vehicle preview "spec plate" ──────────────────────────────── */
 .vehiclePlate {
   width: 100%;
