@@ -2,8 +2,8 @@
 
 **Area:** Garage
 **Route:** `/garage`
-**Status:** UI complete (stubbed vehicle data — wiring `GET /vehicles` is the tracked follow-up; see Next steps)
-**Last updated:** 2026-06-07
+**Status:** Implemented — wired to `GET /vehicles` with loading and error states
+**Last updated:** 2026-06-08
 
 ---
 
@@ -96,6 +96,12 @@ This spec implements the approved design preview at `docs/designs/revlog-garage-
 - [x] Illustration, headline ("Your garage is empty"), supporting copy, and a single primary "Add your first vehicle" CTA are shown
 - [x] The CTA leads to `/garage/add`
 
+### Data loading
+
+- [x] On mount, the screen fetches `GET /vehicles` (authenticated via `session.accessToken`) and shows a loading state until it resolves
+- [x] On success, the screen renders the populated grid or the empty state depending on the returned list's length
+- [x] On failure, the screen renders an error state with a "Try again" action that re-fetches and recovers into the populated grid on success
+
 ### General
 
 - [x] Top bar renders the Revlog wordmark/logo and the signed-in User's avatar (initials)
@@ -108,8 +114,10 @@ This spec implements the approved design preview at `docs/designs/revlog-garage-
 
 - [x] Populated garage renders the header count, all Vehicle cards with their stats (including the `is-empty` "No entries yet" card), and the "Add a vehicle" tile
 - [x] Selecting a Vehicle card navigates to `/garage/[vehicleId]`
-- [x] Selecting the "Add a vehicle" tile, the top bar action, and (separately, once reachable — see Next steps) the empty state's CTA all navigate to `/garage/add`
-- [ ] Empty-state rendering and its CTA — blocked on real vehicle data; see "Empty-state E2E coverage" under Next steps
+- [x] Selecting the "Add a vehicle" tile, the top bar action, and the empty state's CTA all navigate to `/garage/add`
+- [x] Empty-state rendering and its CTA, driven by an intercepted `GET /vehicles` returning an empty list
+- [x] Loading state renders while `GET /vehicles` is in flight, then gives way to the populated grid
+- [x] Failed load renders the error state and recovers to the populated grid when retried
 
 ---
 
@@ -117,25 +125,20 @@ This spec implements the approved design preview at `docs/designs/revlog-garage-
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Vehicle data source | **Stubbed mock data** matching the approved design's three example Vehicles; `GET /vehicles` is implemented later and swapped in | Mirrors the onboarding wizard's "ship the UI first against the approved design, wire the network call as the next concrete step" precedent ([onboarding-wizard.md Decisions](../onboarding/onboarding-wizard.md)) — `GET /vehicles` doesn't exist yet and is explicitly out of scope of [vehicle-creation-api.md](./vehicle-creation-api.md) |
-| Garage state shown by default | **Populated**, with mock data covering both a normal and a zero-Log-Entry (`is-empty`) card | The populated grid is the steady-state experience for a returning Owner and exercises the most UI surface (cards, stats, both stat-block variants, the add tile). The empty state is fully built from the same approved markup but is only reachable today via a zero-length Vehicle list — which requires real data to occur naturally |
+| Vehicle data source | Real fetch to `GET /vehicles` (see [garage-list-api.md](./garage-list-api.md)), authenticated via `session.accessToken` from `useAuth()`, with explicit `loading` / `loaded` / `error` states | `GET /vehicles` is implemented and spec'd as the contract for this screen; stubbing was only ever the placeholder until that endpoint and an in-memory session existed (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md)) |
+| Loading / error / retry handling | A `LoadState` of `"loading" \| "loaded" \| "error"` drives the body: a loading message while the request is in flight, an error state with a "Try again" action that re-issues the fetch, and either the populated grid or the empty state once `loaded` | Matches the pattern used elsewhere in the app (e.g. login/register — `apps/web/src/app/(auth)/login/page.tsx`) of mapping `ApiError` to a user-facing message and routing unexpected (5xx/network) failures through `logger.error`, while leaving 4xx responses silent in the log (expected, user-actionable) |
+| Garage state shown by default | Driven entirely by the `GET /vehicles` response — populated grid, empty state, or error state, whichever the data and request outcome dictate | No more mock data to curate; the screen now reflects the Account's real Vehicle list, including the zero-Vehicle case the empty state was built for |
 | Card is a single link | Whole `vehicle-card` is one navigable element (`<Link>`), not a card with a nested button/link | Matches the approved design's `<a class="vehicle-card">` and is the simplest accessible structure — there is exactly one destination per card |
 | Forward-linking to not-yet-built screens | `/garage/[vehicleId]` (Vehicle detail) and `/garage/add` (Add vehicle) are wired now even though neither screen exists yet | Same precedent as the onboarding wizard linking to `/garage` before this spec existed — ship the navigable surface, build the destination as the next concrete milestone item ("Vehicle detail screen", "Add vehicle screen" — [V1 milestone](../../milestones/v1.md)) |
-| Avatar / current-user identity | Mocked (`"Jordan Reyes"` / "JR", matching the design preview) | No auth context or current-user data is wired into the web app yet (`Next.js middleware for route protection` is still `[ ]` in the V1 milestone); the avatar is presentational chrome here, not a feature this screen owns |
-| Sort order | Sub-line text only ("Sorted by most recently logged"); mock data is presented in a fixed order | Real "most recently logged" ordering requires Log Entry data, which doesn't exist yet (Log Entry is its own unimplemented V1 area). The label documents the intended V1 behaviour for when that data lands |
+| Avatar / current-user identity | Still mocked (`"Jordan Reyes"` / "JR", matching the design preview) — deliberately left out of this wiring pass | `Session.user` carries `{ id, accountId, role }` only; there is no display-name field to render. Wiring the avatar requires a backend change to the session payload (adding e.g. `fullName`), which is a separate, larger change than "wire the garage to `GET /vehicles`" — tracked as a Next step |
+| Sort order | Sub-line text only ("Sorted by most recently logged"); the grid renders `GET /vehicles`'s response order as-is | Real "most recently logged" ordering requires Log Entry data, which doesn't exist yet (Log Entry is its own unimplemented V1 area). The label documents the intended V1 behaviour for when that data lands |
 
 ---
 
 ## Next steps (tracked follow-up — still V1 scope)
 
-### Wire the garage to real Vehicle data
-`GET /vehicles` is the natural data source for this screen but is explicitly out of scope of [vehicle-creation-api.md](./vehicle-creation-api.md) and not yet built:
-- Spec + implement `GET /vehicles` (list Vehicles scoped to the caller's Account, per the same `authenticate` + account-scoping pattern as `POST /vehicles`)
-- Replace the stubbed mock Vehicle list with a real fetch (loading and error states, mapped through the client logger per `apps/web/CLAUDE.md`)
-- Replace the mocked avatar/current-user with real session data once an auth context exists
-
-### Empty-state E2E coverage
-The empty state is fully implemented from the approved design but cannot be reached today without a Garage that genuinely has zero Vehicles — which requires the real data wiring above. Add a Cypress scenario (e.g. against a seeded zero-Vehicle test Account, or an intercepted `GET /vehicles` returning `[]`) once that lands.
+### Wire the avatar to real current-user data
+The avatar still renders the mocked `"Jordan Reyes"` / "JR" (see Decisions — "Avatar / current-user identity"). `Session.user` only carries `{ id, accountId, role }`; doing this for real requires adding a display-name field (e.g. `fullName`) to the session payload — a backend change beyond this screen's scope.
 
 ### Build the Add Vehicle and Vehicle detail screens
 This spec wires `/garage/add` and `/garage/[vehicleId]` as navigation targets (see Decisions — "Forward-linking to not-yet-built screens"); both are separate, already-tracked V1 milestone items ("Add vehicle screen", "Vehicle detail screen") requiring their own specs.
@@ -147,7 +150,6 @@ Once Log Entries exist, sort the Vehicle grid by each Vehicle's most recent Log 
 
 ## Out of scope
 
-- `GET /vehicles` API contract and its wiring (tracked above as a Next step)
 - Add Vehicle screen and Vehicle detail screen content (separate specs — tracked above and in [V1 milestone](../../milestones/v1.md))
 - Search, filtering, and sort controls beyond the static "most recently logged" label
 - Vehicle removal/archiving from the Garage (not a V1 concept)

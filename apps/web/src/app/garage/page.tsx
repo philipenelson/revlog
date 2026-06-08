@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { apiFetch, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import { logger } from "@/lib/logger";
 import styles from "./garage.module.css";
 
 interface VehicleSummary {
@@ -9,47 +13,60 @@ interface VehicleSummary {
   make: string;
   model: string;
   year: number;
-  odometer: number;
+  mileage: number;
   logEntryCount: number;
+}
+
+interface VehiclesResponse {
+  vehicles: VehicleSummary[];
 }
 
 const CURRENT_USER = { name: "Jordan Reyes", initials: "JR" };
 
-// Stubbed Garage contents — see docs/specs/garage/garage-screen.md "Decisions"
-// for why this isn't wired to GET /vehicles yet.
-const GARAGE_VEHICLES: VehicleSummary[] = [
-  {
-    id: "the-daily",
-    nickname: "The Daily",
-    make: "Triumph",
-    model: "Street Triple RS",
-    year: 2021,
-    odometer: 14230,
-    logEntryCount: 12,
-  },
-  {
-    id: "sunday-bike",
-    nickname: "Sunday Bike",
-    make: "Ducati",
-    model: "Scrambler Icon",
-    year: 2019,
-    odometer: 8402,
-    logEntryCount: 7,
-  },
-  {
-    id: "project-garage-find",
-    nickname: "Project Garage Find",
-    make: "Honda",
-    model: "CB350",
-    year: 1972,
-    odometer: 31118,
-    logEntryCount: 0,
-  },
-];
+const LOAD_ERROR = "We couldn't load your garage. Our mechanics are on it — try again in a moment.";
+
+type LoadState = "loading" | "loaded" | "error";
 
 export default function GaragePage() {
-  const vehicles = GARAGE_VEHICLES;
-  const isEmpty = vehicles.length === 0;
+  const { session } = useAuth();
+  const [loadState, setLoadState] = useState<LoadState>(() => (session ? "loading" : "error"));
+  const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
+  const [retryToken, setRetryToken] = useState(0);
+
+  function retry() {
+    setLoadState("loading");
+    setRetryToken((n) => n + 1);
+  }
+
+  useEffect(() => {
+    if (!session) return;
+
+    let cancelled = false;
+
+    apiFetch<VehiclesResponse>("/vehicles", {
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+    })
+      .then((data) => {
+        if (cancelled) return;
+        setVehicles(data.vehicles);
+        setLoadState("loaded");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (!(err instanceof ApiError && err.status < 500)) {
+          logger.error("failed to load garage vehicles", { err });
+        }
+        setLoadState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, retryToken]);
+
+  const hasLoaded = loadState === "loaded";
+  const isEmpty = hasLoaded && vehicles.length === 0;
+  const isPopulated = hasLoaded && !isEmpty;
 
   return (
     <div className={styles.scene}>
@@ -77,25 +94,26 @@ export default function GaragePage() {
           <div>
             <div className={styles.eyebrow}>Your garage</div>
             <h1 className={styles.pageTitle} data-testid="page-title">
-              {isEmpty ? (
-                "Your garage"
-              ) : (
+              {isPopulated ? (
                 <>
                   {vehicles.length} <span className={styles.count}>{pluralize(vehicles.length)}</span>
                 </>
+              ) : (
+                "Your garage"
               )}
             </h1>
           </div>
-          {!isEmpty && (
+          {isPopulated && (
             <p className={styles.pageSub} data-testid="page-sub">
               Sorted by most recently logged
             </p>
           )}
         </div>
 
-        {isEmpty ? (
-          <EmptyState />
-        ) : (
+        {loadState === "loading" && <LoadingState />}
+        {loadState === "error" && <ErrorState onRetry={retry} />}
+        {isEmpty && <EmptyState />}
+        {isPopulated && (
           <div className={styles.vehicleGrid} data-testid="vehicle-grid">
             {vehicles.map((vehicle) => (
               <VehicleCard key={vehicle.id} vehicle={vehicle} />
@@ -141,7 +159,7 @@ function VehicleCard({ vehicle }: { vehicle: VehicleSummary }) {
       <div className={styles.vehicleStats}>
         <div>
           <div className={styles.statValue}>
-            {vehicle.odometer.toLocaleString()}
+            {vehicle.mileage.toLocaleString()}
             <span className={styles.unit}>mi</span>
           </div>
           <div className={styles.statLabel}>Odometer</div>
@@ -158,6 +176,27 @@ function VehicleCard({ vehicle }: { vehicle: VehicleSummary }) {
         <ArrowIcon />
       </span>
     </Link>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className={styles.emptyState} data-testid="loading-state">
+      <h2 className={styles.emptyHeadline}>Loading your garage…</h2>
+      <p className={styles.emptyBody}>Hang tight while we pull up your vehicles.</p>
+    </div>
+  );
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className={styles.emptyState} data-testid="error-state">
+      <h2 className={styles.emptyHeadline}>Something stalled</h2>
+      <p className={styles.emptyBody}>{LOAD_ERROR}</p>
+      <button type="button" className={styles.btnPrimary} data-testid="retry-btn" onClick={onRetry}>
+        Try again
+      </button>
+    </div>
   );
 }
 
