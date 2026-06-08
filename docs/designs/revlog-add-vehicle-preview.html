@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revlog — Add a Vehicle · Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --surface-base:     #0B0D14;
+      --surface-raised:   #131620;
+      --surface-elevated: #1A1D2E;
+      --surface-subtle:   #1F2338;
+      --border-muted:   #1E2235;
+      --border-default: #2A2E46;
+      --border-strong:  #3E4260;
+      --text-primary:   #EDF0F8;
+      --text-secondary: #8C8FA8;
+      --text-tertiary:  #50527A;
+      --text-disabled:  #34375A;
+      --accent:       #14B8D4;
+      --accent-hover: #22CBEA;
+      --accent-light: #67E2F0;
+      --accent-muted: rgba(20, 184, 212, 0.12);
+      --accent-glow:  rgba(20, 184, 212, 0.06);
+      --success: #34D399;
+      --warning: #FB923C;
+      --danger:  #F87171;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Top bar ────────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--border-muted);
+      background: var(--surface-base);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 9px; }
+    .logo-wordmark { font-family: 'Outfit', sans-serif; font-size: 17px; letter-spacing: -0.025em; line-height: 1; }
+    .logo-wordmark .rev { font-weight: 300; color: var(--text-primary); }
+    .logo-wordmark .log { font-weight: 700; color: var(--accent); }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--surface-elevated); border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 600;
+      color: var(--text-secondary); letter-spacing: 0.02em;
+    }
+
+    /* ─── Page ───────────────────────────────────────────────────── */
+    .page { max-width: 1120px; margin: 0 auto; padding: 36px 40px 110px; }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 500; color: var(--text-tertiary);
+      text-decoration: none; margin-bottom: 28px;
+      transition: color 150ms ease, gap 150ms ease;
+    }
+    .back-link svg { transition: transform 150ms ease; }
+    .back-link:hover { color: var(--accent-light); gap: 10px; }
+    .back-link:hover svg { transform: translateX(-2px); }
+
+    .page-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 40px; gap: 24px; flex-wrap: wrap;
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+    }
+    .eyebrow::before { content: ''; display: block; width: 14px; height: 1.5px; background: currentColor; border-radius: 1px; }
+    .page-title { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 600; letter-spacing: -0.03em; }
+    .page-sub { font-size: 13.5px; line-height: 1.6; color: var(--text-tertiary); max-width: 360px; }
+
+    /* ─── Layout ─────────────────────────────────────────────────── */
+    .add-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+      gap: 36px;
+      align-items: start;
+    }
+
+    /* ─── Form card ──────────────────────────────────────────────── */
+    .form-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-muted);
+      border-radius: var(--radius-xl);
+      padding: 34px 32px;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
+    }
+    .form-card-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: -0.015em; margin-bottom: 4px; }
+    .form-card-hint { font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 26px; line-height: 1.55; }
+
+    /* ─── Photo upload zone ──────────────────────────────────────── */
+    .photo-field { margin-bottom: 20px; }
+    .photo-upload-zone {
+      position: relative;
+      width: 100%;
+      height: 130px;
+      border: 1.5px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      background: var(--surface-elevated);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: border-color 150ms ease, background 150ms ease;
+      outline: none;
+    }
+    .photo-upload-zone:hover,
+    .photo-upload-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-muted);
+    }
+    .photo-upload-zone:hover .upload-icon,
+    .photo-upload-zone.drag-over .upload-icon { color: var(--accent); }
+    .photo-upload-zone:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
+
+    .upload-prompt {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      pointer-events: none; user-select: none;
+    }
+    .upload-icon { color: var(--text-tertiary); transition: color 150ms ease; }
+    .upload-label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+    .upload-hint { font-size: 11px; color: var(--text-tertiary); letter-spacing: 0.02em; }
+
+    .upload-preview { position: absolute; inset: 0; }
+    .upload-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .upload-preview-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(11,13,20,0.1) 0%, rgba(11,13,20,0.55) 100%);
+    }
+    .upload-preview-label {
+      position: absolute;
+      bottom: 10px; left: 12px;
+      font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
+      color: rgba(237,240,248,0.75);
+    }
+    .upload-remove {
+      position: absolute; top: 9px; right: 9px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(11,13,20,0.72); backdrop-filter: blur(4px);
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary); font-size: 16px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+    }
+    .upload-remove:hover { background: rgba(248,113,113,0.22); color: var(--danger); border-color: var(--danger); }
+
+    /* ─── Divider between photo zone and other fields ────────────── */
+    .field-divider {
+      border: none; border-top: 1px solid var(--border-muted);
+      margin: 4px 0 20px;
+    }
+
+    /* ─── Form fields ────────────────────────────────────────────── */
+    .field { margin-bottom: 18px; }
+    .field-row { display: flex; gap: 14px; }
+    .field-row .field { flex: 1; }
+    .field-label {
+      display: block; font-size: 11.5px; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-secondary); margin-bottom: 7px;
+    }
+    .field-label .optional { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text-tertiary); }
+    .field-input {
+      width: 100%;
+      background: var(--surface-elevated); border: 1px solid var(--border-default);
+      border-radius: var(--radius-md); color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif; font-size: 14.5px;
+      padding: 11px 14px; outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .field-input::placeholder { color: var(--text-disabled); }
+    .field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
+
+    .input-suffix-wrap { position: relative; }
+    .input-suffix-wrap .field-input { padding-right: 42px; }
+    .input-suffix {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      font-family: 'Geist Mono', monospace; font-size: 12px;
+      color: var(--text-tertiary); pointer-events: none;
+    }
+    .field-error {
+      display: none; align-items: center; gap: 5px;
+      font-size: 12px; color: var(--danger); margin-top: 7px;
+    }
+    .field-error.visible { display: flex; }
+    .field.has-error .field-input { border-color: var(--danger); }
+    .field.has-error .field-input:focus { box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.14); }
+
+    /* ─── Buttons ────────────────────────────────────────────────── */
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      background: var(--accent); border: none; border-radius: var(--radius-md);
+      color: #080A10; font-family: 'DM Sans', sans-serif; font-size: 14px;
+      font-weight: 600; letter-spacing: 0.01em; padding: 12px 22px; cursor: pointer;
+      transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+      box-shadow: 0 0 24px rgba(20, 184, 212, 0.18);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 28px rgba(20, 184, 212, 0.28); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid var(--border-default);
+      border-radius: var(--radius-md); color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 500;
+      padding: 11px 22px; cursor: pointer; text-decoration: none;
+      transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-muted); }
+    .form-actions { display: flex; gap: 12px; margin-top: 8px; }
+    .form-actions .btn-primary,
+    .form-actions .btn-ghost { flex: 1; }
+
+    /* ─── Live-preview panel ─────────────────────────────────────── */
+    .preview-panel { position: sticky; top: 96px; }
+
+    .preview-tag {
+      display: inline-flex; align-items: center; gap: 9px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 16px;
+    }
+    .pulse-dot {
+      position: relative; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 8px rgba(20,184,212,0.7);
+    }
+    .pulse-dot::after {
+      content: ''; position: absolute; inset: -5px; border-radius: 50%;
+      border: 1px solid var(--accent); opacity: 0.55;
+      animation: pulse-ring 2.2s ease-out infinite;
+    }
+    @keyframes pulse-ring {
+      0%   { transform: scale(0.6); opacity: 0.6; }
+      100% { transform: scale(1.9); opacity: 0; }
+    }
+
+    /* ─── Vehicle card (mirrors Garage 1:1) ──────────────────────── */
+    .vehicle-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-muted);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      max-width: 320px;
+      transition: border-color 320ms ease;
+    }
+    .vehicle-card::before {
+      content: '';
+      position: absolute; top: -70px; right: -70px; width: 180px; height: 180px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .vehicle-card.is-complete { border-color: var(--border-strong); }
+
+    /* ─── Photo strip inside the card ───────────────────────────── */
+    .photo-strip {
+      display: none;
+      position: relative;
+      /* Bleed to card edges by reversing card padding */
+      margin: -26px -26px 20px;
+      height: 150px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      overflow: hidden;
+    }
+    .vehicle-card.has-photo .photo-strip { display: block; }
+    .photo-strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-strip::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 56px;
+      background: linear-gradient(to bottom, transparent, var(--surface-raised));
+      pointer-events: none;
+    }
+
+    /* Hide glyph badge once a photo takes over visual identity */
+    .vehicle-card.has-photo .vehicle-glyph { display: none; }
+
+    .preview-badge {
+      position: absolute; top: 18px; right: 18px; z-index: 2;
+      font-family: 'Geist Mono', monospace; font-size: 9px; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--text-tertiary); border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-sm); padding: 4px 8px;
+    }
+    .vehicle-card.has-photo .preview-badge {
+      /* lift badge above photo strip */
+      top: 10px; right: 10px;
+      background: rgba(11,13,20,0.6); backdrop-filter: blur(6px);
+      border-style: solid; border-color: var(--border-default);
+    }
+
+    .vehicle-glyph {
+      position: relative; z-index: 1;
+      width: 60px; height: 60px; border-radius: var(--radius-md);
+      background: var(--surface-elevated); border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent); margin-bottom: 20px;
+      transition: border-color 320ms ease, color 320ms ease;
+    }
+    .vehicle-glyph svg { width: 32px; height: auto; }
+    .vehicle-card.is-complete .vehicle-glyph { border-color: var(--accent); color: var(--accent-light); }
+
+    .vehicle-name {
+      position: relative; z-index: 1;
+      font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 600;
+      letter-spacing: -0.02em; margin-bottom: 3px; transition: color 200ms ease;
+    }
+    .vehicle-name.is-placeholder { color: var(--text-disabled); font-weight: 400; }
+    .vehicle-meta {
+      position: relative; z-index: 1;
+      font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 22px;
+      transition: color 200ms ease;
+    }
+    .vehicle-meta .meta-piece.is-placeholder { color: var(--text-disabled); }
+
+    .vehicle-stats {
+      position: relative; z-index: 1;
+      display: flex; align-items: flex-end; justify-content: space-between;
+      padding-top: 16px; border-top: 1px solid var(--border-muted); margin-bottom: 18px;
+    }
+    .stat-value {
+      font-family: 'Geist Mono', monospace; font-size: 18px; font-weight: 500;
+      letter-spacing: -0.02em; transition: color 200ms ease;
+    }
+    .stat-value.is-placeholder { color: var(--text-disabled); }
+    .stat-value .unit { font-size: 10.5px; font-weight: 400; color: var(--text-tertiary); margin-left: 3px; }
+    .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-tertiary); margin-top: 4px; }
+    .stat-block.is-empty .stat-value { color: var(--text-disabled); font-size: 13px; font-weight: 400; font-family: 'DM Sans', sans-serif; letter-spacing: 0; }
+
+    .vehicle-link {
+      position: relative; z-index: 1;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12.5px; font-weight: 500; color: var(--text-disabled);
+    }
+
+    .preview-caption {
+      margin-top: 18px; font-size: 12px; line-height: 1.6;
+      color: var(--text-tertiary); max-width: 320px;
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 880px) {
+      .add-layout { grid-template-columns: 1fr; }
+      .preview-panel { position: static; order: -1; }
+      .vehicle-card { max-width: none; }
+      .preview-caption { display: none; }
+    }
+    @media (max-width: 520px) {
+      .topbar { padding: 16px 22px; }
+      .page { padding: 28px 22px 90px; }
+      .page-title { font-size: 23px; }
+      .form-card { padding: 28px 22px; }
+      .field-row { flex-direction: column; gap: 0; }
+      .form-actions { flex-direction: column-reverse; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-logo">
+      <svg width="28" height="28" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+        <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+        <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+        <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+      </svg>
+      <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+    </div>
+    <div class="avatar" title="Jordan Reyes">JR</div>
+  </header>
+
+  <main class="page">
+
+    <a class="back-link" href="#">
+      <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M12.5 7.5h-10M6.5 4.5l-3 3 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to garage
+    </a>
+
+    <div class="page-header">
+      <div>
+        <div class="eyebrow">New vehicle</div>
+        <h1 class="page-title">Add a vehicle to your garage</h1>
+      </div>
+      <p class="page-sub">Just the basics for now — nickname, year, and mileage can always be edited later from the vehicle's detail page.</p>
+    </div>
+
+    <div class="add-layout">
+
+      <!-- ── Form ─────────────────────────────────────────────── -->
+      <section class="form-card">
+        <h2 class="form-card-title">Vehicle details</h2>
+        <p class="form-card-hint">Make and model are the only fields that can't be changed once entries start referencing this vehicle.</p>
+
+        <form id="addVehicleForm" novalidate>
+
+          <!-- Photo upload -->
+          <div class="photo-field">
+            <label class="field-label">Photo <span class="optional">(optional)</span></label>
+            <input type="file" id="fPhoto" accept="image/*" hidden>
+            <div
+              class="photo-upload-zone"
+              id="photoZone"
+              role="button"
+              tabindex="0"
+              aria-label="Upload a photo of your bike"
+            >
+              <div class="upload-prompt" id="uploadPrompt">
+                <span class="upload-icon">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="2" y="5" width="20" height="15" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M8.5 5l1-2h5l1 2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span class="upload-label">Upload a photo</span>
+                <span class="upload-hint">JPG, PNG or WEBP · stored on this device</span>
+              </div>
+              <div class="upload-preview" id="uploadPreview" hidden>
+                <img id="uploadThumb" src="" alt="Vehicle photo preview">
+                <div class="upload-preview-overlay"></div>
+                <span class="upload-preview-label">Click to change</span>
+                <button class="upload-remove" id="uploadRemove" type="button" aria-label="Remove photo">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <hr class="field-divider">
+
+          <div class="field">
+            <label class="field-label" for="fNickname">Nickname <span class="optional">(optional)</span></label>
+            <input class="field-input" id="fNickname" name="nickname" type="text" placeholder="e.g. The Daily" maxlength="100" autocomplete="off"/>
+          </div>
+
+          <div class="field-row">
+            <div class="field" id="fieldMake">
+              <label class="field-label" for="fMake">Make</label>
+              <input class="field-input" id="fMake" name="make" type="text" placeholder="Triumph" maxlength="100" autocomplete="off"/>
+              <p class="field-error" id="errMake">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M7 4v3.4M7 9.6h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Make is required
+              </p>
+            </div>
+            <div class="field" id="fieldModel">
+              <label class="field-label" for="fModel">Model</label>
+              <input class="field-input" id="fModel" name="model" type="text" placeholder="Street Triple RS" maxlength="100" autocomplete="off"/>
+              <p class="field-error" id="errModel">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M7 4v3.4M7 9.6h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Model is required
+              </p>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field" id="fieldYear">
+              <label class="field-label" for="fYear">Year</label>
+              <input class="field-input" id="fYear" name="year" type="text" inputmode="numeric" placeholder="2021" maxlength="4" autocomplete="off"/>
+              <p class="field-error" id="errYear">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M7 4v3.4M7 9.6h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Enter a year between 1900 and 2027
+              </p>
+            </div>
+            <div class="field" id="fieldMileage">
+              <label class="field-label" for="fMileage">Current mileage</label>
+              <div class="input-suffix-wrap">
+                <input class="field-input" id="fMileage" name="mileage" type="text" inputmode="numeric" placeholder="14,230" autocomplete="off"/>
+                <span class="input-suffix">mi</span>
+              </div>
+              <p class="field-error" id="errMileage">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M7 4v3.4M7 9.6h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                Enter a mileage of 0 or higher
+              </p>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a class="btn-ghost" href="#">Cancel</a>
+            <button class="btn-primary" type="submit">
+              Add vehicle
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ── Live preview ─────────────────────────────────────── -->
+      <aside class="preview-panel">
+        <div class="preview-tag">
+          <span class="pulse-dot"></span>
+          Live preview — its card in your garage
+        </div>
+
+        <div class="vehicle-card" id="previewCard">
+          <!-- Photo strip — shown only when a photo is selected -->
+          <div class="photo-strip" id="pvPhotoStrip">
+            <img id="pvPhoto" src="" alt="">
+          </div>
+
+          <span class="preview-badge">Not yet saved</span>
+
+          <div class="vehicle-glyph">
+            <svg viewBox="0 0 80 48" fill="none" aria-hidden="true">
+              <circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+              <circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 13 L33 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <h2 class="vehicle-name is-placeholder" id="pvName">Your bike</h2>
+          <p class="vehicle-meta" id="pvMeta">
+            <span class="meta-piece is-placeholder">Make</span> ·
+            <span class="meta-piece is-placeholder">Model</span> ·
+            <span class="meta-piece is-placeholder">Year</span>
+          </p>
+
+          <div class="vehicle-stats">
+            <div class="stat-block">
+              <div class="stat-value is-placeholder" id="pvMileage">— <span class="unit">mi</span></div>
+              <div class="stat-label">Odometer</div>
+            </div>
+            <div class="stat-block is-empty">
+              <div class="stat-value">No entries yet</div>
+              <div class="stat-label">Log entries</div>
+            </div>
+          </div>
+
+          <span class="vehicle-link">
+            View service history
+            <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+
+        <p class="preview-caption">This is exactly how the vehicle will appear in your garage grid once saved. When a photo is added, it replaces the generic icon and becomes the card's visual identity.</p>
+      </aside>
+
+    </div>
+  </main>
+
+  <script>
+    const fields = {
+      nickname: document.getElementById('fNickname'),
+      make:     document.getElementById('fMake'),
+      model:    document.getElementById('fModel'),
+      year:     document.getElementById('fYear'),
+      mileage:  document.getElementById('fMileage'),
+    };
+
+    const preview = {
+      card:      document.getElementById('previewCard'),
+      name:      document.getElementById('pvName'),
+      meta:      document.getElementById('pvMeta'),
+      mileage:   document.getElementById('pvMileage'),
+      photoStrip: document.getElementById('pvPhotoStrip'),
+      photo:     document.getElementById('pvPhoto'),
+    };
+
+    // ── Photo upload ──────────────────────────────────────────────
+    const photoInput  = document.getElementById('fPhoto');
+    const photoZone   = document.getElementById('photoZone');
+    const uploadPrompt  = document.getElementById('uploadPrompt');
+    const uploadPreview = document.getElementById('uploadPreview');
+    const uploadThumb   = document.getElementById('uploadThumb');
+    const uploadRemove  = document.getElementById('uploadRemove');
+
+    function showPhotoPreview(dataUrl) {
+      uploadThumb.src = dataUrl;
+      uploadPrompt.hidden = true;
+      uploadPreview.hidden = false;
+      preview.photo.src = dataUrl;
+      preview.card.classList.add('has-photo');
+    }
+
+    function clearPhoto() {
+      photoInput.value = '';
+      uploadThumb.src = '';
+      uploadPrompt.hidden = false;
+      uploadPreview.hidden = true;
+      preview.photo.src = '';
+      preview.card.classList.remove('has-photo');
+    }
+
+    photoZone.addEventListener('click', (e) => {
+      if (e.target === uploadRemove || uploadRemove.contains(e.target)) return;
+      photoInput.click();
+    });
+
+    photoZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); photoInput.click(); }
+    });
+
+    photoInput.addEventListener('change', () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => showPhotoPreview(e.target.result);
+      reader.readAsDataURL(file);
+    });
+
+    uploadRemove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearPhoto();
+    });
+
+    // Drag and drop
+    photoZone.addEventListener('dragover', (e) => { e.preventDefault(); photoZone.classList.add('drag-over'); });
+    photoZone.addEventListener('dragleave', () => photoZone.classList.remove('drag-over'));
+    photoZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      photoZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => showPhotoPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    });
+
+    // ── Live preview update ───────────────────────────────────────
+    function formatMileage(raw) {
+      const digits = raw.replace(/[^\d]/g, '');
+      if (!digits.length) return null;
+      return Number(digits).toLocaleString('en-US');
+    }
+
+    function updatePreview() {
+      const nickname = fields.nickname.value.trim();
+      const make     = fields.make.value.trim();
+      const model    = fields.model.value.trim();
+      const year     = fields.year.value.trim();
+      const mileage  = formatMileage(fields.mileage.value);
+
+      // Display name: Nickname → "Make Model" fallback (garage-screen.md naming rule)
+      const fallbackName = [make, model].filter(Boolean).join(' ');
+      if (nickname) {
+        preview.name.textContent = nickname;
+        preview.name.classList.remove('is-placeholder');
+      } else if (fallbackName) {
+        preview.name.textContent = fallbackName;
+        preview.name.classList.remove('is-placeholder');
+      } else {
+        preview.name.textContent = 'Your bike';
+        preview.name.classList.add('is-placeholder');
+      }
+
+      preview.meta.innerHTML =
+        `<span class="meta-piece${make ? '' : ' is-placeholder'}">${make || 'Make'}</span> · ` +
+        `<span class="meta-piece${model ? '' : ' is-placeholder'}">${model || 'Model'}</span> · ` +
+        `<span class="meta-piece${year ? '' : ' is-placeholder'}">${year || 'Year'}</span>`;
+
+      if (mileage) {
+        preview.mileage.innerHTML = `${mileage} <span class="unit">mi</span>`;
+        preview.mileage.classList.remove('is-placeholder');
+      } else {
+        preview.mileage.innerHTML = `— <span class="unit">mi</span>`;
+        preview.mileage.classList.add('is-placeholder');
+      }
+
+      preview.card.classList.toggle('is-complete', Boolean(make && model && year && mileage));
+    }
+
+    Object.values(fields).forEach((el) => el.addEventListener('input', updatePreview));
+
+    // ── Inline validation (mirrors createVehicleSchema rules) ─────
+    const currentYear = new Date().getFullYear();
+
+    function setError(fieldId, errId, hasError) {
+      document.getElementById(fieldId).classList.toggle('has-error', hasError);
+      document.getElementById(errId).classList.toggle('visible', hasError);
+    }
+
+    function validate() {
+      const make    = fields.make.value.trim();
+      const model   = fields.model.value.trim();
+      const year    = Number(fields.year.value.trim());
+      const mileage = Number(fields.mileage.value.replace(/[^\d]/g, ''));
+
+      const makeValid    = make.length > 0;
+      const modelValid   = model.length > 0;
+      const yearValid    = fields.year.value.trim().length > 0 && Number.isInteger(year) && year >= 1900 && year <= currentYear + 1;
+      const mileageValid = fields.mileage.value.trim().length > 0 && Number.isInteger(mileage) && mileage >= 0;
+
+      setError('fieldMake', 'errMake', !makeValid);
+      setError('fieldModel', 'errModel', !modelValid);
+      setError('fieldYear', 'errYear', !yearValid);
+      setError('fieldMileage', 'errMileage', !mileageValid);
+
+      return makeValid && modelValid && yearValid && mileageValid;
+    }
+
+    document.getElementById('addVehicleForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (validate()) {
+        document.getElementById('addVehicleForm').querySelector('.btn-primary').textContent = 'Saved — redirecting…';
+      }
+    });
+
+    updatePreview();
+  </script>
+
+</body>
+</html>
