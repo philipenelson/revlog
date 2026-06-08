@@ -172,12 +172,12 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [x] Access token payload contains `sub` (userId), `accountId`, and `role` — see [ADR 0002](../../adr/0002-custom-jwt-auth.md)
 - [x] Refresh token is stored as an HTTP-only, Secure, SameSite=Strict cookie
 - [x] Access token is stored in memory (not `localStorage`)
-- [ ] Expired access token is silently refreshed using the refresh token before the user notices — `POST /auth/refresh` and token rotation are deferred (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
+- [ ] Expired access token is silently refreshed using the refresh token before the user notices — `POST /auth/refresh` now exists and powers silent session *restoration* on reload/direct navigation ([UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation), [ADR 0017](../../adr/0017-refresh-token-rotation.md)); proactively or reactively renewing an access token that expires *mid-session* (e.g. retrying a 401'd API call after a transparent refresh) isn't wired up yet — remains a gap, worth tracking as a follow-up
 - [x] On browser close, refresh token cookie expires automatically (no persistent session in V1)
 
 ### Route protection
 
-- [ ] Authenticated users visiting `/login` are redirected by Next.js middleware — the login page never renders for them — deferred alongside `/auth/refresh`; Edge middleware can confirm a session cookie is *present* but not what account status it belongs to (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
+- [x] Authenticated users visiting `/login` are redirected away — not via Next.js middleware (Edge middleware can confirm a session cookie is *present* but not which account status it belongs to, per [ADR 0016](../../adr/0016-client-session-and-route-protection.md)) but client-side: `AuthProvider`'s silent restore populates `session`, and the login screen routes onward via `routeForAccountStatus` (UC-AUTH-5, [ADR 0017](../../adr/0017-refresh-token-rotation.md)) — `auth.cy.ts`. The form can be visible for the brief duration of the silent-refresh request before the redirect fires; gating it behind a loading state would also delay the form for the far more common fresh-visitor case, so the small flash is left as-is
 - [x] Unauthenticated users visiting any protected route are redirected to `/login`
 
 ### General
@@ -196,10 +196,10 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [x] Switching back to Login tab hides name field — `auth.cy.ts`
 - [ ] Inline user-error message shown on bad credentials
 - [ ] Inline service-error message shown on 5xx response
-- [ ] Successful login redirects to Garage (Account status `ACTIVE`)
+- [x] Successful login redirects to Garage (Account status `ACTIVE`) — exercised by every `signIntoGarage`-driven spec in `garage.cy.ts`
 - [x] Successful login redirects to Onboarding (Account status `ONBOARDING`) — `journey.cy.ts`
-- [ ] Authenticated user visiting `/login` is redirected — not built; see Route protection above
-- [ ] Reloading or directly navigating to a protected screen with a valid refresh-token cookie silently restores the session — see [UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation) and [refresh-api.md](./refresh-api.md)
+- [x] Authenticated user visiting `/login` is redirected — `auth.cy.ts` ("Login screen — already-authenticated visitor (UC-AUTH-5)")
+- [x] Reloading or directly navigating to a protected screen with a valid refresh-token cookie silently restores the session — `garage.cy.ts` ("session restored on reload"); see [UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation) and [refresh-api.md](./refresh-api.md)
 
 ---
 

@@ -1,7 +1,7 @@
 # Refresh Session API Spec
 
 **Area:** Auth
-**Status:** Spec written — implementation pending
+**Status:** Implemented
 **Last updated:** 2026-06-08
 
 ---
@@ -64,24 +64,24 @@ Identical to every other session-issuing endpoint: store `accessToken`/`user`/`a
 
 ## Acceptance Criteria
 
-- [ ] `POST /auth/refresh` with a valid, unexpired `refreshToken` cookie returns 200 with `{ accessToken, user, account }`, matching the `login`/`verifyEmail` response shape exactly
-- [ ] On success, the old `RefreshToken` row is deleted and a new one is created (rotation) — the old raw token can no longer be used
-- [ ] On success, the response sets a **new** `refreshToken` cookie with attributes identical to `login`/`verifyEmail` (`HttpOnly`, `Secure` in production, `SameSite=Strict`, `Path=/`, no `Max-Age`)
-- [ ] `POST /auth/refresh` with no `refreshToken` cookie returns 401 without querying the database
-- [ ] `POST /auth/refresh` with a cookie whose hash matches no `RefreshToken` row returns 401
-- [ ] `POST /auth/refresh` with a cookie matching an expired `RefreshToken` row returns 401
-- [ ] All 401 cases return the same status, body, and message — the client cannot distinguish "no cookie" from "expired" from "forged/already rotated" (mirrors `login`'s single-401 precedent — see [login-api.md](./login-api.md) Decisions)
-- [ ] Issued access token payload matches the `verifyEmail`/`login`-issued shape (`sub`, `accountId`, `role`)
-- [ ] `AuthProvider` calls `POST /auth/refresh` once on mount when `session` is `null`, and exposes `isRestoring: boolean` so consumers can distinguish "still checking" from "confirmed logged out"
-- [ ] On a successful silent refresh, a reloaded or directly-navigated protected screen (e.g. `/garage`) renders normally — no redirect to `/login`, no flash of a logged-out state
-- [ ] On a failed silent refresh (no valid cookie), the screen's existing no-session handling runs only after `isRestoring` becomes `false` — never before
-- [ ] An already-authenticated visitor to `/login` (silent refresh succeeds on mount) is redirected via `routeForAccountStatus(account.status)` before the form renders (UC-AUTH-5)
+- [x] `POST /auth/refresh` with a valid, unexpired `refreshToken` cookie returns 200 with `{ accessToken, user, account }`, matching the `login`/`verifyEmail` response shape exactly
+- [x] On success, the old `RefreshToken` row is deleted and a new one is created (rotation) — the old raw token can no longer be used
+- [x] On success, the response sets a **new** `refreshToken` cookie with attributes identical to `login`/`verifyEmail` (`HttpOnly`, `Secure` in production, `SameSite=Strict`, `Path=/`, no `Max-Age`)
+- [x] `POST /auth/refresh` with no `refreshToken` cookie returns 401 without querying the database
+- [x] `POST /auth/refresh` with a cookie whose hash matches no `RefreshToken` row returns 401
+- [x] `POST /auth/refresh` with a cookie matching an expired `RefreshToken` row returns 401
+- [x] All 401 cases return the same status, body, and message — the client cannot distinguish "no cookie" from "expired" from "forged/already rotated" (mirrors `login`'s single-401 precedent — see [login-api.md](./login-api.md) Decisions)
+- [x] Issued access token payload matches the `verifyEmail`/`login`-issued shape (`sub`, `accountId`, `role`)
+- [x] `AuthProvider` calls `POST /auth/refresh` once on mount when `session` is `null`, and exposes `isRestoring: boolean` so consumers can distinguish "still checking" from "confirmed logged out"
+- [x] On a successful silent refresh, a reloaded or directly-navigated protected screen (e.g. `/garage`) renders normally — no redirect to `/login`, no flash of a logged-out state
+- [x] On a failed silent refresh (no valid cookie), the screen's existing no-session handling runs only after `isRestoring` becomes `false` — never before
+- [x] An already-authenticated visitor to `/login` (silent refresh succeeds on mount) is redirected via `routeForAccountStatus(account.status)` once the restore confirms a session (UC-AUTH-5) — the form can be visible for the brief duration of that request first; see [login.md](./login.md)'s "Route protection" note on why that flash is left as-is
 
 ### E2E tests (Cypress)
 
-- [ ] Reloading `/garage` with a valid refresh-token cookie restores the session silently and renders the populated garage — no redirect to `/login`
-- [ ] Reloading `/garage` with no valid refresh-token cookie (silent refresh fails) still redirects to `/login`, exactly as the existing "session lost on reload" spec covers
-- [ ] Visiting `/login` with a valid refresh-token cookie redirects to the account-status-appropriate destination instead of rendering the sign-in form
+- [x] Reloading `/garage` with a valid refresh-token cookie restores the session silently and renders the populated garage — no redirect to `/login`
+- [x] Reloading `/garage` with no valid refresh-token cookie (silent refresh fails) still redirects to `/login`, exactly as the existing "session lost on reload" spec covers
+- [x] Visiting `/login` with a valid refresh-token cookie redirects to the account-status-appropriate destination instead of rendering the sign-in form
 
 ---
 
