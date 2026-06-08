@@ -1,5 +1,10 @@
 describe("Garage screen", () => {
   beforeEach(() => {
+    // Middleware gates this route on the refresh-token cookie's presence only
+    // (see ADR 0016) — this spec exercises the garage screen's own UI in
+    // isolation, not the auth flow that issues a real session (covered by
+    // journey.cy.ts).
+    cy.setCookie("refreshToken", "e2e-garage-session");
     cy.visit("/garage");
   });
 

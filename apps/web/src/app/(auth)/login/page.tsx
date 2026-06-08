@@ -1,13 +1,79 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerSchema, loginSchema, type RegisterInput, type LoginInput } from "@maintenance-log/domain";
 import { googleBrand } from "@maintenance-log/ui-tokens/colors";
+import { apiFetch, ApiError } from "@/lib/api";
+import { useAuth, type Session } from "@/lib/auth/AuthProvider";
+import { routeForAccountStatus } from "@/lib/auth/routeForAccountStatus";
+import { logger } from "@/lib/logger";
 import styles from "./login.module.css";
+
+const SIGN_IN_USER_ERROR =
+  "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";
+const REGISTER_USER_ERROR = "Couldn't create your account. Check your details and try again.";
+const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
 
 type Tab = "login" | "register";
 
 export default function LoginPage() {
   const [tab, setTab] = useState<Tab>("login");
+  const router = useRouter();
+  const { setSession } = useAuth();
+
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const {
+    register: loginField,
+    handleSubmit: handleLoginSubmit,
+    formState: { errors: loginErrors, isSubmitting: isLoginSubmitting },
+  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const {
+    register: registerField,
+    handleSubmit: handleRegisterSubmit,
+    formState: { errors: registerErrors, isSubmitting: isRegisterSubmitting },
+  } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
+
+  function selectTab(next: Tab) {
+    setTab(next);
+    setLoginError(null);
+    setRegisterError(null);
+  }
+
+  async function onLoginSubmit(data: LoginInput) {
+    setLoginError(null);
+    try {
+      const session = await apiFetch<Session>("/auth/login", { method: "POST", body: JSON.stringify(data) });
+      setSession(session);
+      router.push(routeForAccountStatus(session.account.status));
+    } catch (err) {
+      if (err instanceof ApiError && err.status < 500) {
+        setLoginError(SIGN_IN_USER_ERROR);
+      } else {
+        logger.error("login request failed", { err });
+        setLoginError(SERVICE_ERROR);
+      }
+    }
+  }
+
+  async function onRegisterSubmit(data: RegisterInput) {
+    setRegisterError(null);
+    try {
+      await apiFetch("/auth/register", { method: "POST", body: JSON.stringify(data) });
+      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status < 500) {
+        setRegisterError(REGISTER_USER_ERROR);
+      } else {
+        logger.error("registration request failed", { err });
+        setRegisterError(SERVICE_ERROR);
+      }
+    }
+  }
 
   return (
     <div className={styles.root}>
@@ -91,7 +157,7 @@ export default function LoginPage() {
                 role="tab"
                 aria-selected={tab === t}
                 data-testid={`${t}-tab`}
-                onClick={() => setTab(t)}
+                onClick={() => selectTab(t)}
                 className={`${styles.tab} ${tab === t ? styles.tabActive : ""}`}
               >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -100,62 +166,85 @@ export default function LoginPage() {
           </div>
 
           {tab === "login" && (
-            <div>
+            <form onSubmit={handleLoginSubmit(onLoginSubmit)} noValidate>
               <Field label="Email">
                 <input
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
                   data-testid="email-input"
-                  className={styles.input}
+                  className={`${styles.input} ${loginErrors.email ? styles.inputError : ""}`}
+                  {...loginField("email")}
                 />
+                {loginErrors.email && (
+                  <span className={styles.fieldError}>{loginErrors.email.message}</span>
+                )}
               </Field>
-              <Field label="Password">
+              <Field label="Password" className={styles.fieldLast}>
                 <input
                   type="password"
                   placeholder="••••••••"
                   autoComplete="current-password"
                   data-testid="password-input"
-                  className={styles.input}
+                  className={`${styles.input} ${loginErrors.password ? styles.inputError : ""}`}
+                  {...loginField("password")}
                 />
+                {loginErrors.password && (
+                  <span className={styles.fieldError}>{loginErrors.password.message}</span>
+                )}
               </Field>
-              <div className={styles.rememberRow}>
-                <label className={styles.rememberLabel}>
-                  <input type="checkbox" className={styles.rememberCheckbox} />
-                  Remember me
-                </label>
-                <a href="#" className={styles.forgotLink}>Forgot password?</a>
+              <div className={styles.linkRow}>
+                <a href="/forgot-password" className={styles.forgotLink}>Forgot password?</a>
               </div>
-              <PrimaryButton>Continue</PrimaryButton>
-            </div>
+              {loginError && (
+                <p className={styles.formError} role="alert" data-testid="login-error">
+                  {loginError}
+                </p>
+              )}
+              <PrimaryButton type="submit" disabled={isLoginSubmitting}>Continue</PrimaryButton>
+            </form>
           )}
 
           {tab === "register" && (
-            <div>
+            <form onSubmit={handleRegisterSubmit(onRegisterSubmit)} noValidate>
               <Field label="Full name">
                 <input
                   type="text"
                   placeholder="Your name"
                   autoComplete="name"
                   data-testid="name-input"
-                  className={styles.input}
+                  className={`${styles.input} ${registerErrors.fullName ? styles.inputError : ""}`}
+                  {...registerField("fullName")}
                 />
+                {registerErrors.fullName && (
+                  <span className={styles.fieldError}>{registerErrors.fullName.message}</span>
+                )}
               </Field>
               <Field label="Email">
                 <input
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
-                  className={styles.input}
+                  data-testid="email-input"
+                  className={`${styles.input} ${registerErrors.email ? styles.inputError : ""}`}
+                  {...registerField("email")}
                 />
+                {registerErrors.email && (
+                  <span className={styles.fieldError}>{registerErrors.email.message}</span>
+                )}
               </Field>
               <Field label="Password">
                 <input
                   type="password"
                   placeholder="Create a password"
                   autoComplete="new-password"
-                  className={styles.input}
+                  data-testid="password-input"
+                  className={`${styles.input} ${registerErrors.password ? styles.inputError : ""}`}
+                  {...registerField("password")}
                 />
+                {registerErrors.password && (
+                  <span className={styles.fieldError}>{registerErrors.password.message}</span>
+                )}
               </Field>
               <Field label="Confirm password" className={styles.fieldLast}>
                 <input
@@ -163,11 +252,20 @@ export default function LoginPage() {
                   placeholder="Repeat your password"
                   autoComplete="new-password"
                   data-testid="confirm-password-input"
-                  className={styles.input}
+                  className={`${styles.input} ${registerErrors.confirmPassword ? styles.inputError : ""}`}
+                  {...registerField("confirmPassword")}
                 />
+                {registerErrors.confirmPassword && (
+                  <span className={styles.fieldError}>{registerErrors.confirmPassword.message}</span>
+                )}
               </Field>
-              <PrimaryButton>Create account</PrimaryButton>
-            </div>
+              {registerError && (
+                <p className={styles.formError} role="alert" data-testid="register-error">
+                  {registerError}
+                </p>
+              )}
+              <PrimaryButton type="submit" disabled={isRegisterSubmitting}>Create account</PrimaryButton>
+            </form>
           )}
 
           <div className={styles.divider}>
@@ -212,9 +310,17 @@ function Field({
   );
 }
 
-function PrimaryButton({ children }: { children: React.ReactNode }) {
+function PrimaryButton({
+  children,
+  type = "button",
+  disabled,
+}: {
+  children: React.ReactNode;
+  type?: "button" | "submit";
+  disabled?: boolean;
+}) {
   return (
-    <button type="button" className={styles.primaryBtn}>
+    <button type={type} disabled={disabled} className={styles.primaryBtn}>
       {children}
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
         <path

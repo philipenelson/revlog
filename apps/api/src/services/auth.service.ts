@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import type {
   RegisterInput,
+  LoginInput,
   IUserRepository,
   IRefreshTokenRepository,
   IAccountRepository,
@@ -13,6 +14,11 @@ import { logger } from '../lib/logger';
 const BCRYPT_ROUNDS = 12;
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const REFRESH_TOKEN_TTL_MS = parseTtlMs(process.env.JWT_REFRESH_EXPIRES_IN ?? '7d');
+
+// Compared against on every login attempt, even when no user is found for the
+// given email — without this, a missing user short-circuits before bcrypt runs,
+// and the resulting timing difference lets an attacker enumerate registered emails.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('not-a-real-password', BCRYPT_ROUNDS);
 
 function parseTtlMs(ttl: string): number {
   const match = /^(\d+)([smhd])$/.exec(ttl);
@@ -85,6 +91,36 @@ export class AuthService {
     ]);
 
     logger.info({ userId: user.id }, 'email verified');
+    return {
+      accessToken,
+      refreshToken: raw,
+      user: { id: user.id, accountId: user.accountId, role: user.role },
+      account: { id: account.id, status: account.status },
+    };
+  }
+
+  async login(input: LoginInput): Promise<VerifyEmailResult> {
+    const user = await this.userRepo.findByEmail(input.email);
+    const passwordMatches = await bcrypt.compare(input.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+
+    // Single error for "no such user", "wrong password", and "unverified" — collapsing
+    // them prevents an attacker from enumerating registered or verified emails.
+    if (!user || !passwordMatches || !user.emailVerified) {
+      throw new AppError(401, 'Invalid email or password');
+    }
+
+    const { raw, hash } = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+
+    // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
+    const account = (await this.accountRepo.findById(user.accountId))!;
+
+    const [accessToken] = await Promise.all([
+      signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
+      this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
+    ]);
+
+    logger.info({ userId: user.id }, 'user logged in');
     return {
       accessToken,
       refreshToken: raw,

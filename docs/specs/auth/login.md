@@ -69,7 +69,7 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 
 | Condition | Message shown |
 |---|---|
-| Email already registered, mismatched passwords, invalid password, or any user-input error | *"Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet."* |
+| Email already registered, mismatched passwords, invalid password, or any user-input error | *"Couldn't create your account. Check your details and try again."* |
 | Service error | *"We stalled. Our mechanics are on it — try again in a moment."* |
 
 ---
@@ -126,51 +126,51 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 
 ### Sign-in form
 
-- [ ] Login tab is active by default on page load
-- [ ] Email field uses `type="email"` and `autoComplete="email"`
-- [ ] Password field uses `type="password"` and `autoComplete="current-password"`
-- [ ] Submitting with empty fields shows inline validation before any network call
-- [ ] On success, user is redirected within 300ms of token receipt (no loading spinner needed for V1)
-- [ ] On user-input error, the error message appears inline below the form (not a toast)
-- [ ] On service error, the service error message appears inline below the form
-- [ ] "Forgot password?" navigates to `/forgot-password`
+- [x] Login tab is active by default on page load
+- [x] Email field uses `type="email"` and `autoComplete="email"`
+- [x] Password field uses `type="password"` and `autoComplete="current-password"`
+- [x] Submitting with empty fields shows inline validation before any network call
+- [x] On success, user is redirected within 300ms of token receipt (no loading spinner needed for V1)
+- [x] On user-input error, the error message appears inline below the form (not a toast)
+- [x] On service error, the service error message appears inline below the form
+- [ ] "Forgot password?" navigates to `/forgot-password` — link is rendered, but `/forgot-password` itself is not yet built (still a placeholder destination)
 
 ### Registration form
 
-- [ ] Full name field uses `type="text"` and `autoComplete="name"`; must be non-empty, max 100 characters
-- [ ] Email field uses `type="email"` and `autoComplete="email"`
-- [ ] Password field uses `autoComplete="new-password"`; validation is Unicode-aware:
+- [x] Full name field uses `type="text"` and `autoComplete="name"`; must be non-empty, max 100 characters
+- [x] Email field uses `type="email"` and `autoComplete="email"`
+- [x] Password field uses `autoComplete="new-password"`; validation is Unicode-aware:
   - Minimum 8 code points (not bytes)
   - At least one Unicode letter (`\p{L}`)
   - At least one Unicode digit (`\p{N}`)
   - Covers full-width and half-width characters (Japanese, Chinese, etc.)
-- [ ] Confirm password must match password; validated client-side before submit
-- [ ] On success, user is shown the `/verify-email` waiting screen
-- [ ] On any error, the catch-all user-error message is shown inline
+- [x] Confirm password must match password; validated client-side before submit
+- [x] On success, user is shown the `/verify-email` waiting screen
+- [x] On any error, the catch-all user-error message is shown inline
 
 ### Session
 
-- [ ] On successful sign-in or post-verification auto-login, the system issues:
+- [x] On successful sign-in or post-verification auto-login, the system issues:
   - **Access token** — short-lived (15 min), signed with `jose`
   - **Refresh token** — browser session cookie (no `Max-Age`), rotated on every use
-- [ ] Access token payload contains `sub` (userId), `accountId`, and `role` — see [ADR 0002](../../adr/0002-custom-jwt-auth.md)
-- [ ] Refresh token is stored as an HTTP-only, Secure, SameSite=Strict cookie
-- [ ] Access token is stored in memory (not `localStorage`)
-- [ ] Expired access token is silently refreshed using the refresh token before the user notices
-- [ ] On browser close, refresh token cookie expires automatically (no persistent session in V1)
+- [x] Access token payload contains `sub` (userId), `accountId`, and `role` — see [ADR 0002](../../adr/0002-custom-jwt-auth.md)
+- [x] Refresh token is stored as an HTTP-only, Secure, SameSite=Strict cookie
+- [x] Access token is stored in memory (not `localStorage`)
+- [ ] Expired access token is silently refreshed using the refresh token before the user notices — `POST /auth/refresh` and token rotation are deferred (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
+- [x] On browser close, refresh token cookie expires automatically (no persistent session in V1)
 
 ### Route protection
 
-- [ ] Authenticated users visiting `/login` are redirected by Next.js middleware — the login page never renders for them
-- [ ] Unauthenticated users visiting any protected route are redirected to `/login`
+- [ ] Authenticated users visiting `/login` are redirected by Next.js middleware — the login page never renders for them — deferred alongside `/auth/refresh`; Edge middleware can confirm a session cookie is *present* but not what account status it belongs to (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
+- [x] Unauthenticated users visiting any protected route are redirected to `/login`
 
 ### General
 
-- [ ] "Continue with Google" button is rendered but non-functional (placeholder for V2)
-- [ ] Terms of Service and Privacy Policy links are present but use `href="#"` (placeholder — **must be real URLs before any public launch**)
-- [ ] The brand panel renders the logo, headline, tagline, and 3 feature callouts
-- [ ] Switching tabs clears any active error message
-- [ ] Page title is "Revlog"
+- [x] "Continue with Google" button is rendered but non-functional (placeholder for V2)
+- [x] Terms of Service and Privacy Policy links are present but use `href="#"` (placeholder — **must be real URLs before any public launch**)
+- [x] The brand panel renders the logo, headline, tagline, and 3 feature callouts
+- [x] Switching tabs clears any active error message
+- [x] Page title is "Revlog"
 
 ### E2E tests (Cypress)
 
@@ -181,8 +181,8 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [ ] Inline user-error message shown on bad credentials
 - [ ] Inline service-error message shown on 5xx response
 - [ ] Successful login redirects to Garage (Account status `ACTIVE`)
-- [ ] Successful login redirects to Onboarding (Account status `ONBOARDING`)
-- [ ] Authenticated user visiting `/login` is redirected
+- [x] Successful login redirects to Onboarding (Account status `ONBOARDING`) — `journey.cy.ts`
+- [ ] Authenticated user visiting `/login` is redirected — not built; see Route protection above
 
 ---
 

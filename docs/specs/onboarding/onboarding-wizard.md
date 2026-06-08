@@ -109,7 +109,7 @@ Responsive behaviour follows the same `@media (max-width: 860px)` card-collapse 
 
 ### General
 
-- [ ] Page title is "Revlog — Set up your garage" (or equivalent reflecting the step)
+- [x] Page title is "Revlog — Set up your garage" (or equivalent reflecting the step) — set via `src/app/onboarding/layout.tsx`, matching the `/garage` route's pattern
 - [ ] No "service due" / scheduled-maintenance language or indicators anywhere in the flow — Scheduled Maintenance Items are V2-only (see [Not in V1](../../milestones/v1.md#not-in-v1))
 - [ ] Domain language matches [`CONTEXT.md`](../../../CONTEXT.md): "Vehicle," "Garage," "Owner" — never "fleet," "inventory," or "bike/motorbike" in code-facing strings (UI copy may say "bike" informally)
 - [ ] An error boundary wraps the page per the root observability rules
