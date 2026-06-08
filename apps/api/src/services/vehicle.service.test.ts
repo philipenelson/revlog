@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleService } from './vehicle.service';
+import { AppError } from '../middleware/error';
 import type { IVehicleRepository, IAccountRepository, DomainVehicle, DomainAccount, CreateVehicleInput } from '@maintenance-log/domain';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
@@ -20,6 +21,7 @@ const mockVehicle: DomainVehicle = {
   model: 'CB500F',
   year: 2021,
   mileage: 14230,
+  photoPath: null,
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
@@ -36,6 +38,7 @@ function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehi
   return {
     create: vi.fn().mockResolvedValue(mockVehicle),
     findAllByAccountId: vi.fn().mockResolvedValue([mockVehicle]),
+    setPhoto: vi.fn().mockResolvedValue({ ...mockVehicle, photoPath: 'new.jpg' }),
     ...overrides,
   };
 }
@@ -61,11 +64,19 @@ describe('VehicleService.createVehicle', () => {
     service = new VehicleService(vehicleRepo, accountRepo);
   });
 
-  it('creates the vehicle scoped to the given accountId', async () => {
+  it('creates the vehicle scoped to the given accountId with photoPath null by default', async () => {
     await service.createVehicle('account-1', validInput);
 
     expect(vehicleRepo.create).toHaveBeenCalledOnce();
-    expect(vehicleRepo.create).toHaveBeenCalledWith({ accountId: 'account-1', ...validInput });
+    expect(vehicleRepo.create).toHaveBeenCalledWith({ accountId: 'account-1', ...validInput, photoPath: null });
+  });
+
+  it('passes the photoPath to the repository when provided', async () => {
+    await service.createVehicle('account-1', validInput, 'photo.jpg');
+
+    expect(vehicleRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ photoPath: 'photo.jpg' }),
+    );
   });
 
   it('transitions the account out of onboarding after creating the vehicle', async () => {
@@ -120,5 +131,40 @@ describe('VehicleService.listVehicles', () => {
     await service.listVehicles('account-1');
 
     expect(accountRepo.markActive).not.toHaveBeenCalled();
+  });
+});
+
+describe('VehicleService.setVehiclePhoto', () => {
+  let vehicleRepo: IVehicleRepository;
+  let accountRepo: IAccountRepository;
+  let service: VehicleService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vehicleRepo = makeFakeVehicleRepo();
+    accountRepo = makeFakeAccountRepo();
+    service = new VehicleService(vehicleRepo, accountRepo);
+  });
+
+  it('calls vehicleRepo.setPhoto with vehicleId, accountId, and photoPath', async () => {
+    await service.setVehiclePhoto('vehicle-1', 'account-1', 'photo.jpg');
+
+    expect(vehicleRepo.setPhoto).toHaveBeenCalledWith('vehicle-1', 'account-1', 'photo.jpg');
+  });
+
+  it('returns the updated vehicle', async () => {
+    const result = await service.setVehiclePhoto('vehicle-1', 'account-1', 'photo.jpg');
+
+    expect(result.photoPath).toBe('new.jpg');
+  });
+
+  it('throws a 404 AppError when the vehicle is not found or belongs to another account', async () => {
+    vehicleRepo = makeFakeVehicleRepo({ setPhoto: vi.fn().mockResolvedValue(null) });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    await expect(service.setVehiclePhoto('vehicle-1', 'account-1', 'photo.jpg')).rejects.toThrow(AppError);
+    await expect(service.setVehiclePhoto('vehicle-1', 'account-1', 'photo.jpg')).rejects.toMatchObject({
+      statusCode: 404,
+    });
   });
 });
