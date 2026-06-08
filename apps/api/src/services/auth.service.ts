@@ -7,7 +7,7 @@ import type {
   IAccountRepository,
   AccountStatus,
 } from '@maintenance-log/domain';
-import { signAccessToken, generateRefreshToken } from '../lib/tokens';
+import { signAccessToken, generateRefreshToken, hashRefreshToken } from '../lib/tokens';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 
@@ -121,6 +121,41 @@ export class AuthService {
     ]);
 
     logger.info({ userId: user.id }, 'user logged in');
+    return {
+      accessToken,
+      refreshToken: raw,
+      user: { id: user.id, accountId: user.accountId, role: user.role },
+      account: { id: account.id, status: account.status },
+    };
+  }
+
+  async refresh(rawToken: string): Promise<VerifyEmailResult> {
+    const record = await this.refreshTokenRepo.findByTokenHash(hashRefreshToken(rawToken));
+
+    // "Not found" and "expired" collapse into the same 401 — see ADR 0017 ("Reuse
+    // detection"): a garbage, forged, expired, or already-rotated token must be
+    // indistinguishable to the caller.
+    if (!record || record.expiresAt < new Date()) {
+      throw new AppError(401, 'Invalid or expired session');
+    }
+
+    // FK guarantees the user exists for any persisted RefreshToken row — users are never deleted in V1.
+    const user = (await this.userRepo.findById(record.userId))!;
+    // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
+    const account = (await this.accountRepo.findById(user.accountId))!;
+
+    const { raw, hash } = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+
+    // Rotation: delete the old row and insert a new one (ADR 0012 / ADR 0017) — keeps
+    // "is this token still valid" and "replace it" as separate, individually-failable steps.
+    const [accessToken] = await Promise.all([
+      signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
+      this.refreshTokenRepo.deleteById(record.id),
+      this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
+    ]);
+
+    logger.info({ userId: user.id }, 'session refreshed');
     return {
       accessToken,
       refreshToken: raw,

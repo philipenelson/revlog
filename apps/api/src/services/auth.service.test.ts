@@ -329,3 +329,126 @@ describe('AuthService.login', () => {
     expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
   });
 });
+
+describe('AuthService.refresh', () => {
+  let userRepo: IUserRepository;
+  let refreshTokenRepo: IRefreshTokenRepository;
+  let accountRepo: IAccountRepository;
+  let service: AuthService;
+
+  const RAW_TOKEN = 'c'.repeat(64);
+
+  const mockValidRecord: DomainRefreshToken = {
+    id: 'rt-valid',
+    userId: mockVerifiedUser.id,
+    tokenHash: 'stored-hash-irrelevant-to-the-fake-repo',
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    createdAt: fixedNow,
+  };
+
+  const mockExpiredRecord: DomainRefreshToken = {
+    ...mockValidRecord,
+    id: 'rt-expired',
+    expiresAt: new Date(Date.now() - 1000),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userRepo = makeFakeUserRepo({ findById: vi.fn().mockResolvedValue(mockVerifiedUser) });
+    refreshTokenRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(mockValidRecord) });
+    accountRepo = makeFakeAccountRepo();
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+  });
+
+  it('throws 401 when no refresh token record matches the hash', async () => {
+    refreshTokenRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(null) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.refresh(RAW_TOKEN)).rejects.toMatchObject({
+      statusCode: 401,
+      message: 'Invalid or expired session',
+    });
+  });
+
+  it('throws 401 when the matched record has expired', async () => {
+    refreshTokenRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(mockExpiredRecord) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.refresh(RAW_TOKEN)).rejects.toMatchObject({
+      statusCode: 401,
+      message: 'Invalid or expired session',
+    });
+  });
+
+  it('issues the same single 401 for "not found" and "expired" — indistinguishable to the caller', async () => {
+    const notFoundRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(null) });
+    const expiredRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(mockExpiredRecord) });
+    const notFoundService = new AuthService(userRepo, notFoundRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+    const expiredService = new AuthService(userRepo, expiredRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    const errors = await Promise.all([
+      notFoundService.refresh(RAW_TOKEN).catch((e: unknown) => e),
+      expiredService.refresh(RAW_TOKEN).catch((e: unknown) => e),
+    ]);
+
+    for (const err of errors) {
+      expect(err).toMatchObject({ statusCode: 401, message: 'Invalid or expired session' });
+    }
+  });
+
+  it('does not look up the user when the token is not found or expired', async () => {
+    refreshTokenRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(null) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.refresh(RAW_TOKEN)).rejects.toBeInstanceOf(AppError);
+    expect(userRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it('hashes the incoming raw token before looking it up — never queries with the raw value', async () => {
+    const { createHash } = await import('crypto');
+    await service.refresh(RAW_TOKEN);
+
+    const expectedHash = createHash('sha256').update(RAW_TOKEN).digest('hex');
+    expect(refreshTokenRepo.findByTokenHash).toHaveBeenCalledWith(expectedHash);
+  });
+
+  it('looks up the user associated with the matched record', async () => {
+    await service.refresh(RAW_TOKEN);
+    expect(userRepo.findById).toHaveBeenCalledWith(mockValidRecord.userId);
+  });
+
+  it('rotates the refresh token: deletes the matched record and creates a new one', async () => {
+    const result = await service.refresh(RAW_TOKEN);
+
+    expect(refreshTokenRepo.deleteById).toHaveBeenCalledWith(mockValidRecord.id);
+    expect(refreshTokenRepo.create).toHaveBeenCalledOnce();
+    const [storedData] = (refreshTokenRepo.create as ReturnType<typeof vi.fn>).mock.calls[0] as [{ tokenHash: string; userId: string }];
+    expect(storedData.userId).toBe(mockVerifiedUser.id);
+    expect(storedData.tokenHash).not.toBe(result.refreshToken); // hash ≠ raw token
+  });
+
+  it('looks up and returns the account associated with the user', async () => {
+    const result = await service.refresh(RAW_TOKEN);
+
+    expect(accountRepo.findById).toHaveBeenCalledWith(mockVerifiedUser.accountId);
+    expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
+  });
+
+  it('returns a JWT access token, a raw 64-char hex refresh token, and user info', async () => {
+    const result = await service.refresh(RAW_TOKEN);
+
+    expect(result.accessToken).toMatch(/^eyJ/); // JWT header
+    expect(result.refreshToken).toMatch(/^[0-9a-f]{64}$/); // 32 bytes as hex
+    expect(result.user).toEqual({ id: mockVerifiedUser.id, accountId: mockVerifiedUser.accountId, role: mockVerifiedUser.role });
+    expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
+  });
+
+  it('the stored hash is the SHA-256 of the returned raw refresh token (the new, rotated value)', async () => {
+    const { createHash } = await import('crypto');
+    const result = await service.refresh(RAW_TOKEN);
+
+    const [storedData] = (refreshTokenRepo.create as ReturnType<typeof vi.fn>).mock.calls[0] as [{ tokenHash: string }];
+    const expectedHash = createHash('sha256').update(result.refreshToken).digest('hex');
+    expect(storedData.tokenHash).toBe(expectedHash);
+  });
+});
