@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -170,10 +169,10 @@ function VehicleCard({ vehicle }: { vehicle: VehicleSummary }) {
     >
       {vehicle.photoUrl ? (
         <div className={styles.photoStrip}>
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded photo served by local Express; next/image optimizer cannot handle this URL without an infra-level proxy */}
+          <img
             src={vehicle.photoUrl}
             alt={vehicleDisplayName(vehicle)}
-            fill
             className={styles.vehiclePhoto}
           />
           <div className={styles.photoStripOverlay} />
