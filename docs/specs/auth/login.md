@@ -122,6 +122,22 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 
 ---
 
+### UC-AUTH-7 — Silent session restoration on reload or direct navigation
+
+**Actor:** User with a valid, unexpired refresh-token cookie but no in-memory session
+**Precondition:** Browser holds a `refreshToken` cookie issued by a prior sign-in; `AuthProvider`'s in-memory `session` is `null` (e.g. the page was reloaded, or the User typed/bookmarked a protected URL directly)
+**Milestones:** [V1](../../milestones/v1.md)
+
+1. User reloads `/garage` or `/onboarding`, or navigates to one directly by URL
+2. Next.js middleware sees the `refreshToken` cookie present and lets the request through (it cannot validate an opaque token at the edge — see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
+3. `AuthProvider` mounts with `session: null` and immediately calls `POST /auth/refresh` ([refresh-api.md](./refresh-api.md)) — the `HttpOnly` cookie travels automatically via `apiFetch`'s `credentials: "include"`
+4. On success, the System populates `session` from the response (`{ accessToken, user, account }`) and rotates the refresh-token cookie — the User never sees a sign-in prompt; the protected screen renders as if the session had never been lost
+5. On failure (no cookie, expired, or invalid token), `session` stays `null` and the screen falls back to its existing no-session handling — e.g. the garage screen's redirect to `/login` ([garage-screen.md](../garage/garage-screen.md) — "No-session redirect")
+
+> This is the mechanism [ADR 0016](../../adr/0016-client-session-and-route-protection.md) named as the fix for "no session restoration on reload, yet" and that [`v1.md`](../../milestones/v1.md) tracks as "Token rotation on refresh." See [refresh-api.md](./refresh-api.md) for the backend contract and [ADR 0017](../../adr/0017-refresh-token-rotation.md) for the full decision record.
+
+---
+
 ## Acceptance Criteria
 
 ### Sign-in form
@@ -183,6 +199,7 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [ ] Successful login redirects to Garage (Account status `ACTIVE`)
 - [x] Successful login redirects to Onboarding (Account status `ONBOARDING`) — `journey.cy.ts`
 - [ ] Authenticated user visiting `/login` is redirected — not built; see Route protection above
+- [ ] Reloading or directly navigating to a protected screen with a valid refresh-token cookie silently restores the session — see [UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation) and [refresh-api.md](./refresh-api.md)
 
 ---
 
