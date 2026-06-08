@@ -146,6 +146,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
+                  data-testid="email-input"
                   className={styles.input}
                 />
               </Field>
@@ -154,6 +155,7 @@ export default function LoginPage() {
                   type="password"
                   placeholder="Create a password"
                   autoComplete="new-password"
+                  data-testid="password-input"
                   className={styles.input}
                 />
               </Field>
