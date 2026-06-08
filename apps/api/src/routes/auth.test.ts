@@ -5,9 +5,10 @@ import { createAuthRouter } from './auth';
 import { AppError, errorMiddleware } from '../middleware/error';
 import type { AuthService } from '../services/auth.service';
 
-const mockAuthService: Pick<AuthService, 'register' | 'verifyEmail'> = {
+const mockAuthService: Pick<AuthService, 'register' | 'verifyEmail' | 'login'> = {
   register: vi.fn(),
   verifyEmail: vi.fn(),
+  login: vi.fn(),
 };
 
 function buildApp() {
@@ -30,6 +31,18 @@ const verifyEmailResult = {
   refreshToken: 'a'.repeat(64),
   user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
   account: { id: 'acc-1', status: 'ONBOARDING' },
+};
+
+const validLoginBody = {
+  email: 'test@example.com',
+  password: 'SecurePass1',
+};
+
+const loginResult = {
+  accessToken: 'eyJmake.token.here',
+  refreshToken: 'b'.repeat(64),
+  user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
+  account: { id: 'acc-1', status: 'ACTIVE' },
 };
 
 describe('POST /auth/register', () => {
@@ -162,5 +175,72 @@ describe('GET /auth/verify-email', () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: 'Invalid or expired verification token' });
+  });
+});
+
+describe('POST /auth/login', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 200 and the session payload when credentials are valid', async () => {
+    (mockAuthService.login as ReturnType<typeof vi.fn>).mockResolvedValue(loginResult);
+
+    const res = await supertest(buildApp()).post('/auth/login').send(validLoginBody);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      accessToken: loginResult.accessToken,
+      user: loginResult.user,
+      account: loginResult.account,
+    });
+  });
+
+  it('calls authService.login with the validated, sanitized request body', async () => {
+    (mockAuthService.login as ReturnType<typeof vi.fn>).mockResolvedValue(loginResult);
+
+    await supertest(buildApp()).post('/auth/login').send({ email: '  Test@Example.COM  ', password: 'SecurePass1' });
+
+    expect(mockAuthService.login).toHaveBeenCalledOnce();
+    expect(mockAuthService.login).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com', password: 'SecurePass1' }),
+    );
+  });
+
+  it('sets an HTTP-only refreshToken cookie on success', async () => {
+    (mockAuthService.login as ReturnType<typeof vi.fn>).mockResolvedValue(loginResult);
+
+    const res = await supertest(buildApp()).post('/auth/login').send(validLoginBody);
+
+    const cookies = (res.headers['set-cookie'] ?? []) as string[];
+    const refreshCookie = cookies.find(c => c.startsWith('refreshToken='));
+    expect(refreshCookie).toBeDefined();
+    expect(refreshCookie).toMatch(/HttpOnly/i);
+    expect(refreshCookie).toMatch(/SameSite=Strict/i);
+  });
+
+  it('returns 400 and does not call the service when body fails schema validation', async () => {
+    const res = await supertest(buildApp()).post('/auth/login').send({ email: 'not-an-email', password: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('error');
+    expect(mockAuthService.login).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the service throws AppError 401 for invalid credentials', async () => {
+    (mockAuthService.login as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(401, 'Invalid email or password'),
+    );
+
+    const res = await supertest(buildApp()).post('/auth/login').send(validLoginBody);
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ error: 'Invalid email or password' });
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockAuthService.login as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp()).post('/auth/login').send(validLoginBody);
+
+    expect(res.status).toBe(500);
   });
 });

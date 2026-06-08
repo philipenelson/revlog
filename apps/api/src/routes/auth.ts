@@ -1,8 +1,14 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { registerSchema } from '@maintenance-log/domain';
+import { registerSchema, loginSchema } from '@maintenance-log/domain';
 import type { AuthService } from '../services/auth.service';
 
 const REFRESH_COOKIE = 'refreshToken';
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  path: '/',
+};
 
 export function createAuthRouter(authService: AuthService): ExpressRouter {
   const router = Router();
@@ -21,6 +27,21 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     }
   });
 
+  router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
+      return;
+    }
+    try {
+      const result = await authService.login(parsed.data);
+      res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.status(200).json({ accessToken: result.accessToken, user: result.user, account: result.account });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.get('/verify-email', async (req: Request, res: Response, next: NextFunction) => {
     const token = typeof req.query['token'] === 'string' ? req.query['token'].trim() : '';
     if (!token) {
@@ -29,12 +50,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     }
     try {
       const result = await authService.verifyEmail(token);
-      res.cookie(REFRESH_COOKIE, result.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-      });
+      res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
       res.status(200).json({ accessToken: result.accessToken, user: result.user, account: result.account });
     } catch (err) {
       next(err);
