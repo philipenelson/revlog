@@ -1,6 +1,7 @@
 import express, { type Express } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { prisma } from './lib/prisma';
 import { sendVerificationEmail } from './lib/email';
 import { PrismaUserRepository } from './repositories/user.repository';
@@ -37,6 +38,7 @@ export function createApp(): Express {
     }),
   );
   app.use(express.json());
+  app.use(cookieParser());
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });

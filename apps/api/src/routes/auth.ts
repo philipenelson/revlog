@@ -57,5 +57,20 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     }
   });
 
+  router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.cookies?.[REFRESH_COOKIE];
+    if (typeof token !== 'string' || !token) {
+      res.status(401).json({ error: 'Invalid or expired session' });
+      return;
+    }
+    try {
+      const result = await authService.refresh(token);
+      res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.status(200).json({ accessToken: result.accessToken, user: result.user, account: result.account });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   return router;
 }

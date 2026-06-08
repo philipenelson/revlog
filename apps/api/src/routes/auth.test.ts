@@ -1,19 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import supertest from 'supertest';
 import { createAuthRouter } from './auth';
 import { AppError, errorMiddleware } from '../middleware/error';
 import type { AuthService } from '../services/auth.service';
 
-const mockAuthService: Pick<AuthService, 'register' | 'verifyEmail' | 'login'> = {
+const mockAuthService: Pick<AuthService, 'register' | 'verifyEmail' | 'login' | 'refresh'> = {
   register: vi.fn(),
   verifyEmail: vi.fn(),
   login: vi.fn(),
+  refresh: vi.fn(),
 };
 
 function buildApp() {
   const app = express();
   app.use(express.json());
+  app.use(cookieParser());
   app.use('/auth', createAuthRouter(mockAuthService as AuthService));
   app.use(errorMiddleware);
   return app;
@@ -240,6 +243,86 @@ describe('POST /auth/login', () => {
     (mockAuthService.login as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
 
     const res = await supertest(buildApp()).post('/auth/login').send(validLoginBody);
+
+    expect(res.status).toBe(500);
+  });
+});
+
+const refreshResult = {
+  accessToken: 'eyJmake.token.here',
+  refreshToken: 'd'.repeat(64),
+  user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
+  account: { id: 'acc-1', status: 'ACTIVE' },
+};
+
+describe('POST /auth/refresh', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 200 and the session payload when the refresh-token cookie is valid', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResult);
+
+    const res = await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('Cookie', ['refreshToken=valid-raw-token']);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      accessToken: refreshResult.accessToken,
+      user: refreshResult.user,
+      account: refreshResult.account,
+    });
+  });
+
+  it('calls authService.refresh with the raw token from the cookie', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResult);
+
+    await supertest(buildApp()).post('/auth/refresh').set('Cookie', ['refreshToken=raw-cookie-value']);
+
+    expect(mockAuthService.refresh).toHaveBeenCalledWith('raw-cookie-value');
+  });
+
+  it('sets a new HTTP-only refreshToken cookie (rotation) on success', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResult);
+
+    const res = await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('Cookie', ['refreshToken=valid-raw-token']);
+
+    const cookies = (res.headers['set-cookie'] ?? []) as string[];
+    const refreshCookie = cookies.find(c => c.startsWith('refreshToken='));
+    expect(refreshCookie).toBeDefined();
+    expect(refreshCookie).toContain(refreshResult.refreshToken);
+    expect(refreshCookie).toMatch(/HttpOnly/i);
+    expect(refreshCookie).toMatch(/SameSite=Strict/i);
+  });
+
+  it('returns 401 and does not call the service when no refreshToken cookie is present', async () => {
+    const res = await supertest(buildApp()).post('/auth/refresh');
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ error: 'Invalid or expired session' });
+    expect(mockAuthService.refresh).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the service throws AppError 401 for an invalid or expired token', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(401, 'Invalid or expired session'),
+    );
+
+    const res = await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('Cookie', ['refreshToken=stale-or-forged-token']);
+
+    expect(res.status).toBe(401);
+    expect(res.body).toMatchObject({ error: 'Invalid or expired session' });
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('Cookie', ['refreshToken=valid-raw-token']);
 
     expect(res.status).toBe(500);
   });
