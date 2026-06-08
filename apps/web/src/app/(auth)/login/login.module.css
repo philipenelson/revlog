@@ -259,28 +259,12 @@
   box-shadow: var(--shadow-focus-ring);
 }
 
-/* ── Remember / forgot row ────────────────────────────────────── */
-.rememberRow {
+/* ── Forgot-password link row ─────────────────────────────────── */
+.linkRow {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
   margin-top: 6px;
   margin-bottom: 22px;
-}
-
-.rememberLabel {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.rememberCheckbox {
-  accent-color: var(--accent);
-  width: 14px;
-  height: 14px;
 }
 
 .forgotLink {
