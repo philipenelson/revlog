@@ -1,16 +1,12 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { StatusOrb } from "@/components/StatusOrb";
+import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { apiFetch, apiUpload, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { logger } from "@/lib/logger";
-import styles from "./onboarding.module.css";
-
-type Step = 1 | 2 | 3;
-
-const STEP_LABELS = ["Welcome", "Your vehicle", "Ready"] as const;
+import styles from "./add-vehicle.module.css";
 
 interface VehicleDraft {
   nickname: string;
@@ -20,28 +16,23 @@ interface VehicleDraft {
   mileage: string;
 }
 
-const EMPTY_DRAFT: VehicleDraft = { nickname: "", make: "", model: "", year: "", mileage: "" };
-
 type FieldErrors = Partial<Record<keyof VehicleDraft, string>>;
 
-const VEHICLE_SAVE_ERROR = "Couldn't save your vehicle. Check the details and try again.";
-const SKIP_ERROR = "Couldn't skip onboarding right now. Try again in a moment.";
-const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
+const EMPTY_DRAFT: VehicleDraft = { nickname: "", make: "", model: "", year: "", mileage: "" };
 
-export default function OnboardingPage() {
+const CURRENT_YEAR = new Date().getFullYear();
+
+export default function AddVehiclePage() {
   const router = useRouter();
-  const { session, setSession } = useAuth();
+  const { session } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<Step>(1);
+
   const [draft, setDraft] = useState<VehicleDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-  const [vehicle, setVehicle] = useState<VehicleDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [vehicleError, setVehicleError] = useState<string | null>(null);
-  const [skipping, setSkipping] = useState(false);
-  const [skipError, setSkipError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   function updateField(field: keyof VehicleDraft) {
     return (e: ChangeEvent<HTMLInputElement>) => {
@@ -56,7 +47,9 @@ export default function OnboardingPage() {
     if (!file) return;
     setPhotoFile(file);
     const reader = new FileReader();
-    reader.onload = (ev) => setPhotoPreviewUrl(ev.target?.result as string);
+    reader.onload = (ev) => {
+      setPhotoPreviewUrl(ev.target?.result as string);
+    };
     reader.readAsDataURL(file);
   }
 
@@ -70,27 +63,31 @@ export default function OnboardingPage() {
     const next: FieldErrors = {};
     if (!draft.make.trim()) next.make = "Enter the manufacturer.";
     if (!draft.model.trim()) next.model = "Enter the model.";
-    if (!/^\d+$/.test(draft.year.trim())) next.year = "Enter a numeric year.";
-    if (!/^[\d,]+$/.test(draft.mileage.trim())) next.mileage = "Enter the current mileage.";
+    const year = Number(draft.year.trim());
+    if (!/^\d+$/.test(draft.year.trim()) || year < 1900 || year > CURRENT_YEAR + 1) {
+      next.year = `Enter a year between 1900 and ${CURRENT_YEAR + 1}.`;
+    }
+    const mileage = Number(draft.mileage.trim().replace(/,/g, ""));
+    if (!/^[\d,]+$/.test(draft.mileage.trim()) || mileage < 0) {
+      next.mileage = "Enter the current mileage.";
+    }
     return next;
   }
 
-  function activateAccount() {
-    if (session) setSession({ ...session, account: { ...session.account, status: "ACTIVE" } });
-  }
-
-  async function handleContinue(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const nextErrors = validateDraft();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+
     if (!session) {
-      setVehicleError(SERVICE_ERROR);
+      setSubmitError("You are not signed in. Please sign in and try again.");
       return;
     }
 
-    setVehicleError(null);
+    setSubmitError(null);
     setSubmitting(true);
+
     try {
       if (photoFile) {
         const fd = new FormData();
@@ -114,110 +111,51 @@ export default function OnboardingPage() {
           }),
         });
       }
-      activateAccount();
-      setVehicle({ ...draft });
-      setStep(3);
+      router.push("/garage");
     } catch (err) {
       if (err instanceof ApiError && err.status < 500) {
-        setVehicleError(VEHICLE_SAVE_ERROR);
+        setSubmitError("Couldn't save your vehicle. Check the details and try again.");
       } else {
-        logger.error("vehicle creation failed during onboarding", { err });
-        setVehicleError(SERVICE_ERROR);
+        logger.error("failed to add vehicle", { err });
+        setSubmitError("We stalled. Our mechanics are on it — try again in a moment.");
       }
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleSkip() {
-    if (!session) {
-      setSkipError(SERVICE_ERROR);
-      return;
-    }
-
-    setSkipError(null);
-    setSkipping(true);
-    try {
-      await apiFetch("/onboarding/skip", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
-      activateAccount();
-      router.push("/garage");
-    } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
-        setSkipError(SKIP_ERROR);
-      } else {
-        logger.error("skip onboarding failed", { err });
-        setSkipError(SERVICE_ERROR);
-      }
-    } finally {
-      setSkipping(false);
-    }
-  }
-
-  function goToGarage() {
-    router.push("/garage");
-  }
+  const displayName = draft.nickname.trim() || (draft.make.trim() && draft.model.trim()
+    ? `${draft.make.trim()} ${draft.model.trim()}`
+    : null
+  );
+  const isComplete = Boolean(draft.make.trim() && draft.model.trim() && draft.year.trim() && draft.mileage.trim());
 
   return (
     <div className={styles.scene}>
-      <div className={styles.card}>
-        <div className={styles.cardLogo}>
+      <header className={styles.topbar}>
+        <div className={styles.topbarLogo}>
           <Logo />
           <div className={styles.wordmark}>
             <span className={styles.wordmarkLight}>Rev</span>
             <span className={styles.wordmarkBold}>log</span>
           </div>
         </div>
+        <Link href="/garage" className={styles.backLink}>
+          <BackIcon />
+          Back to garage
+        </Link>
+      </header>
 
-        <StepIndicator step={step} />
+      <div className={styles.page}>
+        <div className={styles.formColumn}>
+          <div className={styles.eyebrow}>Garage</div>
+          <h1 className={styles.pageTitle}>Add a vehicle</h1>
+          <p className={styles.pageSub}>
+            Just the basics for now — you can fill in the rest from its detail page anytime.
+          </p>
 
-        {step === 1 && (
-          <section className={styles.wizardStep} data-testid="step-welcome">
-            <div className={styles.eyebrow}>Welcome to Revlog</div>
-            <h1 className={styles.headline}>Let&apos;s set up your garage</h1>
-            <p className={styles.bodyCopy}>
-              Add the vehicle you ride most — you can always add more later. It
-              takes less than a minute, and it&apos;s the start of a service
-              history that&apos;s truly yours.
-            </p>
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              data-testid="add-first-vehicle-btn"
-              onClick={() => setStep(2)}
-            >
-              Add my first vehicle
-              <ArrowIcon />
-            </button>
-            {skipError && (
-              <p className={styles.fieldError} role="alert" data-testid="skip-error">
-                {skipError}
-              </p>
-            )}
-            <button
-              type="button"
-              className={styles.textLink}
-              data-testid="skip-onboarding-btn"
-              onClick={handleSkip}
-              disabled={skipping}
-            >
-              {skipping ? "Skipping…" : "Skip for now"}
-            </button>
-          </section>
-        )}
-
-        {step === 2 && (
-          <section className={styles.wizardStep} data-testid="step-vehicle">
-            <div className={styles.eyebrow}>Step 2 of 3 — Your vehicle</div>
-            <h1 className={styles.headline}>Tell us about your bike</h1>
-            <p className={styles.bodyCopy}>
-              Just the basics for now — you can fill in the rest from its detail
-              page anytime.
-            </p>
-
-            <form className={styles.formFields} onSubmit={handleContinue} noValidate>
+          <div className={styles.formCard}>
+            <form onSubmit={handleSubmit} noValidate>
               <Field label="Nickname" id="fNickname" optional>
                 <input
                   id="fNickname"
@@ -290,8 +228,8 @@ export default function OnboardingPage() {
                 </Field>
               </div>
 
-              <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="fPhoto">
+              <div className={styles.photoField}>
+                <label className={styles.fieldLabel}>
                   Photo
                   <span className={styles.optional}> (optional)</span>
                 </label>
@@ -318,7 +256,6 @@ export default function OnboardingPage() {
                     <>
                       <input
                         ref={fileInputRef}
-                        id="fPhoto"
                         type="file"
                         accept="image/*"
                         className={styles.photoZoneInput}
@@ -326,129 +263,91 @@ export default function OnboardingPage() {
                         data-testid="photo-input"
                         aria-label="Upload vehicle photo"
                       />
-                      <CameraIcon />
-                      <span className={styles.photoZoneLabel}>Click to add a photo</span>
+                      <CameraIcon className={styles.photoZoneIcon} />
+                      <span className={styles.photoZoneLabel}>Click to upload a photo</span>
                       <span className={styles.photoZoneSub}>JPG, PNG, WebP — max 5 MB</span>
                     </>
                   )}
                 </div>
               </div>
 
-              {vehicleError && (
-                <p className={styles.fieldError} role="alert" data-testid="vehicle-save-error">
-                  {vehicleError}
-                </p>
+              {submitError && (
+                <span className={styles.submitError} role="alert" data-testid="submit-error">
+                  {submitError}
+                </span>
               )}
 
-              <div className={styles.wizardActions}>
-                <button
-                  type="button"
-                  className={styles.btnGhost}
-                  data-testid="back-btn"
-                  onClick={() => setStep(1)}
-                  disabled={submitting}
-                >
-                  Back
-                </button>
+              <div className={styles.formActions}>
+                <Link href="/garage" className={styles.btnGhost}>
+                  Cancel
+                </Link>
                 <button
                   type="submit"
                   className={styles.btnPrimary}
-                  data-testid="continue-btn"
+                  data-testid="add-vehicle-btn"
                   disabled={submitting}
                 >
-                  {submitting ? "Saving…" : "Continue"}
-                  <ArrowIcon />
+                  {submitting ? "Saving…" : "Add vehicle"}
+                  {!submitting && <ArrowIcon />}
                 </button>
               </div>
             </form>
-          </section>
-        )}
+          </div>
+        </div>
 
-        {step === 3 && vehicle && (
-          <section className={styles.wizardStep} data-testid="step-ready">
-            <StatusOrb state="verified" />
-            <div className={`${styles.eyebrow} ${styles.eyebrowSuccess}`}>All set</div>
-            <h1 className={styles.headline} data-testid="ready-headline">
-              {readyHeadline(vehicle)}
-            </h1>
-            <p className={styles.bodyCopy}>
-              You&apos;re ready to start logging its service history — every oil
-              change, tyre swap, and repair, all in one place.
-            </p>
-
-            <div className={styles.vehiclePlate} data-testid="vehicle-plate">
-              <div className={styles.plateRow}>
-                <span>Nickname</span>
-                <strong>{vehicle.nickname.trim() || "—"}</strong>
+        <div className={styles.previewColumn}>
+          <div className={styles.previewLabel}>Live preview</div>
+          <div className={`${styles.previewCard} ${isComplete ? styles.previewCardComplete : ""}`}>
+            {photoPreviewUrl ? (
+              <div className={styles.previewPhotoStrip}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- data: URL from FileReader; next/image does not support data: URIs */}
+                <img src={photoPreviewUrl} alt="" className={styles.previewPhotoImg} />
+                <div className={styles.previewPhotoOverlay} />
               </div>
-              <div className={styles.plateRow}>
-                <span>Make &amp; model</span>
-                <strong>{`${vehicle.make.trim()} ${vehicle.model.trim()}`.trim()}</strong>
+            ) : (
+              <div className={styles.previewGlyph}>
+                <VehicleGlyphIcon />
               </div>
-              <div className={styles.plateRow}>
-                <span>Year</span>
-                <strong>{vehicle.year.trim()}</strong>
+            )}
+            <div className={styles.previewName}>
+              {displayName ?? "Make Model"}
+            </div>
+            <div className={styles.previewMeta}>
+              {draft.make.trim() || "Make"}
+              {" · "}
+              {draft.model.trim() || "Model"}
+              {" · "}
+              {draft.year.trim() || "Year"}
+            </div>
+            <div className={styles.previewStats}>
+              <div>
+                {draft.mileage.trim() ? (
+                  <div className={styles.previewStatValue}>
+                    {Number(draft.mileage.trim().replace(/,/g, "")).toLocaleString()}
+                    <span className={styles.previewUnit}>mi</span>
+                  </div>
+                ) : (
+                  <div className={styles.previewStatValueDim}>—</div>
+                )}
+                <div className={styles.previewStatLabel}>Odometer</div>
               </div>
-              <div className={styles.plateRow}>
-                <span>Mileage</span>
-                <strong className={styles.mono}>{`${vehicle.mileage.trim()} mi`}</strong>
+              <div>
+                <div className={styles.previewStatValueDim}>No entries yet</div>
+                <div className={styles.previewStatLabel}>Log entries</div>
               </div>
             </div>
-
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              data-testid="go-to-garage-btn"
-              onClick={goToGarage}
-            >
-              Go to my garage
+            <div className={styles.previewLink}>
+              View service history
               <ArrowIcon />
-            </button>
-          </section>
-        )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
-
-/* ── Helpers ────────────────────────────────────────────────────── */
-
-function readyHeadline(vehicle: VehicleDraft): string {
-  const displayName = vehicle.nickname.trim() || `${vehicle.make.trim()} ${vehicle.model.trim()}`.trim();
-  return `${displayName} is in your garage`;
 }
 
 /* ── Sub-components ─────────────────────────────────────────────── */
-
-function StepIndicator({ step }: { step: Step }) {
-  return (
-    <div data-testid="step-indicator" data-active-step={step}>
-      <div className={styles.stepTrack}>
-        {([1, 2, 3] as Step[]).map((n) => (
-          <div
-            key={n}
-            className={`${styles.stepTick} ${
-              n < step ? styles.stepTickDone : n === step ? styles.stepTickActive : ""
-            }`}
-          />
-        ))}
-      </div>
-      <div className={styles.stepLabels}>
-        {STEP_LABELS.map((label, i) => {
-          const n = (i + 1) as Step;
-          return (
-            <span
-              key={label}
-              className={n === step ? styles.stepLabelActive : n < step ? styles.stepLabelDone : ""}
-            >
-              {label}
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function Field({
   label,
@@ -479,9 +378,58 @@ function Field({
   );
 }
 
-function CameraIcon() {
+/* ── Icons ──────────────────────────────────────────────────────── */
+
+function Logo() {
   return (
-    <svg width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <svg width="28" height="28" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+      <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="var(--surface-subtle)" strokeWidth="3" strokeLinecap="round" />
+      <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
+      <line x1="18" y1="18" x2="27.5" y2="13" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="18" cy="18" r="2.2" fill="var(--accent)" />
+      <circle cx="30.1" cy="11" r="1.5" fill="var(--danger)" opacity="0.8" />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      <path
+        d="M12.5 7.5H2.5M6.5 4.5l-3 3 3 3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 7.5h10M8.5 4.5l3 3-3 3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CameraIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 28 28"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
       <path
         d="M2.5 9.5C2.5 8.4 3.4 7.5 4.5 7.5h2.2l1.6-2.4a1 1 0 0 1 .83-.44h5.74a1 1 0 0 1 .83.44L17.3 7.5h2.2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4.5a2 2 0 0 1-2-2v-11Z"
         stroke="currentColor"
@@ -493,28 +441,15 @@ function CameraIcon() {
   );
 }
 
-function Logo() {
+function VehicleGlyphIcon() {
   return (
-    <svg width="30" height="30" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-      <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="var(--surface-subtle)" strokeWidth="3" strokeLinecap="round" />
-      <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" />
-      <line x1="18" y1="18" x2="27.5" y2="13" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="18" cy="18" r="2.2" fill="var(--accent)" />
-      <circle cx="30.1" cy="11" r="1.5" fill="var(--danger)" opacity="0.8" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-      <path
-        d="M2.5 7.5h10M8.5 4.5l3 3-3 3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 80 48" fill="none" aria-hidden="true">
+      <circle cx="16" cy="36" r="9" stroke="currentColor" strokeWidth="2" />
+      <circle cx="62" cy="36" r="9" stroke="currentColor" strokeWidth="2" />
+      <path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M30 19 L37 36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M46 19 L41 11 L52 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M21 13 L33 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

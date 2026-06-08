@@ -12,6 +12,23 @@ export class ApiError extends Error {
   }
 }
 
+export async function apiUpload<T>(path: string, formData: FormData, accessToken: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: formData,
+  });
+
+  const body = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new ApiError(res.status, body);
+  }
+
+  return body as T;
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...init,

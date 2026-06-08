@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ interface VehicleSummary {
   model: string;
   year: number;
   mileage: number;
+  photoUrl: string | null;
   logEntryCount: number;
 }
 
@@ -166,9 +168,21 @@ function VehicleCard({ vehicle }: { vehicle: VehicleSummary }) {
       data-testid="vehicle-card"
       data-vehicle-id={vehicle.id}
     >
-      <div className={styles.vehicleGlyph}>
-        <VehicleGlyphIcon />
-      </div>
+      {vehicle.photoUrl ? (
+        <div className={styles.photoStrip}>
+          <Image
+            src={vehicle.photoUrl}
+            alt={vehicleDisplayName(vehicle)}
+            fill
+            className={styles.vehiclePhoto}
+          />
+          <div className={styles.photoStripOverlay} />
+        </div>
+      ) : (
+        <div className={styles.vehicleGlyph}>
+          <VehicleGlyphIcon />
+        </div>
+      )}
       <h2 className={styles.vehicleName}>{vehicleDisplayName(vehicle)}</h2>
       <p className={styles.vehicleMeta}>{`${vehicle.make} · ${vehicle.model} · ${vehicle.year}`}</p>
       <div className={styles.vehicleStats}>

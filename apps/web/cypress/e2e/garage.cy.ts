@@ -1,7 +1,7 @@
 const VEHICLES_FIXTURE = [
-  { id: "the-daily", nickname: "The Daily", make: "Triumph", model: "Street Triple RS", year: 2021, mileage: 14230, logEntryCount: 12 },
-  { id: "sunday-bike", nickname: "Sunday Bike", make: "Ducati", model: "Scrambler Icon", year: 2019, mileage: 8402, logEntryCount: 7 },
-  { id: "project-garage-find", nickname: "Project Garage Find", make: "Honda", model: "CB350", year: 1972, mileage: 31118, logEntryCount: 0 },
+  { id: "the-daily", nickname: "The Daily", make: "Triumph", model: "Street Triple RS", year: 2021, mileage: 14230, photoUrl: null, logEntryCount: 12 },
+  { id: "sunday-bike", nickname: "Sunday Bike", make: "Ducati", model: "Scrambler Icon", year: 2019, mileage: 8402, photoUrl: null, logEntryCount: 7 },
+  { id: "project-garage-find", nickname: "Project Garage Find", make: "Honda", model: "CB350", year: 1972, mileage: 31118, photoUrl: null, logEntryCount: 0 },
 ];
 
 /**
@@ -102,6 +102,12 @@ describe("Garage screen", () => {
     it("navigates to a vehicle's detail screen when its card is selected", () => {
       cy.get('[data-testid="vehicle-card"][data-vehicle-id="sunday-bike"]').click();
       cy.location("pathname").should("eq", "/garage/sunday-bike");
+    });
+
+    it("shows the glyph icon when a vehicle has no photo", () => {
+      cy.get('[data-testid="vehicle-card"][data-vehicle-id="the-daily"]')
+        .find("img")
+        .should("not.exist");
     });
 
     it("navigates to the add-vehicle screen from the grid's dashed tile", () => {
@@ -220,6 +226,21 @@ describe("Garage screen", () => {
       cy.location("pathname").should("eq", "/login");
       cy.get('[data-testid="email-input"]').should("be.visible");
       cy.get('[data-testid="error-state"]').should("not.exist");
+    });
+  });
+
+  describe("vehicle card photo strip", () => {
+    it("renders a photo strip with the vehicle's image when photoUrl is set", () => {
+      const vehiclesWithPhoto = [
+        { ...VEHICLES_FIXTURE[0], photoUrl: "http://localhost:3001/uploads/vehicles/bike.jpg" },
+      ];
+
+      signIntoGarage(stubVehiclesWith({ statusCode: 200, body: { vehicles: vehiclesWithPhoto } }));
+      cy.wait("@getVehicles");
+
+      cy.get('[data-testid="vehicle-card"][data-vehicle-id="the-daily"]').within(() => {
+        cy.get("img").should("have.attr", "src", "http://localhost:3001/uploads/vehicles/bike.jpg");
+      });
     });
   });
 });
