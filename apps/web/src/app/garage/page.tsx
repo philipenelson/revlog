@@ -30,7 +30,7 @@ type LoadState = "loading" | "loaded" | "error";
 
 export default function GaragePage() {
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, isRestoring } = useAuth();
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [retryToken, setRetryToken] = useState(0);
@@ -41,13 +41,17 @@ export default function GaragePage() {
   }
 
   useEffect(() => {
+    // AuthProvider attempts a silent restore on mount (UC-AUTH-7 / ADR 0017) —
+    // wait for it to settle before deciding there's no session. Redirecting on
+    // the first null would flash this screen away to /login even when the
+    // restore was about to succeed.
+    if (isRestoring) return;
+
     if (!session) {
-      // Reloading this screen wipes the in-memory session (ADR 0016 — "no
-      // session restoration on reload"); the refresh-token cookie still gets
-      // a visitor past middleware, so they land here with no access token to
-      // fetch with. Re-authenticating is the only recovery path until
-      // POST /auth/refresh exists, so send them there directly rather than
-      // showing a load-error whose "Try again" could never succeed.
+      // Restoration genuinely failed — no valid refresh-token cookie to recover
+      // from (expired, revoked, or never signed in). Re-authenticating is the
+      // only path forward, so send them there directly rather than showing a
+      // load-error whose "Try again" could never succeed.
       router.replace("/login");
       return;
     }
@@ -73,7 +77,7 @@ export default function GaragePage() {
     return () => {
       cancelled = true;
     };
-  }, [session, retryToken, router]);
+  }, [session, isRestoring, retryToken, router]);
 
   const hasLoaded = loadState === "loaded";
   const isEmpty = hasLoaded && vehicles.length === 0;

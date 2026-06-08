@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +22,16 @@ type Tab = "login" | "register";
 export default function LoginPage() {
   const [tab, setTab] = useState<Tab>("login");
   const router = useRouter();
-  const { setSession } = useAuth();
+  const { session, isRestoring, setSession } = useAuth();
+
+  // UC-AUTH-5 — an already-authenticated visitor (silent refresh restored a
+  // session on mount, see ADR 0017/UC-AUTH-7) should never see this form; route
+  // them onward exactly as a fresh sign-in would. Wait for isRestoring to settle
+  // first, or every visitor would flash through the form before being routed away.
+  useEffect(() => {
+    if (isRestoring || !session) return;
+    router.replace(routeForAccountStatus(session.account.status));
+  }, [session, isRestoring, router]);
 
   const [loginError, setLoginError] = useState<string | null>(null);
   const {
