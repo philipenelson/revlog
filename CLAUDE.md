@@ -124,6 +124,10 @@ Every route and async operation must have explicit error handling. Rules:
 
 Complete one logical step, confirm the goal was achieved, commit the changes, then move to the next step. Never batch multiple steps into a single commit unless explicitly asked.
 
+### Close every plan with a session summary and a merge
+
+When a plan is complete, write a session summary to `docs/past_sessions/<date>-<topic>.md` covering the goal, key decisions, what was built (with commit references), verification performed, and what's explicitly out of scope — see existing files in that folder for the format. Commit it, then merge the worktree branch into `main`.
+
 ---
 
 ## Domain
