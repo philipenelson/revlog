@@ -1,8 +1,8 @@
 # Onboarding Wizard Spec
 
 **Route:** `/onboarding`
-**Status:** UI complete; backend implemented ([vehicle-creation-api.md](../garage/vehicle-creation-api.md), [onboarding-api.md](./onboarding-api.md), [ADR 0015](../../adr/0015-account-status-state-machine.md)) — wiring Step 2's stubbed submit to the real endpoints is the remaining tracked follow-up (see Next steps)
-**Last updated:** 2026-06-07
+**Status:** Implemented — Step 2's submit and "Skip for now" are wired to `POST /vehicles` and `POST /onboarding/skip`
+**Last updated:** 2026-06-08
 
 ---
 
@@ -96,7 +96,7 @@ Responsive behaviour follows the same `@media (max-width: 860px)` card-collapse 
 - [ ] Year and Current mileage use `inputMode="numeric"` and reject non-numeric input client-side
 - [ ] Make and Model are **free-text inputs in this iteration** (see Decisions — structured selection from a reference dataset is a tracked follow-up, not a blocker for this ship)
 - [ ] "Back" returns to Step 1 without losing any data entered so far in the current session
-- [ ] "Continue" runs client-side validation; on failure shows inline messages and does not advance; on success advances to Step 3
+- [x] "Continue" runs client-side validation; on failure shows inline messages and does not advance; on success calls `POST /vehicles`, shows a "Saving…" pending state, and on success advances to Step 3 (on failure shows a two-tier inline error and stays on Step 2)
 - [ ] Submitting via keyboard (Enter) behaves the same as clicking "Continue"
 
 ### Step 3 — Ready
@@ -116,13 +116,14 @@ Responsive behaviour follows the same `@media (max-width: 860px)` card-collapse 
 
 ### E2E tests (Cypress)
 
-- [ ] Step 1 renders with step indicator at segment 1 and both CTAs visible
-- [ ] "Add my first vehicle" advances to Step 2 and shows the vehicle form
-- [ ] Submitting Step 2 with empty required fields shows inline validation and does not advance
-- [ ] Filling all required fields and continuing advances to Step 3 with the entered data reflected in the spec plate
-- [ ] "Back" from Step 2 returns to Step 1
-- [ ] "Skip for now" redirects to `/garage`
-- [ ] "Go to my garage" from Step 3 redirects to `/garage`
+- [x] Step 1 renders with step indicator at segment 1 and both CTAs visible
+- [x] "Add my first vehicle" advances to Step 2 and shows the vehicle form
+- [x] Submitting Step 2 with empty or invalid required fields shows inline validation and does not advance (covers both the empty-field and non-numeric year/mileage cases)
+- [x] Filling all required fields and continuing calls `POST /vehicles` (asserting the bearer token and request body), shows a pending state, and advances to Step 3 with the entered data reflected in the spec plate — including the no-nickname fallback to "Make Model"
+- [x] A 4xx failure from `POST /vehicles` shows a friendly inline error and stays on Step 2; retrying recovers to Step 3. A 5xx failure shows the generic service-error message
+- [x] "Back" from Step 2 returns to Step 1
+- [x] "Skip for now" calls `POST /onboarding/skip` (asserting the bearer token), shows a pending state, and redirects to `/garage`; a failure shows a friendly inline error and retrying recovers
+- [x] "Go to my garage" from Step 3 redirects to `/garage`
 
 ---
 
@@ -133,8 +134,8 @@ Responsive behaviour follows the same `@media (max-width: 860px)` card-collapse 
 | Layout pattern | Centered single card (not split brand/form) | Matches `/verify-email` — interstitial screens have no marketing copy to show; consistency reduces visual whiplash in the first-five-minutes flow |
 | Step indicator | New "gauge-tick" component (filling segments, `transform: scaleX()`) | Extends the tachometer-gauge visual language from the logo rather than introducing a generic dot-stepper |
 | Step 3 success feedback | Reuse the `/verify-email` status-orb "verified" state | One motif for "operation succeeded" across the app — consistency over novelty |
-| Vehicle creation | **Stubbed in the UI; backend now exists** — Step 2 → Step 3 transition still happens entirely client-side with no network call. `POST /vehicles` is implemented ([vehicle-creation-api.md](../garage/vehicle-creation-api.md)) and ready to wire up | The wizard UI shipped first to validate the design without blocking on backend work, per the original plan. With the endpoint now built, replacing the stubbed transition with a real submission is the next concrete step — see "Wire Step 2 to the real Vehicle creation endpoint" below |
-| Form validation approach | Plain controlled inputs + inline client-side checks (no React Hook Form / Zod yet) | Matches the current `/login` implementation precedent — introducing RHF + a Zod schema in `@maintenance-log/domain` for a Vehicle that has no backing Prisma model or API would be premature; both will be added together when the real `POST /vehicles` contract is defined |
+| Vehicle creation | **Wired for real** — Step 2's "Continue" calls `POST /vehicles` with `session.accessToken`; on success the in-memory session's `account.status` flips to `ACTIVE` (mirroring what `accountRepo.markActive` just did server-side) and the wizard advances to Step 3. "Skip for now" calls `POST /onboarding/skip` the same way and redirects straight to `/garage`. Both show a pending state and map failures through the two-tier `ApiError` strategy (4xx → friendly inline message, 5xx/network → `logger.error` + generic message), matching `/login`'s precedent | This closes the redirect-loop bug: previously the stub never called `POST /vehicles`, so the Account never transitioned out of `ONBOARDING` and the post-login router kept sending the user back to `/onboarding` every time. See [vehicle-creation-api.md](../garage/vehicle-creation-api.md) and [onboarding-api.md](./onboarding-api.md) for the endpoint contracts |
+| Form validation approach | **Kept the existing hand-written `validateDraft()`** — deliberately did *not* migrate to React Hook Form + `createVehicleSchema` as originally planned (see below) | A live check of `createVehicleSchema` showed `z.coerce.number()` produces raw, unfriendly messages for bad `year`/`mileage` input ("Invalid input: expected number, received NaN") and silently coerces an empty mileage string to `0` rather than failing validation — both a UX regression versus the tuned messages ("Enter a numeric year.", "Enter the current mileage.") and a break of the existing validation E2E specs that assert on them verbatim. `validateDraft()` still gates the request: the network call only fires once it returns no errors, so the schema's coercion quirks never reach the server in practice |
 | Make / Model input | Free text for this iteration; structured selection from a reference dataset is a tracked follow-up | Avoids blocking the wizard ship on an undecided data source/schema shape (see Next steps); free text matches the approved design preview and is good enough until the dataset lands — at which point Make/Model become a refactor, not a rebuild |
 | Wizard restart on revisit | No partial-progress persistence | Keeps V1 simple; the flow is short (3 steps, ~1 minute). Persisting partial state is a V2 nice-to-have if user research shows drop-off |
 | Skip destination | `/garage` (empty state) | The Garage's empty state already carries its own "add your first vehicle" CTA — skipping doesn't strand the user, it just defers the decision |
@@ -144,13 +145,10 @@ Responsive behaviour follows the same `@media (max-width: 860px)` card-collapse 
 
 ## Next steps (tracked follow-up — still V1 scope)
 
-### Wire Step 2 to the real Vehicle creation endpoint
-`POST /vehicles` now exists ([vehicle-creation-api.md](../garage/vehicle-creation-api.md) — Prisma model, service, route, and unit tests, per `apps/api/CLAUDE.md` conventions, plus `createVehicleSchema` in `@maintenance-log/domain/src/schemas/`). The wizard's stubbed client-side transition still needs to be wired to it:
-- Replace the stubbed client-side transition with a real submission; show a pending state on "Continue" while the request is in flight
-- Migrate the form to React Hook Form + the new Zod schema (resolver), per the Forms convention in `apps/web/CLAUDE.md`
-- Map service errors to the same two-tier (user-error / service-error) messaging strategy used on `/login`
-- Wire "Skip for now" to `POST /onboarding/skip` ([onboarding-api.md](./onboarding-api.md)) before navigating to `/garage`
-- Update this spec's E2E checklist to cover the network-backed happy path and failure states for both actions
+### ~~Wire Step 2 to the real Vehicle creation endpoint~~ — Resolved
+**Built:** Step 2's "Continue" now calls `POST /vehicles` (with a "Saving…" pending state and the two-tier `ApiError` mapping from `/login`), and "Skip for now" now calls `POST /onboarding/skip` the same way before redirecting to `/garage`. Both activate the in-memory session's `account.status` to `ACTIVE` on success — see the "Vehicle creation" Decisions row above. The E2E suite (`apps/web/cypress/e2e/onboarding.cy.ts`) covers the network-backed happy paths (including the no-nickname fallback and request/auth assertions), pending states, and 4xx/5xx failure-and-retry for both actions.
+
+**Deliberate deviation — did not migrate to React Hook Form + Zod:** the original plan (below, as it read before this was resolved) called for migrating the form to RHF + `createVehicleSchema`. A live check of that schema showed `z.coerce.number()` turns invalid `year`/`mileage` input into raw messages ("Invalid input: expected number, received NaN") and silently coerces an empty mileage string to a valid `0` — both worse than the existing hand-tuned `validateDraft()` messages and a break of the validation E2E specs that assert on them verbatim. Kept `validateDraft()` as the gate in front of the network call instead; revisit the RHF/Zod migration only if `createVehicleSchema` itself is changed to produce friendlier, stricter messages.
 
 ### ~~Persist onboarding completion/skip status~~ — Resolved
 **Decided:** [ADR 0015](../../adr/0015-account-status-state-machine.md) adds a two-state `AccountStatus` (`ONBOARDING | ACTIVE`) directly on `Account`. `POST /vehicles` and `POST /onboarding/skip` ([vehicle-creation-api.md](../garage/vehicle-creation-api.md), [onboarding-api.md](./onboarding-api.md)) both resolve onboarding by transitioning the Account from `ONBOARDING` to `ACTIVE` — closing the redirect-loop gap this section originally described. The [login spec](../auth/login.md)'s UC-AUTH-1 step 5 and UC-AUTH-3 step 4 have been updated to reference the resolved rule. Remaining work is purely client-side — see "Wire Step 2..." above.

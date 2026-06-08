@@ -3,6 +3,9 @@
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { StatusOrb } from "@/components/StatusOrb";
+import { apiFetch, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import { logger } from "@/lib/logger";
 import styles from "./onboarding.module.css";
 
 type Step = 1 | 2 | 3;
@@ -21,12 +24,21 @@ const EMPTY_DRAFT: VehicleDraft = { nickname: "", make: "", model: "", year: "",
 
 type FieldErrors = Partial<Record<keyof VehicleDraft, string>>;
 
+const VEHICLE_SAVE_ERROR = "Couldn't save your vehicle. Check the details and try again.";
+const SKIP_ERROR = "Couldn't skip onboarding right now. Try again in a moment.";
+const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
+
 export default function OnboardingPage() {
   const router = useRouter();
+  const { session, setSession } = useAuth();
   const [step, setStep] = useState<Step>(1);
   const [draft, setDraft] = useState<VehicleDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [vehicle, setVehicle] = useState<VehicleDraft | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [vehicleError, setVehicleError] = useState<string | null>(null);
+  const [skipping, setSkipping] = useState(false);
+  const [skipError, setSkipError] = useState<string | null>(null);
 
   function updateField(field: keyof VehicleDraft) {
     return (e: ChangeEvent<HTMLInputElement>) => {
@@ -45,13 +57,74 @@ export default function OnboardingPage() {
     return next;
   }
 
-  function handleContinue(e: FormEvent) {
+  function activateAccount() {
+    if (session) setSession({ ...session, account: { ...session.account, status: "ACTIVE" } });
+  }
+
+  async function handleContinue(e: FormEvent) {
     e.preventDefault();
     const nextErrors = validateDraft();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    setVehicle({ ...draft });
-    setStep(3);
+    if (!session) {
+      setVehicleError(SERVICE_ERROR);
+      return;
+    }
+
+    setVehicleError(null);
+    setSubmitting(true);
+    try {
+      await apiFetch("/vehicles", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+        body: JSON.stringify({
+          nickname: draft.nickname.trim() || undefined,
+          make: draft.make.trim(),
+          model: draft.model.trim(),
+          year: Number(draft.year.trim()),
+          mileage: Number(draft.mileage.trim().replace(/,/g, "")),
+        }),
+      });
+      activateAccount();
+      setVehicle({ ...draft });
+      setStep(3);
+    } catch (err) {
+      if (err instanceof ApiError && err.status < 500) {
+        setVehicleError(VEHICLE_SAVE_ERROR);
+      } else {
+        logger.error("vehicle creation failed during onboarding", { err });
+        setVehicleError(SERVICE_ERROR);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleSkip() {
+    if (!session) {
+      setSkipError(SERVICE_ERROR);
+      return;
+    }
+
+    setSkipError(null);
+    setSkipping(true);
+    try {
+      await apiFetch("/onboarding/skip", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+      activateAccount();
+      router.push("/garage");
+    } catch (err) {
+      if (err instanceof ApiError && err.status < 500) {
+        setSkipError(SKIP_ERROR);
+      } else {
+        logger.error("skip onboarding failed", { err });
+        setSkipError(SERVICE_ERROR);
+      }
+    } finally {
+      setSkipping(false);
+    }
   }
 
   function goToGarage() {
@@ -89,13 +162,19 @@ export default function OnboardingPage() {
               Add my first vehicle
               <ArrowIcon />
             </button>
+            {skipError && (
+              <p className={styles.fieldError} role="alert" data-testid="skip-error">
+                {skipError}
+              </p>
+            )}
             <button
               type="button"
               className={styles.textLink}
               data-testid="skip-onboarding-btn"
-              onClick={goToGarage}
+              onClick={handleSkip}
+              disabled={skipping}
             >
-              Skip for now
+              {skipping ? "Skipping…" : "Skip for now"}
             </button>
           </section>
         )}
@@ -182,17 +261,29 @@ export default function OnboardingPage() {
                 </Field>
               </div>
 
+              {vehicleError && (
+                <p className={styles.fieldError} role="alert" data-testid="vehicle-save-error">
+                  {vehicleError}
+                </p>
+              )}
+
               <div className={styles.wizardActions}>
                 <button
                   type="button"
                   className={styles.btnGhost}
                   data-testid="back-btn"
                   onClick={() => setStep(1)}
+                  disabled={submitting}
                 >
                   Back
                 </button>
-                <button type="submit" className={styles.btnPrimary} data-testid="continue-btn">
-                  Continue
+                <button
+                  type="submit"
+                  className={styles.btnPrimary}
+                  data-testid="continue-btn"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving…" : "Continue"}
                   <ArrowIcon />
                 </button>
               </div>
