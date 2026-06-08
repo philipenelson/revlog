@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revlog — Verify email · Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── Design tokens ─────────────────────────────────────────── */
+    :root {
+      --surface-base:     #0B0D14;
+      --surface-raised:   #131620;
+      --surface-elevated: #1A1D2E;
+      --surface-subtle:   #1F2338;
+
+      --border-muted:   #1E2235;
+      --border-default: #2A2E46;
+      --border-strong:  #3E4260;
+
+      --text-primary:   #EDF0F8;
+      --text-secondary: #8C8FA8;
+      --text-tertiary:  #50527A;
+      --text-disabled:  #34375A;
+
+      --accent:       #14B8D4;
+      --accent-hover: #22CBEA;
+      --accent-light: #67E2F0;
+      --accent-muted: rgba(20, 184, 212, 0.12);
+      --accent-glow:  rgba(20, 184, 212, 0.06);
+
+      --success: #34D399;
+      --warning: #FB923C;
+      --danger:  #F87171;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    /* ─── Reset ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Scene (centered, atmospheric) ──────────────────────────── */
+    .scene {
+      position: relative;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      overflow: hidden;
+    }
+
+    .scene::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, var(--border-default) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.28;
+      pointer-events: none;
+    }
+
+    .scene::after {
+      content: '';
+      position: absolute;
+      top: -180px;
+      right: -160px;
+      width: 560px;
+      height: 560px;
+      background: radial-gradient(ellipse at center, rgba(20, 184, 212, 0.09) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    /* ─── Card ───────────────────────────────────────────────────── */
+    .verify-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-muted);
+      border-radius: var(--radius-xl);
+      padding: 46px 42px 38px;
+      text-align: center;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Logo */
+    .card-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+
+    .logo-wordmark {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      letter-spacing: -0.025em;
+      line-height: 1;
+    }
+
+    .logo-wordmark .rev { font-weight: 300; color: var(--text-primary); }
+    .logo-wordmark .log { font-weight: 700; color: var(--accent); }
+
+    /* ─── Status orb ─────────────────────────────────────────────── */
+    .status-orb {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      margin: 0 auto 28px;
+    }
+
+    .orb-glow {
+      content: '';
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      opacity: 0;
+      transform: scale(0.9);
+      transition: opacity 400ms ease;
+    }
+
+    [data-state="pending"] .orb-glow,
+    [data-state="verifying"] .orb-glow {
+      opacity: 1;
+      animation: orb-pulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes orb-pulse {
+      0%, 100% { opacity: 0.35; transform: scale(0.92); }
+      50%      { opacity: 0.9;  transform: scale(1.08); }
+    }
+
+    .orb-ring {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-origin: 50% 50%;
+      display: block;
+    }
+
+    [data-state="pending"] .orb-ring,
+    [data-state="verifying"] .orb-ring {
+      animation: orb-spin 2.6s linear infinite;
+    }
+    [data-state="verifying"] .orb-ring { animation-duration: 0.85s; }
+    [data-state="verified"] .orb-ring,
+    [data-state="expired"] .orb-ring { animation: none; }
+
+    @keyframes orb-spin { to { transform: rotate(360deg); } }
+
+    .ring-track {
+      fill: none;
+      stroke: var(--border-default);
+      stroke-width: 2.5;
+    }
+
+    .ring-arc {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-dasharray: 72 192;
+      filter: drop-shadow(0 0 6px rgba(20, 184, 212, 0.55));
+      transition: stroke 400ms ease, stroke-dasharray 480ms ease, filter 400ms ease;
+    }
+
+    [data-state="verifying"] .ring-arc {
+      stroke-dasharray: 110 154;
+    }
+
+    [data-state="verified"] .ring-arc {
+      stroke: var(--success);
+      stroke-dasharray: 264 264;
+      filter: drop-shadow(0 0 9px rgba(52, 211, 153, 0.5));
+    }
+
+    [data-state="expired"] .ring-arc {
+      stroke: var(--danger);
+      stroke-dasharray: 90 174;
+      filter: drop-shadow(0 0 9px rgba(248, 113, 113, 0.4));
+    }
+
+    .orb-icon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .orb-icon svg {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      opacity: 0;
+      transform: scale(0.7);
+      transition: opacity 260ms ease, transform 260ms ease;
+    }
+
+    .icon-mail  { color: var(--accent); }
+    .icon-check { color: var(--success); }
+    .icon-alert { color: var(--danger); }
+
+    [data-state="pending"] .icon-mail,
+    [data-state="verifying"] .icon-mail { opacity: 1; transform: scale(1); }
+
+    [data-state="verified"] .icon-check { opacity: 1; transform: scale(1); }
+    [data-state="expired"]  .icon-alert { opacity: 1; transform: scale(1); }
+
+    .check-path {
+      stroke-dasharray: 22;
+      stroke-dashoffset: 22;
+    }
+    [data-state="verified"] .check-path {
+      animation: draw-check 460ms 140ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    }
+    @keyframes draw-check { to { stroke-dashoffset: 0; } }
+
+    /* ─── Copy ───────────────────────────────────────────────────── */
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+      transition: color 250ms ease;
+    }
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 14px;
+      height: 1.5px;
+      background: currentColor;
+      border-radius: 1px;
+    }
+    [data-state="verified"] .eyebrow { color: var(--success); }
+    [data-state="expired"]  .eyebrow { color: var(--danger); }
+
+    .headline {
+      font-family: 'Outfit', sans-serif;
+      font-size: 25px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      min-height: 32px;
+    }
+
+    .body-copy {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+      max-width: 350px;
+      margin: 0 auto 30px;
+      overflow-wrap: break-word;
+    }
+
+    .email-pill {
+      display: inline-block;
+      max-width: 100%;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 1px 8px;
+      font-family: 'Geist Mono', monospace;
+      font-size: 12.5px;
+      color: var(--accent-light);
+      letter-spacing: -0.01em;
+      overflow-wrap: break-word;
+      vertical-align: baseline;
+    }
+
+    /* ─── Action zones ───────────────────────────────────────────── */
+    .action-zone {
+      display: none;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+    }
+    .action-zone.visible { display: flex; }
+
+    /* ─── Buttons ────────────────────────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-md);
+      color: #080A10;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 13px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      letter-spacing: 0.01em;
+      transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+      box-shadow: 0 0 24px rgba(20, 184, 212, 0.18);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 28px rgba(20, 184, 212, 0.28);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-ghost {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 11px 20px;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    }
+    .btn-ghost:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent-light);
+      background: var(--accent-muted);
+    }
+    .btn-ghost:disabled {
+      color: var(--text-tertiary);
+      cursor: default;
+    }
+
+    .text-link {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 150ms ease;
+    }
+    .text-link:hover { color: var(--accent); }
+
+    .fine-print {
+      margin-top: 20px;
+      font-size: 11.5px;
+      color: var(--text-disabled);
+    }
+
+    /* ─── Preview state switcher (design tool only) ──────────────── */
+    .preview-switcher {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-elevated);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 6px 8px;
+      z-index: 10;
+    }
+    .preview-label {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-tertiary);
+      padding: 0 6px;
+      white-space: nowrap;
+    }
+    .state-btn {
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-tertiary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+    }
+    .state-btn.active, .state-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent-light);
+      background: var(--accent-muted);
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .verify-card { padding: 38px 26px 32px; border-radius: var(--radius-lg); }
+      .headline { font-size: 22px; }
+      .status-orb { width: 80px; height: 80px; }
+      .preview-switcher {
+        flex-wrap: wrap;
+        width: calc(100% - 32px);
+        justify-content: center;
+        row-gap: 6px;
+      }
+      .preview-label { width: 100%; text-align: center; padding: 0 0 2px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene">
+    <div class="verify-card" id="verifyCard" data-state="pending">
+
+      <!-- Logo -->
+      <div class="card-logo">
+        <svg width="30" height="30" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <path d="M 11 30 A 14 14 0 1 1 25 30"
+                stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 11 30 A 14 14 0 1 1 30.1 11"
+                stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+          <line x1="18" y1="18" x2="27.5" y2="13"
+                stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+          <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+        </svg>
+        <div class="logo-wordmark">
+          <span class="rev">Rev</span><span class="log">log</span>
+        </div>
+      </div>
+
+      <!-- Status orb -->
+      <div class="status-orb">
+        <div class="orb-glow"></div>
+        <svg class="orb-ring" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="ring-track" cx="50" cy="50" r="42"/>
+          <circle class="ring-arc" cx="50" cy="50" r="42" transform="rotate(-90 50 50)"/>
+        </svg>
+        <div class="orb-icon">
+          <svg class="icon-mail" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3" y="5.5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M4.5 7.5l7.5 5.6 7.5-5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg class="icon-check" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.3" opacity="0.3"/>
+            <path class="check-path" d="M7.5 12.4l3 3 6-6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <svg class="icon-alert" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 4.5 L20.5 19 H3.5 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <line x1="12" y1="10" x2="12" y2="13.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="12" cy="16.4" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Copy (swapped per state) -->
+      <div class="eyebrow" id="stateEyebrow">Step 2 of 2 — Verify</div>
+      <h1 class="headline" id="stateHeadline">Check your inbox</h1>
+      <p class="body-copy" id="stateBody">
+        We've sent a verification link to <span class="email-pill">jordan.reyes@gmail.com</span>.
+        Open it on this device to activate your account.
+      </p>
+
+      <!-- Pending actions -->
+      <div class="action-zone" data-for="pending">
+        <button class="btn-ghost" id="resendBtn" type="button" onclick="handleResend()">Resend email</button>
+        <a href="#" class="text-link">Wrong address? Use a different email</a>
+        <p class="fine-print">Link expires in 24 hours.</p>
+      </div>
+
+      <!-- Verified actions -->
+      <div class="action-zone" data-for="verified">
+        <button class="btn-primary" type="button">
+          Continue to Revlog
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+            <path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Expired actions -->
+      <div class="action-zone" data-for="expired">
+        <button class="btn-primary" type="button" onclick="handleResend(true)">
+          Send new link
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+            <path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <a href="#" class="text-link">Wrong address? Use a different email</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Design preview only — switches between flow states -->
+  <div class="preview-switcher" aria-hidden="true">
+    <span class="preview-label">Preview state</span>
+    <button class="state-btn active" data-state-btn="pending"   onclick="setState('pending')">Pending</button>
+    <button class="state-btn"        data-state-btn="verifying" onclick="setState('verifying')">Verifying</button>
+    <button class="state-btn"        data-state-btn="verified"  onclick="setState('verified')">Verified</button>
+    <button class="state-btn"        data-state-btn="expired"   onclick="setState('expired')">Expired</button>
+  </div>
+
+  <script>
+    const EMAIL = 'jordan.reyes@gmail.com';
+
+    const COPY = {
+      pending: {
+        eyebrow: 'Step 2 of 2 — Verify',
+        headline: 'Check your inbox',
+        body: `We've sent a verification link to <span class="email-pill">${EMAIL}</span>. Open it on this device to activate your account.`,
+        zone: 'pending',
+      },
+      verifying: {
+        eyebrow: 'Verifying',
+        headline: 'Confirming your email…',
+        body: `Hold on a moment — we're activating your account and getting your garage ready.`,
+        zone: null,
+      },
+      verified: {
+        eyebrow: 'Verified',
+        headline: 'You’re all set',
+        body: `Your email is confirmed. Time to add your first bike and start logging its service history.`,
+        zone: 'verified',
+      },
+      expired: {
+        eyebrow: 'Link expired',
+        headline: 'This link has expired',
+        body: `Verification links are valid for 24 hours. Send a new one to <span class="email-pill">${EMAIL}</span> to keep going.`,
+        zone: 'expired',
+      },
+    };
+
+    let cooldownTimer = null;
+
+    function setState(state) {
+      const card = document.getElementById('verifyCard');
+      const entry = COPY[state];
+
+      card.setAttribute('data-state', state);
+      document.getElementById('stateEyebrow').textContent = entry.eyebrow;
+      document.getElementById('stateHeadline').textContent = entry.headline;
+      document.getElementById('stateBody').innerHTML = entry.body;
+
+      document.querySelectorAll('.action-zone').forEach((zone) => {
+        zone.classList.toggle('visible', zone.dataset.for === entry.zone);
+      });
+
+      document.querySelectorAll('.state-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.stateBtn === state);
+      });
+
+      if (state !== 'pending' && cooldownTimer) {
+        clearInterval(cooldownTimer);
+        cooldownTimer = null;
+        const resendBtn = document.getElementById('resendBtn');
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend email';
+      }
+    }
+
+    function handleResend(fromExpired) {
+      if (fromExpired) {
+        setState('verifying');
+        setTimeout(() => setState('pending'), 1100);
+        return;
+      }
+
+      const btn = document.getElementById('resendBtn');
+      if (btn.disabled) return;
+
+      let remaining = 30;
+      btn.disabled = true;
+      btn.textContent = `Resend available in 0:${String(remaining).padStart(2, '0')}`;
+
+      cooldownTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(cooldownTimer);
+          cooldownTimer = null;
+          btn.disabled = false;
+          btn.textContent = 'Resend email';
+        } else {
+          btn.textContent = `Resend available in 0:${String(remaining).padStart(2, '0')}`;
+        }
+      }, 1000);
+    }
+
+    setState('pending');
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revlog — Onboarding · Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --surface-base:     #0B0D14;
+      --surface-raised:   #131620;
+      --surface-elevated: #1A1D2E;
+      --surface-subtle:   #1F2338;
+      --border-muted:   #1E2235;
+      --border-default: #2A2E46;
+      --border-strong:  #3E4260;
+      --text-primary:   #EDF0F8;
+      --text-secondary: #8C8FA8;
+      --text-tertiary:  #50527A;
+      --text-disabled:  #34375A;
+      --accent:       #14B8D4;
+      --accent-hover: #22CBEA;
+      --accent-light: #67E2F0;
+      --accent-muted: rgba(20, 184, 212, 0.12);
+      --accent-glow:  rgba(20, 184, 212, 0.06);
+      --success: #34D399;
+      --warning: #FB923C;
+      --danger:  #F87171;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Scene ──────────────────────────────────────────────────── */
+    .scene {
+      position: relative;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      overflow: hidden;
+    }
+    .scene::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, var(--border-default) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.28;
+      pointer-events: none;
+    }
+    .scene::after {
+      content: '';
+      position: absolute;
+      bottom: -200px;
+      left: -180px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(20, 184, 212, 0.08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    /* ─── Card ───────────────────────────────────────────────────── */
+    .onboard-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 460px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-muted);
+      border-radius: var(--radius-xl);
+      padding: 44px 42px 40px;
+      text-align: center;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .logo-wordmark { font-family: 'Outfit', sans-serif; font-size: 18px; letter-spacing: -0.025em; line-height: 1; }
+    .logo-wordmark .rev { font-weight: 300; color: var(--text-primary); }
+    .logo-wordmark .log { font-weight: 700; color: var(--accent); }
+
+    /* ─── Gauge-tick step indicator ──────────────────────────────── */
+    .step-track { display: flex; gap: 6px; margin-bottom: 11px; }
+    .step-tick {
+      flex: 1;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--border-default);
+      position: relative;
+      overflow: hidden;
+    }
+    .step-tick::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      border-radius: 2px;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 420ms cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    .step-tick.done::after,
+    .step-tick.active::after { transform: scaleX(1); }
+    .step-tick.active::after {
+      box-shadow: 0 0 8px rgba(20, 184, 212, 0.65);
+      animation: tick-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes tick-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .step-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+    .step-labels span {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-disabled);
+      transition: color 250ms ease;
+    }
+    .step-labels span.active { color: var(--accent); }
+    .step-labels span.done { color: var(--text-tertiary); }
+
+    /* ─── Copy ───────────────────────────────────────────────────── */
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .eyebrow::before { content: ''; display: block; width: 14px; height: 1.5px; background: currentColor; border-radius: 1px; }
+    .wizard-step[data-step="3"] .eyebrow { color: var(--success); }
+
+    .headline {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .body-copy {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+      max-width: 340px;
+      margin: 0 auto 28px;
+    }
+
+    /* ─── Wizard step visibility ─────────────────────────────────── */
+    .wizard-step { display: none; flex-direction: column; align-items: center; }
+    .wizard-step.visible { display: flex; }
+
+    /* ─── Form fields (left-aligned within centered card) ────────── */
+    .form-fields { width: 100%; text-align: left; }
+
+    .field { margin-bottom: 16px; }
+    .field-row { display: flex; gap: 14px; }
+    .field-row .field { flex: 1; }
+
+    .field-label {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+    }
+    .field-label .optional {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+      color: var(--text-tertiary);
+    }
+
+    .field-input {
+      width: 100%;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14.5px;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    .field-input::placeholder { color: var(--text-disabled); }
+    .field-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-muted); }
+
+    .input-suffix-wrap { position: relative; }
+    .input-suffix-wrap .field-input { padding-right: 42px; }
+    .input-suffix {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+
+    /* ─── Buttons ────────────────────────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-md);
+      color: #080A10;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 13px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      letter-spacing: 0.01em;
+      transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+      box-shadow: 0 0 24px rgba(20, 184, 212, 0.18);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 28px rgba(20, 184, 212, 0.28); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 11px 22px;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-muted); }
+
+    .wizard-actions {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      margin-top: 6px;
+    }
+    .wizard-actions .btn-primary { flex: 1; }
+
+    .text-link {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-decoration: none;
+      transition: color 150ms ease;
+    }
+    .text-link:hover { color: var(--accent); }
+
+    /* ─── Success orb (step 3) ───────────────────────────────────── */
+    .status-orb { position: relative; width: 84px; height: 84px; margin: 0 auto 24px; }
+    .orb-glow {
+      position: absolute; inset: -14px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(52, 211, 153, 0.12) 0%, transparent 70%);
+      opacity: 0; transform: scale(0.9);
+    }
+    .wizard-step[data-step="3"].visible .orb-glow {
+      opacity: 1; animation: orb-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes orb-pulse {
+      0%, 100% { opacity: 0.35; transform: scale(0.92); }
+      50%      { opacity: 0.85; transform: scale(1.06); }
+    }
+    .orb-ring { width: 100%; height: 100%; display: block; }
+    .ring-track { fill: none; stroke: var(--border-default); stroke-width: 2.5; }
+    .ring-arc {
+      fill: none; stroke: var(--success); stroke-width: 2.5; stroke-linecap: round;
+      stroke-dasharray: 264 264;
+      filter: drop-shadow(0 0 9px rgba(52, 211, 153, 0.5));
+    }
+    .orb-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--success); }
+    .orb-icon svg { width: 28px; height: 28px; }
+    .check-path { stroke-dasharray: 22; stroke-dashoffset: 22; }
+    .wizard-step[data-step="3"].visible .check-path {
+      animation: draw-check 460ms 200ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    }
+    @keyframes draw-check { to { stroke-dashoffset: 0; } }
+
+    /* ─── Vehicle preview "spec plate" ───────────────────────────── */
+    .vehicle-plate {
+      width: 100%;
+      text-align: left;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 2px 18px;
+      margin: 4px 0 28px;
+    }
+    .plate-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 0;
+      border-bottom: 1px solid var(--border-muted);
+      font-size: 13px;
+    }
+    .plate-row:last-child { border-bottom: none; }
+    .plate-row span { color: var(--text-tertiary); }
+    .plate-row strong { color: var(--text-primary); font-weight: 500; letter-spacing: -0.01em; }
+    .plate-row strong.mono { font-family: 'Geist Mono', monospace; color: var(--accent-light); font-size: 12.5px; }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .onboard-card { padding: 36px 26px 32px; border-radius: var(--radius-lg); }
+      .headline { font-size: 21px; }
+      .field-row { flex-direction: column; gap: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene">
+    <div class="onboard-card">
+
+      <div class="card-logo">
+        <svg width="30" height="30" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+          <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+          <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+        </svg>
+        <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+      </div>
+
+      <!-- Gauge-tick progress -->
+      <div class="step-track">
+        <div class="step-tick active" data-step="1"></div>
+        <div class="step-tick" data-step="2"></div>
+        <div class="step-tick" data-step="3"></div>
+      </div>
+      <div class="step-labels">
+        <span class="active">Welcome</span>
+        <span>Your vehicle</span>
+        <span>Ready</span>
+      </div>
+
+      <!-- ── Step 1 — Welcome ─────────────────────────────────── -->
+      <section class="wizard-step visible" data-step="1">
+        <div class="eyebrow">Welcome to Revlog</div>
+        <h1 class="headline">Let's set up your garage</h1>
+        <p class="body-copy">
+          Add the vehicle you ride most — you can always add more later.
+          It takes less than a minute, and it's the start of a service history that's truly yours.
+        </p>
+        <button class="btn-primary" type="button" onclick="goToStep(2)">
+          Add my first vehicle
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <a href="#" class="text-link">Skip for now</a>
+      </section>
+
+      <!-- ── Step 2 — Add vehicle ─────────────────────────────── -->
+      <section class="wizard-step" data-step="2">
+        <div class="eyebrow">Step 2 of 3 — Your vehicle</div>
+        <h1 class="headline">Tell us about your bike</h1>
+        <p class="body-copy">Just the basics for now — you can fill in the rest from its detail page anytime.</p>
+
+        <div class="form-fields">
+          <div class="field">
+            <label class="field-label" for="fNickname">Nickname <span class="optional">(optional)</span></label>
+            <input class="field-input" id="fNickname" type="text" placeholder="e.g. The Daily" autocomplete="off"/>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label" for="fMake">Make</label>
+              <input class="field-input" id="fMake" type="text" placeholder="Triumph" autocomplete="off"/>
+            </div>
+            <div class="field">
+              <label class="field-label" for="fModel">Model</label>
+              <input class="field-input" id="fModel" type="text" placeholder="Street Triple RS" autocomplete="off"/>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label" for="fYear">Year</label>
+              <input class="field-input" id="fYear" type="text" inputmode="numeric" placeholder="2021" autocomplete="off"/>
+            </div>
+            <div class="field">
+              <label class="field-label" for="fMileage">Current mileage</label>
+              <div class="input-suffix-wrap">
+                <input class="field-input" id="fMileage" type="text" inputmode="numeric" placeholder="14,230" autocomplete="off"/>
+                <span class="input-suffix">mi</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-actions">
+          <button class="btn-ghost" type="button" onclick="goToStep(1)">Back</button>
+          <button class="btn-primary" type="button" onclick="handleContinue()">
+            Continue
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Step 3 — Ready ───────────────────────────────────── -->
+      <section class="wizard-step" data-step="3">
+        <div class="status-orb">
+          <div class="orb-glow"></div>
+          <svg class="orb-ring" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="ring-track" cx="50" cy="50" r="42"/>
+            <circle class="ring-arc" cx="50" cy="50" r="42" transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="orb-icon">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path class="check-path" d="M7.5 12.4l3 3 6-6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="eyebrow">All set</div>
+        <h1 class="headline" id="readyHeadline">Your bike is in the garage</h1>
+        <p class="body-copy">
+          You're ready to start logging its service history — every oil change,
+          tyre swap, and repair, all in one place.
+        </p>
+
+        <div class="vehicle-plate">
+          <div class="plate-row"><span>Nickname</span><strong id="pvNickname">—</strong></div>
+          <div class="plate-row"><span>Make &amp; model</span><strong id="pvMakeModel">—</strong></div>
+          <div class="plate-row"><span>Year</span><strong id="pvYear">—</strong></div>
+          <div class="plate-row"><span>Mileage</span><strong class="mono" id="pvMileage">—</strong></div>
+        </div>
+
+        <button class="btn-primary" type="button">
+          Go to my garage
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    function goToStep(step) {
+      document.querySelectorAll('.wizard-step').forEach((el) => {
+        el.classList.toggle('visible', Number(el.dataset.step) === step);
+      });
+      document.querySelectorAll('.step-tick').forEach((el) => {
+        const n = Number(el.dataset.step);
+        el.classList.toggle('done', n < step);
+        el.classList.toggle('active', n === step);
+      });
+      document.querySelectorAll('.step-labels span').forEach((el, i) => {
+        el.classList.toggle('active', i + 1 === step);
+        el.classList.toggle('done', i + 1 < step);
+      });
+    }
+
+    function handleContinue() {
+      const val = (id, fallback) => {
+        const v = document.getElementById(id).value.trim();
+        return v.length ? v : fallback;
+      };
+      const nickname = val('fNickname', 'The Daily');
+      const make     = val('fMake', 'Triumph');
+      const model    = val('fModel', 'Street Triple RS');
+      const year     = val('fYear', '2021');
+      const mileage  = val('fMileage', '14,230');
+
+      document.getElementById('pvNickname').textContent  = nickname;
+      document.getElementById('pvMakeModel').textContent = `${make} ${model}`;
+      document.getElementById('pvYear').textContent      = year;
+      document.getElementById('pvMileage').textContent   = `${mileage} mi`;
+      document.getElementById('readyHeadline').textContent = `${nickname} is in your garage`;
+
+      goToStep(3);
+    }
+  </script>
+
+</body>
+</html>

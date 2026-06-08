@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revlog — Garage · Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --surface-base:     #0B0D14;
+      --surface-raised:   #131620;
+      --surface-elevated: #1A1D2E;
+      --surface-subtle:   #1F2338;
+      --border-muted:   #1E2235;
+      --border-default: #2A2E46;
+      --border-strong:  #3E4260;
+      --text-primary:   #EDF0F8;
+      --text-secondary: #8C8FA8;
+      --text-tertiary:  #50527A;
+      --text-disabled:  #34375A;
+      --accent:       #14B8D4;
+      --accent-hover: #22CBEA;
+      --accent-light: #67E2F0;
+      --accent-muted: rgba(20, 184, 212, 0.12);
+      --accent-glow:  rgba(20, 184, 212, 0.06);
+      --success: #34D399;
+      --warning: #FB923C;
+      --danger:  #F87171;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Top bar ────────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--border-muted);
+      background: var(--surface-base);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .topbar-logo { display: flex; align-items: center; gap: 9px; }
+    .logo-wordmark { font-family: 'Outfit', sans-serif; font-size: 17px; letter-spacing: -0.025em; line-height: 1; }
+    .logo-wordmark .rev { font-weight: 300; color: var(--text-primary); }
+    .logo-wordmark .log { font-weight: 700; color: var(--accent); }
+
+    .topbar-actions { display: flex; align-items: center; gap: 16px; }
+
+    .btn-add {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--accent-muted);
+      border: 1px solid var(--accent);
+      color: var(--accent-light);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 9px 16px 9px 14px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    }
+    .btn-add:hover { background: var(--accent); color: #080A10; box-shadow: 0 0 22px rgba(20, 184, 212, 0.28); }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    /* ─── Page content ───────────────────────────────────────────── */
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 44px 40px 100px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 34px;
+      gap: 20px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .eyebrow::before { content: ''; display: block; width: 14px; height: 1.5px; background: currentColor; border-radius: 1px; }
+
+    .page-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+    }
+    .page-title .count { color: var(--text-tertiary); font-weight: 400; }
+
+    .page-sub { font-size: 13.5px; color: var(--text-tertiary); }
+
+    /* ─── Vehicle grid ───────────────────────────────────────────── */
+    .vehicle-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(266px, 1fr));
+      gap: 20px;
+    }
+
+    .vehicle-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-muted);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+    }
+    .vehicle-card::before {
+      content: '';
+      position: absolute;
+      top: -70px;
+      right: -70px;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 250ms ease;
+      pointer-events: none;
+    }
+    .vehicle-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-3px);
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.3);
+    }
+    .vehicle-card:hover::before { opacity: 1; }
+
+    .vehicle-glyph {
+      position: relative;
+      z-index: 1;
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius-md);
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 20px;
+      transition: border-color 200ms ease, color 200ms ease;
+    }
+    .vehicle-glyph svg { width: 32px; height: auto; }
+    .vehicle-card:hover .vehicle-glyph { border-color: var(--accent); color: var(--accent-light); }
+
+    .vehicle-name {
+      position: relative;
+      z-index: 1;
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+    .vehicle-meta {
+      position: relative;
+      z-index: 1;
+      font-size: 12.5px;
+      color: var(--text-tertiary);
+      margin-bottom: 22px;
+    }
+
+    .vehicle-stats {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-muted);
+      margin-bottom: 18px;
+    }
+    .stat-value {
+      font-family: 'Geist Mono', monospace;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+    .stat-value .unit { font-size: 10.5px; font-weight: 400; color: var(--text-tertiary); margin-left: 3px; }
+    .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+    .stat-block.is-empty .stat-value { color: var(--text-disabled); font-size: 13px; font-weight: 400; font-family: 'DM Sans', sans-serif; letter-spacing: 0; }
+
+    .vehicle-link {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: color 150ms ease, gap 150ms ease;
+    }
+    .vehicle-link svg { transition: transform 150ms ease; }
+    .vehicle-card:hover .vehicle-link { color: var(--accent); }
+    .vehicle-card:hover .vehicle-link svg { transform: translateX(3px); }
+
+    /* Add-vehicle tile */
+    .add-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 232px;
+      background: transparent;
+      font-family: inherit;
+      border: 1.5px dashed var(--border-default);
+      border-radius: var(--radius-lg);
+      color: var(--text-tertiary);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+    }
+    .add-tile:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-muted); }
+    .add-tile-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1.5px dashed currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      font-weight: 300;
+      line-height: 1;
+    }
+    .add-tile-label { font-size: 13px; font-weight: 500; }
+
+    /* ─── Empty state ────────────────────────────────────────────── */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 420px;
+      margin: 60px auto 0;
+      padding: 0 20px;
+    }
+    .empty-state.visible { display: flex; }
+
+    .empty-illustration { position: relative; margin-bottom: 32px; }
+    .empty-bay {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      border-radius: 50%;
+      border: 1.5px dashed var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-disabled);
+    }
+    .empty-bay::after {
+      content: '';
+      position: absolute;
+      inset: -22px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+    }
+    .empty-bay svg { position: relative; z-index: 1; width: 96px; height: auto; }
+    .empty-plus {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #080A10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      font-weight: 400;
+      box-shadow: 0 0 22px rgba(20, 184, 212, 0.35);
+    }
+
+    .empty-headline {
+      font-family: 'Outfit', sans-serif;
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    .empty-body {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-md);
+      color: #080A10;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 12px 22px;
+      cursor: pointer;
+      transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+      box-shadow: 0 0 24px rgba(20, 184, 212, 0.18);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 28px rgba(20, 184, 212, 0.28); }
+
+    /* ─── Preview state switcher (design tool only) ──────────────── */
+    .preview-switcher {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface-elevated);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 6px 8px;
+      z-index: 10;
+    }
+    .preview-label {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-tertiary);
+      padding: 0 6px;
+    }
+    .state-btn {
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-tertiary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+    }
+    .state-btn.active, .state-btn:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-muted); }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 720px) {
+      .topbar { padding: 16px 22px; }
+      .page { padding: 32px 22px 90px; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .page-title { font-size: 24px; }
+      .vehicle-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Top bar ──────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <svg width="28" height="28" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+        <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+        <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+        <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+      </svg>
+      <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-add" type="button">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 2.5v9M2.5 7h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Add vehicle
+      </button>
+      <div class="avatar" title="Jordan Reyes">JR</div>
+    </div>
+  </header>
+
+  <!-- ── Page content ─────────────────────────────────────────── -->
+  <main class="page">
+
+    <div class="page-header">
+      <div>
+        <div class="eyebrow">Your garage</div>
+        <h1 class="page-title" id="pageTitle">3 <span class="count">vehicles</span></h1>
+      </div>
+      <p class="page-sub" id="pageSub">Sorted by most recently logged</p>
+    </div>
+
+    <!-- Populated state -->
+    <div class="vehicle-grid" id="vehicleGrid">
+
+      <a class="vehicle-card" href="#">
+        <div class="vehicle-glyph">
+          <svg viewBox="0 0 80 48" fill="none" aria-hidden="true">
+            <circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+            <circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 13 L33 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2 class="vehicle-name">The Daily</h2>
+        <p class="vehicle-meta">Triumph · Street Triple RS · 2021</p>
+        <div class="vehicle-stats">
+          <div class="stat-block">
+            <div class="stat-value">14,230<span class="unit">mi</span></div>
+            <div class="stat-label">Odometer</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-value">12</div>
+            <div class="stat-label">Log entries</div>
+          </div>
+        </div>
+        <span class="vehicle-link">
+          View service history
+          <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+
+      <a class="vehicle-card" href="#">
+        <div class="vehicle-glyph">
+          <svg viewBox="0 0 80 48" fill="none" aria-hidden="true">
+            <circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+            <circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 13 L33 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2 class="vehicle-name">Sunday Bike</h2>
+        <p class="vehicle-meta">Ducati · Scrambler Icon · 2019</p>
+        <div class="vehicle-stats">
+          <div class="stat-block">
+            <div class="stat-value">8,402<span class="unit">mi</span></div>
+            <div class="stat-label">Odometer</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-value">7</div>
+            <div class="stat-label">Log entries</div>
+          </div>
+        </div>
+        <span class="vehicle-link">
+          View service history
+          <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+
+      <a class="vehicle-card" href="#">
+        <div class="vehicle-glyph">
+          <svg viewBox="0 0 80 48" fill="none" aria-hidden="true">
+            <circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+            <circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 13 L33 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2 class="vehicle-name">Project Garage Find</h2>
+        <p class="vehicle-meta">Honda · CB350 · 1972</p>
+        <div class="vehicle-stats">
+          <div class="stat-block">
+            <div class="stat-value">31,118<span class="unit">mi</span></div>
+            <div class="stat-label">Odometer</div>
+          </div>
+          <div class="stat-block is-empty">
+            <div class="stat-value">No entries yet</div>
+            <div class="stat-label">Log entries</div>
+          </div>
+        </div>
+        <span class="vehicle-link">
+          View service history
+          <svg width="13" height="13" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M2.5 7.5h10M8.5 4.5l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+
+      <button class="add-tile" type="button">
+        <span class="add-tile-badge">+</span>
+        <span class="add-tile-label">Add a vehicle</span>
+      </button>
+
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-illustration">
+        <div class="empty-bay">
+          <svg viewBox="0 0 80 48" fill="none" aria-hidden="true">
+            <circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"/>
+            <circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"/>
+            <path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"/>
+            <path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
+            <path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"/>
+          </svg>
+        </div>
+        <div class="empty-plus">+</div>
+      </div>
+      <h2 class="empty-headline">Your garage is empty</h2>
+      <p class="empty-body">
+        Add your first vehicle to start building its service history —
+        every oil change, tyre swap, and repair, kept in one place for good.
+      </p>
+      <button class="btn-primary" type="button">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 2.5v9M2.5 7h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Add your first vehicle
+      </button>
+    </div>
+
+  </main>
+
+  <!-- Design preview only — switches between garage states -->
+  <div class="preview-switcher" aria-hidden="true">
+    <span class="preview-label">Preview state</span>
+    <button class="state-btn active" data-state-btn="populated" onclick="setGarageState('populated')">Populated</button>
+    <button class="state-btn" data-state-btn="empty" onclick="setGarageState('empty')">Empty</button>
+  </div>
+
+  <script>
+    function setGarageState(state) {
+      const grid = document.getElementById('vehicleGrid');
+      const empty = document.getElementById('emptyState');
+      const title = document.getElementById('pageTitle');
+      const sub = document.getElementById('pageSub');
+
+      const isEmpty = state === 'empty';
+      grid.style.display = isEmpty ? 'none' : 'grid';
+      empty.classList.toggle('visible', isEmpty);
+
+      title.innerHTML = isEmpty ? 'Your garage' : '3 <span class="count">vehicles</span>';
+      sub.textContent = isEmpty ? '' : 'Sorted by most recently logged';
+
+      document.querySelectorAll('.state-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.stateBtn === state);
+      });
+    }
+  </script>
+
+</body>
+</html>
