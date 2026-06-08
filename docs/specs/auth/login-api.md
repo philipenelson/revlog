@@ -82,16 +82,16 @@ The `/login` screen shows the single catch-all inline error message defined in [
 
 ## Acceptance Criteria
 
-- [ ] `POST /auth/login` with valid, verified credentials returns 200, sets the refresh cookie, and returns `{ accessToken, user, account }`
-- [ ] `POST /auth/login` returns 401 when no User exists for the given email
-- [ ] `POST /auth/login` returns 401 when the password does not match
-- [ ] `POST /auth/login` returns 401 when the User exists, the password matches, but `emailVerified` is `false`
-- [ ] All three 401 cases return the exact same status and body — the client cannot distinguish them, and must not be able to (no enumeration)
-- [ ] `POST /auth/login` with invalid body (missing field, malformed email) returns 400 with Zod details
-- [ ] `POST /auth/login` normalizes email case before lookup — `Test@Example.COM` matches an account registered as `test@example.com`
-- [ ] `POST /auth/login` response includes `account: { id, status }` so the client can apply the post-login routing rule (see [ADR 0015](../../adr/0015-account-status-state-machine.md))
-- [ ] Issued access token payload matches the `verifyEmail`-issued shape (`sub`, `accountId`, `role`)
-- [ ] Refresh token cookie attributes match `verifyEmail`'s exactly (`HttpOnly`, `Secure` in production, `SameSite=Strict`, `Path=/`, no `Max-Age`)
+- [x] `POST /auth/login` with valid, verified credentials returns 200, sets the refresh cookie, and returns `{ accessToken, user, account }`
+- [x] `POST /auth/login` returns 401 when no User exists for the given email
+- [x] `POST /auth/login` returns 401 when the password does not match
+- [x] `POST /auth/login` returns 401 when the User exists, the password matches, but `emailVerified` is `false`
+- [x] All three 401 cases return the exact same status and body — the client cannot distinguish them, and must not be able to (no enumeration)
+- [x] `POST /auth/login` with invalid body (missing field, malformed email) returns 400 with Zod details
+- [x] `POST /auth/login` normalizes email case before lookup — `Test@Example.COM` matches an account registered as `test@example.com`
+- [x] `POST /auth/login` response includes `account: { id, status }` so the client can apply the post-login routing rule (see [ADR 0015](../../adr/0015-account-status-state-machine.md))
+- [x] Issued access token payload matches the `verifyEmail`-issued shape (`sub`, `accountId`, `role`)
+- [x] Refresh token cookie attributes match `verifyEmail`'s exactly (`HttpOnly`, `Secure` in production, `SameSite=Strict`, `Path=/`, no `Max-Age`)
 
 ---
 

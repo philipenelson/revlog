@@ -74,44 +74,44 @@ This screen is the on-screen half of UC-AUTH-2 and UC-AUTH-3, both fully specifi
 
 ### Waiting state
 
-- [ ] Shown when the route is visited with no `?token=` query parameter
-- [ ] Names the email address the verification link was sent to
-- [ ] Mentions the 24-hour expiry
-- [ ] Makes no network call
+- [x] Shown when the route is visited with no `?token=` query parameter
+- [x] Names the email address the verification link was sent to
+- [x] Mentions the 24-hour expiry
+- [x] Makes no network call
 
 ### Verifying state
 
-- [ ] Shown immediately on mount when `?token=…` is present, before the request resolves
-- [ ] Orb plays its "in progress" animation (no checkmark)
-- [ ] Exactly one verification request is sent per page load (no duplicate calls from re-renders or React Strict Mode double-invocation)
+- [x] Shown immediately on mount when `?token=…` is present, before the request resolves
+- [x] Orb plays its "in progress" animation (no checkmark)
+- [x] Exactly one verification request is sent per page load (no duplicate calls from re-renders or React Strict Mode double-invocation)
 
 ### Verified state
 
-- [ ] Orb plays the "verified" animation (ring draw-in + checkmark) — the shared `StatusOrb` component, `state="verified"`
-- [ ] Session (`accessToken`, `user`, `account`) is stored via the `AuthProvider` before redirecting
-- [ ] Redirects to `/onboarding` when `account.status === "ONBOARDING"`, to `/garage` when `account.status === "ACTIVE"` — using the shared `routeForAccountStatus` helper (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
-- [ ] No "Continue" button — the redirect is automatic
+- [x] Orb plays the "verified" animation (ring draw-in + checkmark) — the shared `StatusOrb` component, `state="verified"`
+- [x] Session (`accessToken`, `user`, `account`) is stored via the `AuthProvider` before redirecting
+- [x] Redirects to `/onboarding` when `account.status === "ONBOARDING"`, to `/garage` when `account.status === "ACTIVE"` — using the shared `routeForAccountStatus` helper (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
+- [x] No "Continue" button — the redirect is automatic
 
 ### Error state
 
-- [ ] Shown on a 400 response (invalid, expired, or already-used token)
-- [ ] Explains the link is no longer valid
-- [ ] "Resend verification email" button is rendered (`btn-secondary` styling) but has no `onClick` handler — placeholder, matching the `/login` "Continue with Google" precedent
-- [ ] Does not redirect anywhere automatically
+- [x] Shown on a 400 response (invalid, expired, or already-used token)
+- [x] Explains the link is no longer valid
+- [x] "Resend verification email" button is rendered (`btn-secondary` styling) but has no `onClick` handler — placeholder, matching the `/login` "Continue with Google" precedent
+- [x] Does not redirect anywhere automatically
 
 ### General
 
-- [ ] Page title is "Revlog — Verify your email" (or equivalent), set via `src/app/verify-email/layout.tsx`, matching the `/onboarding` route's pattern
-- [ ] Domain language matches [`CONTEXT.md`](../../../CONTEXT.md): "Vehicle," "Garage," "Owner"
-- [ ] An error boundary wraps the page per the root observability rules, mirroring `onboarding/error.tsx`
-- [ ] Reachable without authentication — this is, by definition, a pre-authentication screen; Next.js middleware must not gate it
+- [x] Page title is "Revlog — Verify your email" (or equivalent), set via `src/app/verify-email/layout.tsx`, matching the `/onboarding` route's pattern
+- [x] Domain language matches [`CONTEXT.md`](../../../CONTEXT.md): "Vehicle," "Garage," "Owner"
+- [x] An error boundary wraps the page per the root observability rules, mirroring `onboarding/error.tsx`
+- [x] Reachable without authentication — this is, by definition, a pre-authentication screen; Next.js middleware must not gate it
 
 ### E2E tests (Cypress)
 
-- [ ] Waiting state renders with the email address and 24-hour copy when visited with no token
-- [ ] Visiting with a valid token shows the verifying state, then the verified state, then redirects to `/onboarding` for a fresh (zero-vehicle) account
-- [ ] Visiting with an invalid/expired token shows the error state and the (inert) "Resend" button
-- [ ] Page title matches the spec
+- [x] Waiting state renders with the email address and 24-hour copy when visited with no token — `verify-email.cy.ts`
+- [x] Visiting with a valid token shows the verifying state, then the verified state, then redirects to `/onboarding` for a fresh (zero-vehicle) account — `journey.cy.ts`
+- [x] Visiting with an invalid/expired token shows the error state and the (inert) "Resend" button — `verify-email.cy.ts`
+- [x] Page title matches the spec — `verify-email.cy.ts`
 
 ---
 
