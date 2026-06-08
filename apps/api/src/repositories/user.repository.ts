@@ -11,6 +11,10 @@ import type { AccountType } from '@maintenance-log/domain';
 export class PrismaUserRepository implements IUserRepository {
   constructor(private readonly db: PrismaClient) {}
 
+  async findById(id: string): Promise<DomainUser | null> {
+    return this.db.user.findUnique({ where: { id } });
+  }
+
   async findByEmail(email: string): Promise<DomainUser | null> {
     return this.db.user.findUnique({ where: { email } });
   }
