@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -28,8 +29,9 @@ const LOAD_ERROR = "We couldn't load your garage. Our mechanics are on it — tr
 type LoadState = "loading" | "loaded" | "error";
 
 export default function GaragePage() {
+  const router = useRouter();
   const { session } = useAuth();
-  const [loadState, setLoadState] = useState<LoadState>(() => (session ? "loading" : "error"));
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [retryToken, setRetryToken] = useState(0);
 
@@ -39,7 +41,16 @@ export default function GaragePage() {
   }
 
   useEffect(() => {
-    if (!session) return;
+    if (!session) {
+      // Reloading this screen wipes the in-memory session (ADR 0016 — "no
+      // session restoration on reload"); the refresh-token cookie still gets
+      // a visitor past middleware, so they land here with no access token to
+      // fetch with. Re-authenticating is the only recovery path until
+      // POST /auth/refresh exists, so send them there directly rather than
+      // showing a load-error whose "Try again" could never succeed.
+      router.replace("/login");
+      return;
+    }
 
     let cancelled = false;
 
@@ -62,7 +73,7 @@ export default function GaragePage() {
     return () => {
       cancelled = true;
     };
-  }, [session, retryToken]);
+  }, [session, retryToken, router]);
 
   const hasLoaded = loadState === "loaded";
   const isEmpty = hasLoaded && vehicles.length === 0;

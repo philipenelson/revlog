@@ -2,7 +2,7 @@
 
 **Area:** Garage
 **Route:** `/garage`
-**Status:** Implemented — wired to `GET /vehicles` with loading and error states
+**Status:** Implemented — wired to `GET /vehicles` with loading, error, and no-session states
 **Last updated:** 2026-06-08
 
 ---
@@ -101,6 +101,7 @@ This spec implements the approved design preview at `docs/designs/revlog-garage-
 - [x] On mount, the screen fetches `GET /vehicles` (authenticated via `session.accessToken`) and shows a loading state until it resolves
 - [x] On success, the screen renders the populated grid or the empty state depending on the returned list's length
 - [x] On failure, the screen renders an error state with a "Try again" action that re-fetches and recovers into the populated grid on success
+- [x] If there is no in-memory session (e.g. the screen was reloaded — see Decisions, "No-session redirect"), the screen redirects to `/login` instead of attempting the fetch or rendering a load-error state
 
 ### General
 
@@ -118,6 +119,7 @@ This spec implements the approved design preview at `docs/designs/revlog-garage-
 - [x] Empty-state rendering and its CTA, driven by an intercepted `GET /vehicles` returning an empty list
 - [x] Loading state renders while `GET /vehicles` is in flight, then gives way to the populated grid
 - [x] Failed load renders the error state and recovers to the populated grid when retried
+- [x] Reloading the screen with no in-memory session redirects to `/login` instead of showing a load-error state
 
 ---
 
@@ -127,6 +129,7 @@ This spec implements the approved design preview at `docs/designs/revlog-garage-
 |---|---|---|
 | Vehicle data source | Real fetch to `GET /vehicles` (see [garage-list-api.md](./garage-list-api.md)), authenticated via `session.accessToken` from `useAuth()`, with explicit `loading` / `loaded` / `error` states | `GET /vehicles` is implemented and spec'd as the contract for this screen; stubbing was only ever the placeholder until that endpoint and an in-memory session existed (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md)) |
 | Loading / error / retry handling | A `LoadState` of `"loading" \| "loaded" \| "error"` drives the body: a loading message while the request is in flight, an error state with a "Try again" action that re-issues the fetch, and either the populated grid or the empty state once `loaded` | Matches the pattern used elsewhere in the app (e.g. login/register — `apps/web/src/app/(auth)/login/page.tsx`) of mapping `ApiError` to a user-facing message and routing unexpected (5xx/network) failures through `logger.error`, while leaving 4xx responses silent in the log (expected, user-actionable) |
+| No-session redirect | If `useAuth()` returns no session on mount, the screen redirects to `/login` via `router.replace` rather than attempting the fetch or showing a load-error state | Reloading `/garage` wipes `AuthProvider`'s in-memory session ([ADR 0016](../../adr/0016-client-session-and-route-protection.md) — "no session restoration on reload"); the refresh-token cookie still gets the visitor past middleware, but there is no access token to fetch with. The prior behaviour rendered the generic "couldn't load your garage" error with a "Try again" button that could never succeed (the fetch effect bailed on `!session`) — a dead end. Re-authenticating via `/login` is the only working recovery path until `POST /auth/refresh` exists, so the screen routes there directly |
 | Garage state shown by default | Driven entirely by the `GET /vehicles` response — populated grid, empty state, or error state, whichever the data and request outcome dictate | No more mock data to curate; the screen now reflects the Account's real Vehicle list, including the zero-Vehicle case the empty state was built for |
 | Card is a single link | Whole `vehicle-card` is one navigable element (`<Link>`), not a card with a nested button/link | Matches the approved design's `<a class="vehicle-card">` and is the simplest accessible structure — there is exactly one destination per card |
 | Forward-linking to not-yet-built screens | `/garage/[vehicleId]` (Vehicle detail) and `/garage/add` (Add vehicle) are wired now even though neither screen exists yet | Same precedent as the onboarding wizard linking to `/garage` before this spec existed — ship the navigable surface, build the destination as the next concrete milestone item ("Vehicle detail screen", "Add vehicle screen" — [V1 milestone](../../milestones/v1.md)) |

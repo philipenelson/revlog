@@ -170,4 +170,23 @@ describe("Garage screen", () => {
       cy.get('[data-testid="vehicle-grid"]').should("be.visible");
     });
   });
+
+  describe("session lost on reload", () => {
+    it("redirects to sign-in instead of showing a load error with a dead retry button", () => {
+      signIntoGarage(stubVehiclesWith({ statusCode: 200, body: { vehicles: VEHICLES_FIXTURE } }));
+      cy.wait("@getVehicles");
+
+      // A reload wipes AuthProvider's in-memory session (ADR 0016 — "no
+      // session restoration on reload"); the refresh-token cookie still gets
+      // a visitor past middleware, but there's no access token left to fetch
+      // with. The screen should send the user to re-authenticate rather than
+      // show a "couldn't load your garage" error whose "Try again" could
+      // never succeed without a session.
+      cy.reload();
+
+      cy.location("pathname").should("eq", "/login");
+      cy.get('[data-testid="email-input"]').should("be.visible");
+      cy.get('[data-testid="error-state"]').should("not.exist");
+    });
+  });
 });
