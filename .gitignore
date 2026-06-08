@@ -33,6 +33,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# Agent tooling
+.claude
+.agents
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
