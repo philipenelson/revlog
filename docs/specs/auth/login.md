@@ -69,7 +69,7 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 
 | Condition | Message shown |
 |---|---|
-| Email already registered, mismatched passwords, invalid password, or any user-input error | *"Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet."* |
+| Email already registered, mismatched passwords, invalid password, or any user-input error | *"Couldn't create your account. Check your details and try again."* |
 | Service error | *"We stalled. Our mechanics are on it — try again in a moment."* |
 
 ---

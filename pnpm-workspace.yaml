@@ -11,3 +11,6 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - react-hook-form@7.78.0
