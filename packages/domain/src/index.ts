@@ -5,6 +5,7 @@
 export * from './schemas/auth';
 export * from './schemas/vehicle';
 export * from './schemas/log-entry';
+export * from './schemas/insurance';
 export * from './user';
 export * from './account';
 export * from './refresh-token';

@@ -1,6 +1,7 @@
 import type {
   CreateVehicleInput,
   DomainVehicle,
+  DomainVehicleDetail,
   IVehicleRepository,
   IAccountRepository,
 } from '@maintenance-log/domain';
@@ -33,5 +34,13 @@ export class VehicleService {
     if (!vehicle) throw new AppError(404, 'Vehicle not found');
     logger.info({ accountId, vehicleId, photoPath }, 'vehicle photo updated');
     return vehicle;
+  }
+
+  async getDetail(vehicleId: string, accountId: string): Promise<DomainVehicleDetail> {
+    const detail = await this.vehicleRepo.findDetailById(vehicleId);
+    if (!detail) throw new AppError(404, 'Vehicle not found');
+    if (detail.accountId !== accountId) throw new AppError(403, 'Forbidden');
+    logger.info({ accountId, vehicleId }, 'vehicle detail fetched');
+    return detail;
   }
 }
