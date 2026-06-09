@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleService } from './vehicle.service';
 import { AppError } from '../middleware/error';
-import type { IVehicleRepository, IAccountRepository, DomainVehicle, DomainAccount, CreateVehicleInput } from '@maintenance-log/domain';
+import type { IVehicleRepository, IAccountRepository, DomainVehicle, DomainVehicleDetail, DomainAccount, CreateVehicleInput } from '@maintenance-log/domain';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
@@ -34,11 +34,28 @@ const validInput: CreateVehicleInput = {
   mileage: 14230,
 };
 
+const mockVehicleDetail: DomainVehicleDetail = {
+  id: 'vehicle-1',
+  accountId: 'account-1',
+  nickname: 'Daily ride',
+  make: 'Honda',
+  model: 'CB500F',
+  year: 2021,
+  mileage: 14230,
+  photoPath: null,
+  createdAt: fixedNow,
+  updatedAt: fixedNow,
+  insurance: null,
+  logEntries: [],
+  stats: { totalSpent: '0.00', lastLoggedAt: null },
+};
+
 function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
   return {
     create: vi.fn().mockResolvedValue(mockVehicle),
     findAllByAccountId: vi.fn().mockResolvedValue([mockVehicle]),
     setPhoto: vi.fn().mockResolvedValue({ ...mockVehicle, photoPath: 'new.jpg' }),
+    findDetailById: vi.fn().mockResolvedValue(mockVehicleDetail),
     ...overrides,
   };
 }
@@ -166,5 +183,43 @@ describe('VehicleService.setVehiclePhoto', () => {
     await expect(service.setVehiclePhoto('vehicle-1', 'account-1', 'photo.jpg')).rejects.toMatchObject({
       statusCode: 404,
     });
+  });
+});
+
+describe('VehicleService.getDetail', () => {
+  let vehicleRepo: IVehicleRepository;
+  let accountRepo: IAccountRepository;
+  let service: VehicleService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vehicleRepo = makeFakeVehicleRepo();
+    accountRepo = makeFakeAccountRepo();
+    service = new VehicleService(vehicleRepo, accountRepo);
+  });
+
+  it('calls findDetailById with the given vehicleId', async () => {
+    await service.getDetail('vehicle-1', 'account-1');
+
+    expect(vehicleRepo.findDetailById).toHaveBeenCalledOnce();
+    expect(vehicleRepo.findDetailById).toHaveBeenCalledWith('vehicle-1');
+  });
+
+  it('throws a 404 AppError when the vehicle does not exist', async () => {
+    vehicleRepo = makeFakeVehicleRepo({ findDetailById: vi.fn().mockResolvedValue(null) });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    await expect(service.getDetail('vehicle-1', 'account-1')).rejects.toThrow(AppError);
+    await expect(service.getDetail('vehicle-1', 'account-1')).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it('throws a 403 AppError when the vehicle belongs to a different account', async () => {
+    vehicleRepo = makeFakeVehicleRepo({
+      findDetailById: vi.fn().mockResolvedValue({ ...mockVehicleDetail, accountId: 'other-account' }),
+    });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    await expect(service.getDetail('vehicle-1', 'account-1')).rejects.toThrow(AppError);
+    await expect(service.getDetail('vehicle-1', 'account-1')).rejects.toMatchObject({ statusCode: 403 });
   });
 });
