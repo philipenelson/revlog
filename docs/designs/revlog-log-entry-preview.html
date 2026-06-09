@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revlog — Log Entry · Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface-base:     #0B0D14;
+      --surface-raised:   #131620;
+      --surface-elevated: #1A1D2E;
+      --surface-subtle:   #1F2338;
+      --border-muted:   #1E2235;
+      --border-default: #2A2E46;
+      --border-strong:  #3E4260;
+      --text-primary:   #EDF0F8;
+      --text-secondary: #8C8FA8;
+      --text-tertiary:  #50527A;
+      --text-disabled:  #34375A;
+      --accent:       #14B8D4;
+      --accent-hover: #22CBEA;
+      --accent-light: #67E2F0;
+      --accent-muted: rgba(20, 184, 212, 0.12);
+      --accent-glow:  rgba(20, 184, 212, 0.06);
+      --success: #34D399;
+      --warning: #FB923C;
+      --danger:  #F87171;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+
+      --type-maintenance-bg:    rgba(20, 184, 212, 0.12);
+      --type-maintenance-color: #67E2F0;
+      --type-repair-bg:         rgba(251, 146, 60, 0.12);
+      --type-repair-color:      #FB923C;
+      --type-inspection-bg:     rgba(137, 180, 248, 0.12);
+      --type-inspection-color:  #89B4F8;
+      --type-modification-bg:   rgba(196, 181, 253, 0.12);
+      --type-modification-color:#C4B5FD;
+      --type-incident-bg:       rgba(248, 113, 113, 0.12);
+      --type-incident-color:    #F87171;
+      --type-event-bg:          rgba(52, 211, 153, 0.12);
+      --type-event-color:       #34D399;
+      --type-other-bg:          rgba(140, 143, 168, 0.1);
+      --type-other-color:       #8C8FA8;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Top bar ────────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border-muted);
+      background: rgba(11, 13, 20, 0.92);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 20px; }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      text-decoration: none;
+      transition: color 0.15s;
+      cursor: pointer;
+    }
+    .back-link:hover { color: var(--text-primary); }
+    .back-link svg { opacity: 0.7; }
+    .page-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0B0D14;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+    .btn-ghost:hover { color: var(--text-primary); border-color: var(--border-strong); background: var(--surface-elevated); }
+    .btn-danger-ghost {
+      background: transparent;
+      color: var(--danger);
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      transition: background 0.15s;
+    }
+    .btn-danger-ghost:hover { background: rgba(248, 113, 113, 0.08); }
+
+    /* ─── Vehicle context strip ─────────────────────────────────── */
+    .vehicle-context {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 32px;
+      border-bottom: 1px solid var(--border-muted);
+      background: var(--surface-raised);
+    }
+    .vehicle-glyph-sm {
+      width: 32px;
+      height: 32px;
+      background: var(--surface-elevated);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .vehicle-name-sm {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .vehicle-name-sm strong { color: var(--text-primary); font-weight: 600; }
+
+    /* ─── Form body ──────────────────────────────────────────────── */
+    .form-body {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* ─── Section ────────────────────────────────────────────────── */
+    .form-section {
+      margin-bottom: 28px;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+    }
+
+    /* ─── Type pills ─────────────────────────────────────────────── */
+    .type-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .type-pill {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      border: 1.5px solid var(--border-default);
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .type-pill:hover { border-color: var(--border-strong); color: var(--text-primary); }
+    .type-pill.active {
+      border-color: transparent;
+    }
+    .type-pill.active.maintenance { background: var(--type-maintenance-bg); color: var(--type-maintenance-color); border-color: rgba(20, 184, 212, 0.25); }
+    .type-pill.active.repair      { background: var(--type-repair-bg);      color: var(--type-repair-color);      border-color: rgba(251, 146, 60, 0.25); }
+    .type-pill.active.inspection  { background: var(--type-inspection-bg);  color: var(--type-inspection-color);  border-color: rgba(137, 180, 248, 0.25); }
+    .type-pill.active.modification{ background: var(--type-modification-bg);color: var(--type-modification-color);border-color: rgba(196, 181, 253, 0.25); }
+    .type-pill.active.incident    { background: var(--type-incident-bg);     color: var(--type-incident-color);    border-color: rgba(248, 113, 113, 0.25); }
+    .type-pill.active.event       { background: var(--type-event-bg);        color: var(--type-event-color);       border-color: rgba(52, 211, 153, 0.25); }
+    .type-pill.active.other       { background: var(--type-other-bg);        color: var(--type-other-color);       border-color: rgba(140, 143, 168, 0.2); }
+
+    .type-pill .pill-icon { font-size: 14px; line-height: 1; }
+
+    /* tooltip */
+    .type-pill .tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 7px 11px;
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .type-pill .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--border-default);
+    }
+    .type-pill:hover .tooltip { opacity: 1; }
+
+    /* ─── Input fields ───────────────────────────────────────────── */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .field-label .required { color: var(--accent); margin-left: 2px; }
+    .field-input {
+      background: var(--surface-raised);
+      border: 1.5px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .field-input::placeholder { color: var(--text-disabled); }
+    .field-input:focus { border-color: var(--accent); }
+    .field-input.focused { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    textarea.field-input {
+      resize: vertical;
+      min-height: 96px;
+      line-height: 1.6;
+    }
+
+    .field-hint {
+      font-size: 11.5px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* input with adornment */
+    .input-adornment {
+      position: relative;
+    }
+    .input-adornment .field-input {
+      padding-right: 52px;
+    }
+    .input-adornment .adornment {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      font-family: 'Geist Mono', monospace;
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+
+    /* ─── Items table ─────────────────────────────────────────────── */
+    .items-table-wrap {
+      background: var(--surface-raised);
+      border: 1.5px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .items-table thead tr {
+      border-bottom: 1px solid var(--border-muted);
+    }
+    .items-table th {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      text-align: left;
+    }
+    .items-table th.right { text-align: right; }
+    .items-table tbody tr {
+      border-bottom: 1px solid var(--border-muted);
+      transition: background 0.1s;
+    }
+    .items-table tbody tr:last-child { border-bottom: none; }
+    .items-table tbody tr:hover { background: var(--surface-elevated); }
+    .items-table td {
+      padding: 10px 14px;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      vertical-align: middle;
+    }
+    .items-table td.right { text-align: right; }
+    .items-table td.mono {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+    }
+
+    /* inline cell input */
+    .cell-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      width: 100%;
+      padding: 3px 4px;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    .cell-input::placeholder { color: var(--text-disabled); }
+    .cell-input:focus { background: var(--surface-subtle); }
+    .cell-input.mono {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+    }
+
+    .cell-select {
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 3px 4px;
+      border-radius: 4px;
+      appearance: none;
+      width: 100%;
+    }
+    .cell-select:focus { background: var(--surface-subtle); }
+
+    /* category pill inline */
+    .cat-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .cat-part   { background: rgba(20, 184, 212, 0.1);  color: #67E2F0; }
+    .cat-labor  { background: rgba(196, 181, 253, 0.1); color: #C4B5FD; }
+    .cat-fee    { background: rgba(251, 146, 60, 0.1);  color: #FB923C; }
+    .cat-other  { background: rgba(140, 143, 168, 0.1); color: #8C8FA8; }
+
+    .row-total {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    .remove-row-btn {
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s, background 0.15s;
+    }
+    .remove-row-btn:hover { color: var(--danger); background: rgba(248, 113, 113, 0.08); }
+
+    .items-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-top: 1px solid var(--border-muted);
+      background: var(--surface-base);
+    }
+    .add-item-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 5px 8px;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s;
+    }
+    .add-item-btn:hover { background: var(--accent-muted); }
+
+    .total-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .total-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+    }
+    .total-value {
+      font-family: 'Geist Mono', monospace;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .total-currency {
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ─── Media section ──────────────────────────────────────────── */
+    .media-zone {
+      border: 1.5px dashed var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: var(--surface-raised);
+    }
+    .media-zone:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+    .media-zone-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      opacity: 0.5;
+    }
+    .media-zone-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .media-zone-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .media-zone-sub span { color: var(--accent); }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .media-thumb {
+      aspect-ratio: 1;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      background: var(--surface-elevated);
+      border: 1.5px solid var(--border-muted);
+    }
+    .media-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .media-thumb-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: var(--text-tertiary);
+    }
+    .media-remove {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      background: rgba(11, 13, 20, 0.8);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 10px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .media-remove:hover { background: var(--danger); color: white; }
+    .media-type-badge {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      background: rgba(11,13,20,0.8);
+      color: var(--text-secondary);
+    }
+    .media-count-hint {
+      font-size: 11.5px;
+      color: var(--text-tertiary);
+      text-align: right;
+    }
+
+    /* ─── Bottom bar ──────────────────────────────────────────────── */
+    .bottom-bar {
+      position: sticky;
+      bottom: 0;
+      background: rgba(11, 13, 20, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-muted);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .bottom-bar-left {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    /* ─── Divider ─────────────────────────────────────────────────── */
+    .section-divider {
+      height: 1px;
+      background: var(--border-muted);
+      margin: 28px 0;
+    }
+
+    /* ─── Delete confirm dialog ──────────────────────────────────── */
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dialog-box {
+      background: var(--surface-elevated);
+      border: 1.5px solid var(--border-default);
+      border-radius: var(--radius-xl);
+      padding: 28px 28px 24px;
+      max-width: 400px;
+      width: calc(100% - 48px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    }
+    .dialog-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1.5px solid rgba(248, 113, 113, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    .dialog-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .dialog-body {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .dialog-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: var(--radius-md);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-danger:hover { opacity: 0.88; }
+
+    /* ─── State switcher (design tool) ──────────────────────────── */
+    .state-switcher {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      z-index: 50;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      min-width: 180px;
+    }
+    .state-switcher-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+    .state-btn {
+      display: block;
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.12s;
+    }
+    .state-btn:hover { background: var(--surface-subtle); color: var(--text-primary); }
+    .state-btn.active { background: var(--accent-muted); color: var(--accent-light); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- ─── Top bar ──────────────────────────────────────────────────── -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" onclick="history.back()">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="back-label">Honda CB500F</span>
+    </a>
+    <h1 class="page-title" id="page-title">New log entry</h1>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost" id="delete-btn" onclick="showDeleteDialog()" style="color: var(--danger); border-color: rgba(248,113,113,0.25);">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M2.5 3.5H11.5M5.5 3.5V2.5H8.5V3.5M5 6V10.5M9 6V10.5M3 3.5L3.5 11.5H10.5L11 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Delete
+    </button>
+    <button class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="save-label">Save entry</span>
+    </button>
+  </div>
+</header>
+
+<!-- ─── Vehicle context ──────────────────────────────────────────── -->
+<div class="vehicle-context">
+  <div class="vehicle-glyph-sm">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <circle cx="4.5" cy="12.5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+      <circle cx="13.5" cy="12.5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M4.5 12.5H7L9 7.5L11 9.5H13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9 7.5L10.5 5H13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <span class="vehicle-name-sm"><strong>2021 Honda CB500F</strong> · logging a new entry</span>
+</div>
+
+<!-- ─── Form ─────────────────────────────────────────────────────── -->
+<main class="form-body">
+
+  <!-- Type pills -->
+  <div class="form-section">
+    <div class="section-label">Type</div>
+    <div class="type-pills" id="type-pills">
+      <button class="type-pill active maintenance" onclick="selectType(this, 'maintenance')">
+        <span class="pill-icon">🔧</span> Maintenance
+        <span class="tooltip">Scheduled upkeep — oil change, filter, chain, etc.</span>
+      </button>
+      <button class="type-pill repair" onclick="selectType(this, 'repair')">
+        <span class="pill-icon">🛠</span> Repair
+        <span class="tooltip">Fixing something broken or malfunctioning</span>
+      </button>
+      <button class="type-pill inspection" onclick="selectType(this, 'inspection')">
+        <span class="pill-icon">🔍</span> Inspection
+        <span class="tooltip">Safety check, pre-ride or annual roadworthiness</span>
+      </button>
+      <button class="type-pill modification" onclick="selectType(this, 'modification')">
+        <span class="pill-icon">⚡</span> Modification
+        <span class="tooltip">Upgrades, parts swaps, or aesthetic changes</span>
+      </button>
+      <button class="type-pill incident" onclick="selectType(this, 'incident')">
+        <span class="pill-icon">⚠️</span> Incident
+        <span class="tooltip">Drop, collision, road hazard, or damage event</span>
+      </button>
+      <button class="type-pill event" onclick="selectType(this, 'event')">
+        <span class="pill-icon">🏁</span> Event
+        <span class="tooltip">Track day, rally, group ride, or road trip</span>
+      </button>
+      <button class="type-pill other" onclick="selectType(this, 'other')">
+        <span class="pill-icon">📋</span> Other
+        <span class="tooltip">Anything that doesn't fit the above categories</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="form-section">
+    <div class="field-group">
+      <label class="field-label">Title <span class="required">*</span></label>
+      <input class="field-input focused" type="text" placeholder="e.g. 25,000 km service, oil leak fix, Thunderbolt track day…" id="title-input" value="">
+    </div>
+  </div>
+
+  <!-- Date + Time + Odometer -->
+  <div class="form-section">
+    <div class="row-3">
+      <div class="field-group">
+        <label class="field-label">Date</label>
+        <input class="field-input" type="date" value="2026-06-09">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Time <span style="color: var(--text-tertiary); font-weight: 400;">(optional)</span></label>
+        <input class="field-input" type="time" placeholder="—">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Odometer <span style="color: var(--text-tertiary); font-weight: 400;">(optional)</span></label>
+        <div class="input-adornment">
+          <input class="field-input" type="number" placeholder="—" id="odometer-input">
+          <span class="adornment">km</span>
+        </div>
+      </div>
+    </div>
+    <div class="field-hint" id="odometer-hint" style="margin-top: 8px;">
+      <svg style="display:inline; vertical-align:-2px; margin-right:4px;" width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M6 5.5V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="6" cy="4" r="0.6" fill="currentColor"/>
+      </svg>
+      Updates your vehicle's odometer if higher than the current reading (24,330 km)
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="form-section">
+    <div class="field-group">
+      <label class="field-label">Notes <span style="color: var(--text-tertiary); font-weight: 400;">(optional)</span></label>
+      <textarea class="field-input" placeholder="What did you observe? Any notable details, parts used, or follow-up needed…" id="notes-input"></textarea>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- Items & costs -->
+  <div class="form-section">
+    <div class="section-label">Items &amp; costs</div>
+    <div class="items-table-wrap">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width:38%">Description</th>
+            <th style="width:16%">Category</th>
+            <th style="width:10%" class="right">Qty</th>
+            <th style="width:16%" class="right">Unit cost</th>
+            <th style="width:14%" class="right">Total</th>
+            <th style="width:6%"></th>
+          </tr>
+        </thead>
+        <tbody id="items-tbody">
+          <tr>
+            <td><input class="cell-input" type="text" placeholder="e.g. Engine oil 10W-40, 4L" value="Engine oil — Motul 10W-40 4L"></td>
+            <td><span class="cat-badge cat-part">Part</span></td>
+            <td class="right"><input class="cell-input mono" type="number" value="1" style="width:48px; text-align:right;"></td>
+            <td class="right"><input class="cell-input mono" type="number" placeholder="0.00" value="28.90" style="text-align:right;"></td>
+            <td class="right"><span class="row-total">€ 28.90</span></td>
+            <td><button class="remove-row-btn" onclick="removeRow(this)">✕</button></td>
+          </tr>
+          <tr>
+            <td><input class="cell-input" type="text" value="Oil filter OEM Honda"></td>
+            <td><span class="cat-badge cat-part">Part</span></td>
+            <td class="right"><input class="cell-input mono" type="number" value="1" style="width:48px; text-align:right;"></td>
+            <td class="right"><input class="cell-input mono" type="number" value="8.50" style="text-align:right;"></td>
+            <td class="right"><span class="row-total">€ 8.50</span></td>
+            <td><button class="remove-row-btn" onclick="removeRow(this)">✕</button></td>
+          </tr>
+          <tr>
+            <td><input class="cell-input" type="text" value="Air filter Honda 17220-KZR-000"></td>
+            <td><span class="cat-badge cat-part">Part</span></td>
+            <td class="right"><input class="cell-input mono" type="number" value="1" style="width:48px; text-align:right;"></td>
+            <td class="right"><input class="cell-input mono" type="number" value="18.00" style="text-align:right;"></td>
+            <td class="right"><span class="row-total">€ 18.00</span></td>
+            <td><button class="remove-row-btn" onclick="removeRow(this)">✕</button></td>
+          </tr>
+          <tr>
+            <td><input class="cell-input" type="text" value="Chain + sprocket kit DID 520ERV3"></td>
+            <td><span class="cat-badge cat-part">Part</span></td>
+            <td class="right"><input class="cell-input mono" type="number" value="1" style="width:48px; text-align:right;"></td>
+            <td class="right"><input class="cell-input mono" type="number" value="74.00" style="text-align:right;"></td>
+            <td class="right"><span class="row-total">€ 74.00</span></td>
+            <td><button class="remove-row-btn" onclick="removeRow(this)">✕</button></td>
+          </tr>
+          <tr>
+            <td><input class="cell-input" type="text" value="Workshop labour — 2h service"></td>
+            <td><span class="cat-badge cat-labor">Labor</span></td>
+            <td class="right"><input class="cell-input mono" type="number" value="2" style="width:48px; text-align:right;"></td>
+            <td class="right"><input class="cell-input mono" type="number" value="60.00" style="text-align:right;"></td>
+            <td class="right"><span class="row-total">€ 120.00</span></td>
+            <td><button class="remove-row-btn" onclick="removeRow(this)">✕</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="items-footer">
+        <button class="add-item-btn" onclick="addItemRow()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 2V12M2 7H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Add item
+        </button>
+        <div class="total-row">
+          <span class="total-label">Total</span>
+          <span class="total-currency">€</span>
+          <span class="total-value">249.40</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- Media -->
+  <div class="form-section" id="media-section-empty">
+    <div class="section-label">Photos &amp; videos</div>
+    <div class="media-zone" onclick="showMediaGrid()">
+      <div class="media-zone-icon">📷</div>
+      <div class="media-zone-title">Attach photos or videos</div>
+      <div class="media-zone-sub">
+        Drag and drop, or <span>browse files</span><br>
+        Images up to 10 MB · Videos up to 100 MB · Max 10 files
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section hidden" id="media-section-filled">
+    <div class="section-label">Photos &amp; videos</div>
+    <div class="media-grid">
+      <div class="media-thumb">
+        <div class="media-thumb-placeholder">🔧</div>
+        <span class="media-type-badge">JPG</span>
+        <button class="media-remove">✕</button>
+      </div>
+      <div class="media-thumb">
+        <div class="media-thumb-placeholder">🏍</div>
+        <span class="media-type-badge">JPG</span>
+        <button class="media-remove">✕</button>
+      </div>
+      <div class="media-thumb">
+        <div class="media-thumb-placeholder">⛓</div>
+        <span class="media-type-badge">MP4</span>
+        <button class="media-remove">✕</button>
+      </div>
+      <div class="media-thumb" onclick="showMediaGrid()" style="border: 1.5px dashed var(--border-default); cursor: pointer; background: transparent;">
+        <div class="media-thumb-placeholder" style="flex-direction:column; gap: 4px; font-size:16px;">
+          <span>+</span>
+          <span style="font-size:10px; color: var(--text-tertiary);">Add</span>
+        </div>
+      </div>
+    </div>
+    <div class="media-count-hint">3 of 10 files</div>
+  </div>
+
+</main>
+
+<!-- ─── Bottom bar ───────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <span class="bottom-bar-left" id="bottom-context">All changes are saved locally on this device</span>
+  <button class="btn btn-primary" style="min-width: 130px;">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span id="save-label-bottom">Save entry</span>
+  </button>
+</div>
+
+<!-- ─── Delete dialog ────────────────────────────────────────────── -->
+<div class="dialog-overlay hidden" id="delete-dialog">
+  <div class="dialog-box">
+    <div class="dialog-icon">🗑</div>
+    <div class="dialog-title">Delete this entry?</div>
+    <div class="dialog-body">
+      <strong>25,000 km service</strong> and all its items and attached media will be permanently removed. This cannot be undone.
+    </div>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" onclick="hideDeleteDialog()">Cancel</button>
+      <button class="btn-danger" onclick="hideDeleteDialog()">Delete entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── State switcher ───────────────────────────────────────────── -->
+<div class="state-switcher">
+  <div class="state-switcher-label">Preview state</div>
+  <button class="state-btn active" onclick="setState('create', this)">Create mode</button>
+  <button class="state-btn" onclick="setState('edit-filled', this)">Edit — with data</button>
+  <button class="state-btn" onclick="setState('edit-media', this)">Edit — with media</button>
+  <button class="state-btn" onclick="setState('delete-dialog', this)">Delete dialog</button>
+</div>
+
+<script>
+  function selectType(btn, type) {
+    document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function removeRow(btn) {
+    btn.closest('tr').remove();
+  }
+
+  function addItemRow() {
+    const tbody = document.getElementById('items-tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="cell-input" type="text" placeholder="Description…"></td>
+      <td><span class="cat-badge cat-other">Other</span></td>
+      <td class="right"><input class="cell-input mono" type="number" value="1" style="width:48px; text-align:right;"></td>
+      <td class="right"><input class="cell-input mono" type="number" placeholder="0.00" style="text-align:right;"></td>
+      <td class="right"><span class="row-total">—</span></td>
+      <td><button class="remove-row-btn" onclick="removeRow(this)">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector('input').focus();
+  }
+
+  function showMediaGrid() {
+    document.getElementById('media-section-empty').classList.add('hidden');
+    document.getElementById('media-section-filled').classList.remove('hidden');
+  }
+
+  function showDeleteDialog() {
+    document.getElementById('delete-dialog').classList.remove('hidden');
+  }
+
+  function hideDeleteDialog() {
+    document.getElementById('delete-dialog').classList.add('hidden');
+    const btns = document.querySelectorAll('.state-btn');
+    btns.forEach(b => b.classList.remove('active'));
+    const editBtn = Array.from(btns).find(b => b.textContent.startsWith('Edit — with'));
+    if (editBtn) editBtn.classList.add('active');
+  }
+
+  function setState(state, btn) {
+    document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const deleteBtn = document.getElementById('delete-btn');
+    const pageTitle = document.getElementById('page-title');
+    const saveLabel = document.getElementById('save-label');
+    const saveLabelBottom = document.getElementById('save-label-bottom');
+    const bottomContext = document.getElementById('bottom-context');
+    const titleInput = document.getElementById('title-input');
+    const notesInput = document.getElementById('notes-input');
+    const odoInput = document.getElementById('odometer-input');
+    const deleteDialog = document.getElementById('delete-dialog');
+    const mediaEmpty = document.getElementById('media-section-empty');
+    const mediaFilled = document.getElementById('media-section-filled');
+
+    deleteDialog.classList.add('hidden');
+
+    if (state === 'create') {
+      deleteBtn.classList.add('hidden');
+      pageTitle.textContent = 'New log entry';
+      saveLabel.textContent = 'Save entry';
+      saveLabelBottom.textContent = 'Save entry';
+      bottomContext.textContent = 'All changes are saved locally on this device';
+      titleInput.value = '';
+      notesInput.value = '';
+      odoInput.value = '';
+      mediaEmpty.classList.remove('hidden');
+      mediaFilled.classList.add('hidden');
+      // reset type
+      document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('active'));
+      document.querySelector('.type-pill.maintenance').classList.add('active');
+    }
+
+    if (state === 'edit-filled') {
+      deleteBtn.classList.remove('hidden');
+      pageTitle.textContent = 'Edit log entry';
+      saveLabel.textContent = 'Save changes';
+      saveLabelBottom.textContent = 'Save changes';
+      bottomContext.textContent = 'Editing · last saved 2 min ago';
+      titleInput.value = '25,000 km service';
+      notesInput.value = 'Changed oil, oil filter, air filter, and full chain + sprocket kit. Chain was at service limit. Next service at 27,000 km. Also noticed a small coolant weep from the right-side radiator hose — not urgent, worth monitoring.';
+      odoInput.value = '25014';
+      mediaEmpty.classList.remove('hidden');
+      mediaFilled.classList.add('hidden');
+    }
+
+    if (state === 'edit-media') {
+      deleteBtn.classList.remove('hidden');
+      pageTitle.textContent = 'Edit log entry';
+      saveLabel.textContent = 'Save changes';
+      saveLabelBottom.textContent = 'Save changes';
+      bottomContext.textContent = 'Editing · last saved 2 min ago';
+      titleInput.value = '25,000 km service';
+      notesInput.value = 'Changed oil, oil filter, air filter, and full chain + sprocket kit.';
+      odoInput.value = '25014';
+      mediaEmpty.classList.add('hidden');
+      mediaFilled.classList.remove('hidden');
+    }
+
+    if (state === 'delete-dialog') {
+      deleteBtn.classList.remove('hidden');
+      pageTitle.textContent = 'Edit log entry';
+      titleInput.value = '25,000 km service';
+      odoInput.value = '25014';
+      notesInput.value = 'Changed oil, oil filter, air filter, and full chain + sprocket kit.';
+      deleteDialog.classList.remove('hidden');
+    }
+  }
+</script>
+
+</body>
+</html>
