@@ -22,6 +22,7 @@ import { createVehicleRouter } from './routes/vehicles';
 import { createOnboardingRouter } from './routes/onboarding';
 import { createLogEntryRouter } from './routes/log-entries';
 import { createInsuranceRouter } from './routes/insurance';
+import { createLookupRouter } from './routes/lookup';
 import { errorMiddleware } from './middleware/error';
 
 const allowedOrigins = [process.env.APP_URL ?? 'http://localhost:3000'];
@@ -69,13 +70,7 @@ export function createApp(): Express {
   app.use('/vehicles/:vehicleId/log', createLogEntryRouter(logEntryService));
   app.use('/onboarding', createOnboardingRouter(accountService));
 
-  // Lookup endpoints
-  app.get('/log-entry-types', (_req, res) => {
-    res.json({ logEntryTypes: ['MAINTENANCE', 'REPAIR', 'INSPECTION', 'MODIFICATION', 'INCIDENT', 'EVENT', 'OTHER'] });
-  });
-  app.get('/item-categories', (_req, res) => {
-    res.json({ itemCategories: ['PART', 'LABOR', 'FEE', 'OTHER'] });
-  });
+  app.use(createLookupRouter());
 
   app.use(errorMiddleware);
 
