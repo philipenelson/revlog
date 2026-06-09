@@ -5,7 +5,7 @@ import { createVehicleRouter } from './vehicles';
 import { AppError, errorMiddleware } from '../middleware/error';
 import { signAccessToken } from '../lib/tokens';
 import type { VehicleService } from '../services/vehicle.service';
-import type { DomainVehicle } from '@maintenance-log/domain';
+import type { DomainVehicle, DomainVehicleDetail, DomainVehicleInsurance } from '@maintenance-log/domain';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
@@ -38,10 +38,11 @@ vi.mock('../lib/upload', () => ({
   },
 }));
 
-const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' | 'setVehiclePhoto'> = {
+const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' | 'setVehiclePhoto' | 'getDetail'> = {
   createVehicle: vi.fn(),
   listVehicles: vi.fn(),
   setVehiclePhoto: vi.fn(),
+  getDetail: vi.fn(),
 };
 
 function buildApp() {
@@ -68,6 +69,45 @@ const mockVehicle: DomainVehicle = {
 };
 
 const mockVehicleWithPhoto: DomainVehicle = { ...mockVehicle, photoPath: 'abc123.jpg' };
+
+const mockInsurance: DomainVehicleInsurance = {
+  company: 'State Farm',
+  policyNumber: 'SF-12345',
+  startDate: '2025-01-01',
+  expiryDate: '2026-12-31',
+  premium: '120.00',
+  premiumPeriod: 'MONTHLY',
+  towNumber: '1-800-555-0100',
+  notes: null,
+};
+
+const mockLogEntry = {
+  id: 'entry-1',
+  typeId: 'MAINTENANCE',
+  title: 'Oil change',
+  date: '2025-06-01',
+  time: null,
+  mileage: 14000,
+  itemCount: 2,
+  mediaCount: 1,
+  totalCost: '45.00',
+};
+
+const mockVehicleDetail: DomainVehicleDetail = {
+  id: 'vehicle-1',
+  accountId: 'account-1',
+  nickname: 'Daily ride',
+  make: 'Honda',
+  model: 'CB500F',
+  year: 2021,
+  mileage: 14230,
+  photoPath: null,
+  createdAt: fixedNow,
+  updatedAt: fixedNow,
+  insurance: mockInsurance,
+  logEntries: [mockLogEntry],
+  stats: { totalSpent: '45.00', lastLoggedAt: '2025-06-01' },
+};
 
 const validBody = { nickname: 'Daily ride', make: 'Honda', model: 'CB500F', year: 2021, mileage: 14230 };
 
@@ -264,6 +304,99 @@ describe('POST /vehicles', () => {
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ error: 'Something went wrong' });
+  });
+});
+
+describe('GET /vehicles/:id', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 401 when no authorization header is present', async () => {
+    const res = await supertest(buildApp()).get('/vehicles/vehicle-1');
+
+    expect(res.status).toBe(401);
+    expect(mockVehicleService.getDetail).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the authorization header is invalid', async () => {
+    const res = await supertest(buildApp())
+      .get('/vehicles/vehicle-1')
+      .set('Authorization', 'Bearer not-a-real-token');
+
+    expect(res.status).toBe(401);
+    expect(mockVehicleService.getDetail).not.toHaveBeenCalled();
+  });
+
+  it('returns 200 with the vehicle detail including insurance, logEntries, and stats', async () => {
+    (mockVehicleService.getDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicleDetail);
+
+    const res = await supertest(buildApp()).get('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.vehicle).toMatchObject({
+      id: 'vehicle-1',
+      make: 'Honda',
+      model: 'CB500F',
+      insurance: expect.objectContaining({ company: 'State Farm' }),
+      logEntries: expect.arrayContaining([expect.objectContaining({ id: 'entry-1' })]),
+      stats: expect.objectContaining({ totalSpent: '45.00' }),
+    });
+  });
+
+  it('returns photoUrl null when the vehicle has no photo', async () => {
+    (mockVehicleService.getDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicleDetail);
+
+    const res = await supertest(buildApp()).get('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.vehicle.photoUrl).toBeNull();
+  });
+
+  it('returns a constructed photoUrl when the vehicle has a photo', async () => {
+    const detailWithPhoto = { ...mockVehicleDetail, photoPath: 'abc123.jpg' };
+    (mockVehicleService.getDetail as ReturnType<typeof vi.fn>).mockResolvedValue(detailWithPhoto);
+
+    const res = await supertest(buildApp()).get('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.vehicle.photoUrl).toMatch(/\/uploads\/vehicles\/abc123\.jpg$/);
+  });
+
+  it('calls getDetail with the vehicleId from params and accountId from the token', async () => {
+    (mockVehicleService.getDetail as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicleDetail);
+
+    await supertest(buildApp()).get('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(mockVehicleService.getDetail).toHaveBeenCalledOnce();
+    expect(mockVehicleService.getDetail).toHaveBeenCalledWith('vehicle-1', 'account-1');
+  });
+
+  it('returns 404 when the service throws a 404 AppError', async () => {
+    (mockVehicleService.getDetail as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(404, 'Vehicle not found'),
+    );
+
+    const res = await supertest(buildApp()).get('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ error: 'Vehicle not found' });
+  });
+
+  it('returns 403 when the service throws a 403 AppError', async () => {
+    (mockVehicleService.getDetail as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(403, 'Forbidden'),
+    );
+
+    const res = await supertest(buildApp()).get('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockVehicleService.getDetail as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp()).get('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(res.status).toBe(500);
   });
 });
 
