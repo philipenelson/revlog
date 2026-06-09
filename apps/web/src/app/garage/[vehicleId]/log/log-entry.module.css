@@ -526,6 +526,12 @@
   border-top: 1px solid var(--border-muted);
 }
 
+/* ── Loading / status text ──────────────────────────────────────── */
+.statusText {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 720px) {
   .header { padding: 14px 18px; }
