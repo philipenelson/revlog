@@ -4,7 +4,9 @@
 
 export * from './schemas/auth';
 export * from './schemas/vehicle';
+export * from './schemas/log-entry';
 export * from './user';
 export * from './account';
 export * from './refresh-token';
 export * from './vehicle';
+export * from './log-entry';

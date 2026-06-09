@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { Outfit, DM_Sans, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { MediaStoreProvider } from "@/lib/media/MediaStoreProvider";
+import { OpfsMediaStore } from "@/lib/media/OpfsMediaStore";
 import "./globals.css";
+
+// Instantiated once at module load time — SSR-safe because OpfsMediaStore
+// guards every method with typeof window !== 'undefined'.
+const mediaStore = new OpfsMediaStore();
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -34,7 +40,9 @@ export default function RootLayout({
       className={`${outfit.variable} ${dmSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <MediaStoreProvider store={mediaStore}>{children}</MediaStoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );

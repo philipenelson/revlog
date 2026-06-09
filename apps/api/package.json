@@ -17,6 +17,9 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@maintenance-log/domain": "workspace:*",
     "@prisma/adapter-pg": "^7.8.0",

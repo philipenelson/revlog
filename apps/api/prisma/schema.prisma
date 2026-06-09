@@ -11,6 +11,13 @@ enum AccountType {
   PERSONAL
 }
 
+enum PremiumPeriod {
+  MONTHLY
+  QUARTERLY
+  BIANNUAL
+  ANNUAL
+}
+
 enum AccountStatus {
   ONBOARDING
   ACTIVE
@@ -60,17 +67,91 @@ model RefreshToken {
 }
 
 model Vehicle {
-  id        String   @id @default(uuid())
-  accountId String
-  account   Account  @relation(fields: [accountId], references: [id])
-  nickname  String?
-  make      String
-  model     String
-  year      Int
-  mileage   Int
-  photoPath String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String            @id @default(uuid())
+  accountId  String
+  account    Account           @relation(fields: [accountId], references: [id])
+  nickname   String?
+  make       String
+  model      String
+  year       Int
+  mileage    Int
+  photoPath  String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  logEntries LogEntry[]
+  insurance  VehicleInsurance?
 
   @@index([accountId])
+}
+
+model VehicleInsurance {
+  id            String         @id @default(uuid())
+  vehicleId     String         @unique
+  vehicle       Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  company       String?
+  policyNumber  String?
+  startDate     DateTime?
+  expiryDate    DateTime?
+  premium       Decimal?       @db.Decimal(10, 2)
+  premiumPeriod PremiumPeriod?
+  towNumber     String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// Lookup table — id is the stable string key.
+// Back-relation entries LogEntry[] exists ONLY for Prisma schema syntax.
+// NEVER include it in queries.
+model LogEntryType {
+  id      String     @id
+  entries LogEntry[] // back-relation — do NOT include in queries
+}
+
+// Lookup table — same pattern.
+model ItemCategory {
+  id    String    @id
+  items LogItem[] // back-relation — do NOT include in queries
+}
+
+model LogEntry {
+  id        String       @id @default(uuid())
+  vehicleId String
+  vehicle   Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  typeId    String
+  type      LogEntryType @relation(fields: [typeId], references: [id])
+  title     String
+  date      DateTime     @db.Date
+  time      String?      // "HH:mm" or null
+  mileage   Int?
+  notes     String?
+  items     LogItem[]
+  media     LogMedia[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([vehicleId])
+  @@index([vehicleId, date])
+}
+
+model LogItem {
+  id          String       @id @default(uuid())
+  logEntryId  String
+  logEntry    LogEntry     @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    ItemCategory @relation(fields: [categoryId], references: [id])
+  description String
+  quantity    Decimal?     @db.Decimal(10, 3)
+  unitCost    Decimal?     @db.Decimal(10, 2)
+  sortOrder   Int          @default(0)
+}
+
+model LogMedia {
+  id         String   @id @default(uuid())
+  logEntryId String
+  logEntry   LogEntry @relation(fields: [logEntryId], references: [id], onDelete: Cascade)
+  path       String
+  mediaType  String   // "IMAGE" | "VIDEO"
+  caption    String?
+  sortOrder  Int      @default(0)
 }
