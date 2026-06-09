@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { createVehicleSchema, type DomainVehicle, type DomainVehicleDetail } from '@maintenance-log/domain';
+import { createVehicleSchema, updateVehicleSchema, type DomainVehicle, type DomainVehicleDetail } from '@maintenance-log/domain';
 import type { VehicleService } from '../services/vehicle.service';
 import { authenticate } from '../middleware/auth';
 import { vehiclePhotoUpload } from '../lib/upload';
@@ -49,6 +49,24 @@ export function createVehicleRouter(vehicleService: VehicleService): ExpressRout
     try {
       const detail = await vehicleService.getDetail(String(req.params['id']), req.auth!.accountId);
       res.status(200).json({ vehicle: toVehicleDetailResponse(req, detail) });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.patch('/:id', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    const parsed = updateVehicleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Validation error', details: parsed.error.issues });
+      return;
+    }
+    try {
+      const vehicle = await vehicleService.updateVehicle(
+        String(req.params['id']),
+        req.auth!.accountId,
+        parsed.data,
+      );
+      res.status(200).json({ vehicle: toVehicleResponse(req, vehicle) });
     } catch (err) {
       next(err);
     }
