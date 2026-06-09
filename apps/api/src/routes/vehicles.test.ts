@@ -38,11 +38,12 @@ vi.mock('../lib/upload', () => ({
   },
 }));
 
-const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' | 'setVehiclePhoto' | 'getDetail'> = {
+const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' | 'setVehiclePhoto' | 'getDetail' | 'updateVehicle'> = {
   createVehicle: vi.fn(),
   listVehicles: vi.fn(),
   setVehiclePhoto: vi.fn(),
   getDetail: vi.fn(),
+  updateVehicle: vi.fn(),
 };
 
 function buildApp() {
@@ -454,5 +455,93 @@ describe('POST /vehicles/:id/photo', () => {
       .set('Authorization', authHeader);
 
     expect(res.status).toBe(404);
+  });
+});
+
+describe('PATCH /vehicles/:id', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 401 when no authorization header is present', async () => {
+    const res = await supertest(buildApp()).patch('/vehicles/vehicle-1').send({ make: 'Yamaha' });
+
+    expect(res.status).toBe(401);
+    expect(mockVehicleService.updateVehicle).not.toHaveBeenCalled();
+  });
+
+  it('returns 200 with the updated vehicle on success', async () => {
+    const updated = { ...mockVehicle, make: 'Yamaha' };
+    (mockVehicleService.updateVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(updated);
+
+    const res = await supertest(buildApp())
+      .patch('/vehicles/vehicle-1')
+      .set('Authorization', authHeader)
+      .send({ make: 'Yamaha' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.vehicle).toMatchObject({ make: 'Yamaha' });
+  });
+
+  it('calls updateVehicle with vehicleId from params, accountId from token, and parsed body', async () => {
+    (mockVehicleService.updateVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicle);
+
+    await supertest(buildApp())
+      .patch('/vehicles/vehicle-1')
+      .set('Authorization', authHeader)
+      .send({ make: 'Yamaha', year: 2022 });
+
+    expect(mockVehicleService.updateVehicle).toHaveBeenCalledOnce();
+    expect(mockVehicleService.updateVehicle).toHaveBeenCalledWith(
+      'vehicle-1',
+      'account-1',
+      expect.objectContaining({ make: 'Yamaha', year: 2022 }),
+    );
+  });
+
+  it('returns 400 and does not call the service when the body fails validation', async () => {
+    const res = await supertest(buildApp())
+      .patch('/vehicles/vehicle-1')
+      .set('Authorization', authHeader)
+      .send({ year: 'not-a-year' });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('error', 'Validation error');
+    expect(mockVehicleService.updateVehicle).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when an empty body is sent', async () => {
+    const res = await supertest(buildApp())
+      .patch('/vehicles/vehicle-1')
+      .set('Authorization', authHeader)
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(mockVehicleService.updateVehicle).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when the service throws a 403 AppError', async () => {
+    (mockVehicleService.updateVehicle as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(403, 'Forbidden'),
+    );
+
+    const res = await supertest(buildApp())
+      .patch('/vehicles/vehicle-1')
+      .set('Authorization', authHeader)
+      .send({ make: 'Yamaha' });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 404 when the service throws a 404 AppError', async () => {
+    (mockVehicleService.updateVehicle as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(404, 'Vehicle not found'),
+    );
+
+    const res = await supertest(buildApp())
+      .patch('/vehicles/vehicle-1')
+      .set('Authorization', authHeader)
+      .send({ make: 'Yamaha' });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ error: 'Vehicle not found' });
   });
 });

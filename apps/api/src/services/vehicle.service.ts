@@ -1,5 +1,6 @@
 import type {
   CreateVehicleInput,
+  UpdateVehicleInput,
   DomainVehicle,
   DomainVehicleDetail,
   IVehicleRepository,
@@ -42,5 +43,14 @@ export class VehicleService {
     if (detail.accountId !== accountId) throw new AppError(403, 'Forbidden');
     logger.info({ accountId, vehicleId }, 'vehicle detail fetched');
     return detail;
+  }
+
+  async updateVehicle(vehicleId: string, accountId: string, input: UpdateVehicleInput): Promise<DomainVehicle> {
+    const detail = await this.vehicleRepo.findDetailById(vehicleId);
+    if (!detail) throw new AppError(404, 'Vehicle not found');
+    if (detail.accountId !== accountId) throw new AppError(403, 'Forbidden');
+    const vehicle = await this.vehicleRepo.update(vehicleId, input);
+    logger.info({ accountId, vehicleId }, 'vehicle updated');
+    return vehicle;
   }
 }

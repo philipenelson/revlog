@@ -43,6 +43,14 @@ export interface DomainVehicleDetail extends DomainVehicle {
   };
 }
 
+export interface UpdateVehicleData {
+  nickname?: string | null;
+  make?: string;
+  model?: string;
+  year?: number;
+  mileage?: number;
+}
+
 export interface IVehicleRepository {
   create(data: CreateVehicleData): Promise<DomainVehicle>;
   // Ordered by updatedAt desc — see garage-list-api.md "Sort order proxy".
@@ -52,4 +60,5 @@ export interface IVehicleRepository {
   setPhoto(vehicleId: string, accountId: string, photoPath: string): Promise<DomainVehicle | null>;
   // Full detail fetch — includes insurance and log entry summaries.
   findDetailById(vehicleId: string): Promise<DomainVehicleDetail | null>;
+  update(vehicleId: string, data: UpdateVehicleData): Promise<DomainVehicle>;
 }

@@ -1,0 +1,230 @@
+/* ── Scene ─────────────────────────────────────────────────────── */
+.scene {
+  min-height: 100dvh;
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+/* ── Top bar ───────────────────────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 40px;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--surface-base);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.topbarTitle {
+  font-family: var(--font-outfit);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.topbarSpacer { width: 110px; }
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  width: 110px;
+}
+.backLink:hover { color: var(--accent-light); }
+
+/* ── Page layout ───────────────────────────────────────────────── */
+.page {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 48px 24px 100px;
+}
+
+/* ── Form card ─────────────────────────────────────────────────── */
+.formCard {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  padding: 28px 28px 24px;
+}
+
+.field { margin-bottom: 18px; }
+
+.fieldRow {
+  display: flex;
+  gap: 14px;
+}
+.fieldRow .field { flex: 1; }
+
+.fieldLabel {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+}
+
+.optional {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.fieldInput {
+  width: 100%;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-dm-sans);
+  font-size: 14.5px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.fieldInput::placeholder { color: var(--text-disabled); }
+.fieldInput:focus { border-color: var(--accent); box-shadow: var(--shadow-focus-ring); }
+.fieldInputError { border-color: var(--danger); }
+
+.fieldError {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.inputSuffixWrap { position: relative; }
+.inputSuffixWrap .fieldInput { padding-right: 42px; }
+.inputSuffix {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-geist-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+/* ── Form actions ──────────────────────────────────────────────── */
+.formActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.btnPrimary {
+  flex: 1;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent-contrast);
+  font-family: var(--font-dm-sans);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-accent-btn);
+}
+.btnPrimary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-accent-btn-hover);
+}
+.btnPrimary:active { transform: translateY(0); }
+.btnPrimary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btnGhost {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-dm-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 11px 22px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.btnGhost:hover {
+  border-color: var(--accent);
+  color: var(--accent-light);
+  background: var(--accent-muted);
+}
+
+.submitError {
+  display: block;
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+/* ── Loading skeleton ──────────────────────────────────────────── */
+.loadingSkeleton {
+  height: 320px;
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Not found / Error states ──────────────────────────────────── */
+.stateScene {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+.stateMessage {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.stateLink {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+.stateLink:hover { color: var(--accent-light); }
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .topbar { padding: 16px 20px; }
+  .topbarSpacer { width: 80px; }
+  .backLink { width: 80px; }
+  .page { padding: 32px 16px 80px; }
+  .formCard { padding: 20px 18px; }
+}

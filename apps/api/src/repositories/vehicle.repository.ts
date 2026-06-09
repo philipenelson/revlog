@@ -3,6 +3,7 @@ import type {
   IVehicleRepository,
   DomainVehicle,
   CreateVehicleData,
+  UpdateVehicleData,
   DomainVehicleDetail,
   DomainVehicleInsurance,
 } from '@maintenance-log/domain';
@@ -59,6 +60,10 @@ export class PrismaVehicleRepository implements IVehicleRepository {
     });
     if (updated.count === 0) return null;
     return this.db.vehicle.findUnique({ where: { id: vehicleId } }) as Promise<DomainVehicle>;
+  }
+
+  async update(vehicleId: string, data: UpdateVehicleData): Promise<DomainVehicle> {
+    return this.db.vehicle.update({ where: { id: vehicleId }, data });
   }
 
   async findDetailById(vehicleId: string): Promise<DomainVehicleDetail | null> {
