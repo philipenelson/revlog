@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LogEntryService } from './log-entry.service';
 import { AppError } from '../middleware/error';
-import type { ILogEntryRepository, IVehicleRepository, DomainLogEntry, LogEntrySummary, DomainVehicle } from '@maintenance-log/domain';
+import type { ILogEntryRepository, IVehicleRepository, DomainLogEntry, LogEntrySummary, DomainVehicle, CreateLogEntryInput } from '@maintenance-log/domain';
 import type { PrismaClient } from '../generated/prisma/client';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
@@ -47,12 +47,13 @@ const mockSummary: LogEntrySummary = {
   totalCost: null,
 };
 
-const validInput = {
+const validInput: CreateLogEntryInput = {
   typeId: 'MAINTENANCE',
   title: 'Oil change',
   date: '2026-01-15',
-  items: [] as { categoryId: string; description: string; quantity?: number | null; unitCost?: number | null; sortOrder?: number }[],
-  media: [] as { path: string; mediaType: 'IMAGE' | 'VIDEO'; caption?: string | null; sortOrder?: number }[],
+  notes: null,
+  items: [],
+  media: [],
 };
 
 function makeFakeLogEntryRepo(overrides: Partial<ILogEntryRepository> = {}): ILogEntryRepository {
