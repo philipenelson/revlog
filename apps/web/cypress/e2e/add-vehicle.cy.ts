@@ -34,7 +34,23 @@ function stubAddVehicleEmptyGarage() {
   cy.intercept("GET", "**/vehicles", { statusCode: 200, body: { vehicles: [] } }).as("getVehicles");
 }
 
-function fillAddVehicleFields(draft: typeof VEHICLE_DRAFT & { nickname?: string }) {
+/**
+ * The second `cy.visit()` to /garage/add wipes the in-memory session
+ * (ADR 0016). Stub the silent restore so the form has a session to submit
+ * with — same pattern as journey.cy.ts's jStubAuthRefresh.
+ */
+function stubAuthRefresh() {
+  cy.intercept("POST", "**/auth/refresh", {
+    statusCode: 200,
+    body: {
+      accessToken: "e2e-add-vehicle-access-token",
+      user: { id: "e2e-user", accountId: "e2e-account", role: "OWNER" },
+      account: { id: "e2e-account", status: "ACTIVE" },
+    },
+  }).as("refresh");
+}
+
+function fillAddVehicleFields(draft: typeof ADD_VEHICLE_DRAFT & { nickname?: string }) {
   if (draft.nickname) cy.get('[data-testid="nickname-input"]').type(draft.nickname);
   cy.get('[data-testid="make-input"]').type(draft.make);
   cy.get('[data-testid="model-input"]').type(draft.model);
@@ -99,7 +115,7 @@ describe("Add vehicle screen (/garage/add)", () => {
     });
 
     it("rejects an out-of-range year", () => {
-      fillAddVehicleFields({ ...VEHICLE_DRAFT, year: "1776" });
+      fillAddVehicleFields({ ...ADD_VEHICLE_DRAFT, year: "1776" });
       cy.get('[data-testid="add-vehicle-btn"]').click();
 
       cy.contains("Enter a year between").should("be.visible");
@@ -108,10 +124,12 @@ describe("Add vehicle screen (/garage/add)", () => {
 
   describe("happy path — no photo", () => {
     beforeEach(() => {
-      signIntoAddVehicle();
       stubAddVehicleEmptyGarage();
+      signIntoAddVehicle();
       cy.wait("@getVehicles");
+      stubAuthRefresh();
       cy.visit("/garage/add");
+      cy.wait("@refresh");
     });
 
     it("submits to POST /vehicles with correct JSON and redirects to /garage on success", () => {
@@ -121,7 +139,7 @@ describe("Add vehicle screen (/garage/add)", () => {
       }).as("createVehicle");
 
       stubAddVehicleEmptyGarage();
-      fillAddVehicleFields(VEHICLE_DRAFT);
+      fillAddVehicleFields(ADD_VEHICLE_DRAFT);
       cy.get('[data-testid="add-vehicle-btn"]').click();
 
       cy.wait("@createVehicle").then(({ request }) => {
@@ -139,7 +157,7 @@ describe("Add vehicle screen (/garage/add)", () => {
       }).as("createVehicle");
 
       stubAddVehicleEmptyGarage();
-      fillAddVehicleFields({ ...VEHICLE_DRAFT, nickname: "The Daily" });
+      fillAddVehicleFields({ ...ADD_VEHICLE_DRAFT, nickname: "The Daily" });
       cy.get('[data-testid="add-vehicle-btn"]').click();
 
       cy.wait("@createVehicle").its("request.body").should("deep.include", { nickname: "The Daily" });
@@ -152,7 +170,7 @@ describe("Add vehicle screen (/garage/add)", () => {
         body: { vehicle: { id: "v1", make: "Triumph", model: "Street Triple RS", year: 2021, mileage: 14230, photoUrl: null, nickname: null } },
       }).as("createVehicle");
 
-      fillAddVehicleFields(VEHICLE_DRAFT);
+      fillAddVehicleFields(ADD_VEHICLE_DRAFT);
       cy.get('[data-testid="add-vehicle-btn"]').click();
 
       cy.get('[data-testid="add-vehicle-btn"]').should("be.disabled").and("contain", "Saving");
@@ -162,10 +180,12 @@ describe("Add vehicle screen (/garage/add)", () => {
 
   describe("happy path — with photo", () => {
     beforeEach(() => {
-      signIntoAddVehicle();
       stubAddVehicleEmptyGarage();
+      signIntoAddVehicle();
       cy.wait("@getVehicles");
+      stubAuthRefresh();
       cy.visit("/garage/add");
+      cy.wait("@refresh");
     });
 
     it("submits as multipart/form-data when a photo file is attached", () => {
@@ -182,7 +202,7 @@ describe("Add vehicle screen (/garage/add)", () => {
         mimeType: "image/jpeg",
       }, { force: true });
 
-      fillAddVehicleFields(VEHICLE_DRAFT);
+      fillAddVehicleFields(ADD_VEHICLE_DRAFT);
       cy.get('[data-testid="add-vehicle-btn"]').click();
 
       cy.wait("@createVehicle").then(({ request }) => {
@@ -219,16 +239,18 @@ describe("Add vehicle screen (/garage/add)", () => {
 
   describe("error handling", () => {
     beforeEach(() => {
-      signIntoAddVehicle();
       stubAddVehicleEmptyGarage();
+      signIntoAddVehicle();
       cy.wait("@getVehicles");
+      stubAuthRefresh();
       cy.visit("/garage/add");
+      cy.wait("@refresh");
     });
 
     it("shows a user-facing error on a 4xx API failure and recovers when retried", () => {
       cy.intercept("POST", "**/vehicles", { statusCode: 400, body: { error: "Invalid input" } }).as("createVehicle");
 
-      fillAddVehicleFields(VEHICLE_DRAFT);
+      fillAddVehicleFields(ADD_VEHICLE_DRAFT);
       cy.get('[data-testid="add-vehicle-btn"]').click();
 
       cy.wait("@createVehicle");
@@ -251,7 +273,7 @@ describe("Add vehicle screen (/garage/add)", () => {
     it("shows a generic service error on a 5xx failure", () => {
       cy.intercept("POST", "**/vehicles", { statusCode: 500, body: { error: "Internal Server Error" } }).as("createVehicle");
 
-      fillAddVehicleFields(VEHICLE_DRAFT);
+      fillAddVehicleFields(ADD_VEHICLE_DRAFT);
       cy.get('[data-testid="add-vehicle-btn"]').click();
 
       cy.wait("@createVehicle");
