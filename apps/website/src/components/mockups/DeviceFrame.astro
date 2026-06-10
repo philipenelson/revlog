@@ -1,0 +1,18 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<div class={`overflow-hidden rounded-xl border border-border-default bg-surface-raised shadow-[var(--shadow-card)] ${className}`}>
+  <div class="flex items-center gap-1.5 border-b border-border-muted bg-surface-elevated px-4 py-3">
+    <span class="h-2.5 w-2.5 rounded-full bg-border-strong"></span>
+    <span class="h-2.5 w-2.5 rounded-full bg-border-strong"></span>
+    <span class="h-2.5 w-2.5 rounded-full bg-border-strong"></span>
+  </div>
+  <div class="bg-surface-base">
+    <slot />
+  </div>
+</div>

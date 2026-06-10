@@ -1,0 +1,59 @@
+---
+const items = [
+  {
+    title: 'Fuel tracking',
+    description: 'Log fuel fills — date, mileage, volume, and cost — alongside your service history.',
+  },
+  {
+    title: 'Scheduled maintenance & due reminders',
+    description: 'Set mileage- or time-based service intervals and get reminded before they’re due.',
+  },
+  {
+    title: 'Mechanic printout & exports',
+    description: 'Export a clean, printable service history to hand to a workshop or share with a buyer.',
+  },
+  {
+    title: 'Vehicle photos',
+    description: 'Attach photos to your Vehicles and Log Entries to document condition over time.',
+  },
+  {
+    title: 'Mobile apps for iOS & Android',
+    description: 'The native Revlog app, so you can log maintenance the moment you finish the job.',
+  },
+  {
+    title: 'Faster sign-in',
+    description: 'Stay signed in with "remember me," plus social login for one-tap access.',
+  },
+];
+---
+
+<section id="roadmap" class="border-t border-border-muted px-6 py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl">
+    <div class="max-w-2xl">
+      <p class="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-widest text-accent uppercase">
+        <span class="h-px w-3.5 bg-current"></span>
+        Roadmap
+      </p>
+      <h2 class="font-display text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+        What's next
+      </h2>
+      <p class="mt-4 text-lg text-text-secondary">
+        Revlog is just getting started. Here's what we're building next.
+      </p>
+    </div>
+
+    <ul class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        items.map((item) => (
+          <li class="rounded-lg border border-border-muted bg-surface-raised p-6">
+            <div class="mb-3 inline-flex items-center rounded-full border border-border-default bg-surface-elevated px-3 py-1 text-[10px] font-semibold tracking-[0.1em] text-text-tertiary uppercase">
+              Planned
+            </div>
+            <h3 class="font-display text-base font-semibold tracking-tight text-text-primary">{item.title}</h3>
+            <p class="mt-2 text-sm text-text-secondary">{item.description}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

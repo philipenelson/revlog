@@ -1,0 +1,47 @@
+---
+import { WEB_APP_URL } from '../lib/env';
+import DeviceFrame from './mockups/DeviceFrame.astro';
+import GarageMockup from './mockups/GarageMockup.astro';
+---
+
+<section class="relative overflow-hidden px-6 pt-16 pb-20 sm:pt-24 sm:pb-28">
+  <div class="pointer-events-none absolute -top-32 right-0 h-96 w-96 rounded-full bg-[radial-gradient(circle,var(--accent-glow)_0%,transparent_70%)]" aria-hidden="true"></div>
+
+  <div class="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
+    <div>
+      <p class="mb-4 inline-flex items-center gap-2 text-sm font-semibold tracking-widest text-accent uppercase">
+        <span class="h-px w-3.5 bg-current"></span>
+        Owner-first service history
+      </p>
+      <h1 class="font-display text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl lg:text-6xl">
+        Every wrench turn, <span class="text-accent">remembered</span>.
+      </h1>
+      <p class="mt-6 max-w-xl text-lg text-text-secondary">
+        Revlog is the permanent, owner-first service record for your motorcycle — every oil change,
+        repair, and modification, logged once and kept for the life of the bike.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        <a
+          data-testid="hero-open-web-app"
+          href={WEB_APP_URL}
+          class="inline-flex items-center gap-2 rounded-md bg-accent px-6 py-3 text-sm font-semibold text-[var(--accent-contrast)] shadow-[var(--shadow-accent-btn)] transition-colors hover:bg-accent-hover"
+        >
+          Open the web app
+        </a>
+        <a
+          data-testid="hero-get-updates"
+          href="#newsletter"
+          class="inline-flex items-center gap-2 rounded-md border border-border-default px-6 py-3 text-sm font-semibold text-text-secondary transition-colors hover:border-border-strong hover:text-text-primary"
+        >
+          Get updates
+        </a>
+      </div>
+    </div>
+
+    <div data-testid="hero-mockup">
+      <DeviceFrame>
+        <GarageMockup />
+      </DeviceFrame>
+    </div>
+  </div>
+</section>

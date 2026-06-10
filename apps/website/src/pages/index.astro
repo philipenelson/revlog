@@ -2,17 +2,25 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import Hero from '../components/Hero.astro';
+import Features from '../components/Features.astro';
+import WebAppShowcase from '../components/WebAppShowcase.astro';
+import MobileAppShowcase from '../components/MobileAppShowcase.astro';
+import Roadmap from '../components/Roadmap.astro';
+import Newsletter from '../components/Newsletter.astro';
 ---
 
 <Layout>
   <div id="top" class="flex flex-1 flex-col">
     <Header />
 
-    <main class="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-      <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-accent">Coming soon</p>
-      <h1 class="font-display text-4xl font-semibold tracking-tight text-text-primary sm:text-5xl">
-        The Revlog landing page is under construction.
-      </h1>
+    <main class="flex flex-1 flex-col">
+      <Hero />
+      <Features />
+      <WebAppShowcase />
+      <MobileAppShowcase />
+      <Roadmap />
+      <Newsletter />
     </main>
 
     <Footer />

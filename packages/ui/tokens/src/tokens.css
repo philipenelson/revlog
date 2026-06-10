@@ -51,8 +51,20 @@
   --shadow-danger-ring:  0 0 9px rgba(248, 113, 113, 0.5);
 
   /* Log entry type badge colours */
-  --type-inspection:   #89B4F8;
-  --type-modification: #C4B5FD;
+  --type-maintenance-bg:     rgba(20, 184, 212, 0.12);
+  --type-maintenance-color:  #67E2F0;
+  --type-repair-bg:          rgba(251, 146, 60, 0.12);
+  --type-repair-color:       #FB923C;
+  --type-inspection-bg:      rgba(137, 180, 248, 0.12);
+  --type-inspection-color:   #89B4F8;
+  --type-modification-bg:    rgba(196, 181, 253, 0.12);
+  --type-modification-color: #C4B5FD;
+  --type-incident-bg:        rgba(248, 113, 113, 0.12);
+  --type-incident-color:     #F87171;
+  --type-event-bg:           rgba(52, 211, 153, 0.12);
+  --type-event-color:        #34D399;
+  --type-other-bg:           rgba(140, 143, 168, 0.1);
+  --type-other-color:        #8C8FA8;
 
   /* Radius */
   --radius-sm: 6px;

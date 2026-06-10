@@ -1,0 +1,32 @@
+---
+import DeviceFrame from './mockups/DeviceFrame.astro';
+import GarageMockup from './mockups/GarageMockup.astro';
+import VehicleDetailMockup from './mockups/VehicleDetailMockup.astro';
+---
+
+<section class="border-t border-border-muted px-6 py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl">
+    <div class="max-w-2xl">
+      <p class="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-widest text-accent uppercase">
+        <span class="h-px w-3.5 bg-current"></span>
+        Web app
+      </p>
+      <h2 class="font-display text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+        See Revlog in your garage
+      </h2>
+      <p class="mt-4 text-lg text-text-secondary">
+        A fast garage overview and a detailed service history for every Vehicle — open in any browser,
+        on any device.
+      </p>
+    </div>
+
+    <div data-testid="webapp-showcase-mockups" class="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <DeviceFrame>
+        <GarageMockup />
+      </DeviceFrame>
+      <DeviceFrame>
+        <VehicleDetailMockup />
+      </DeviceFrame>
+    </div>
+  </div>
+</section>

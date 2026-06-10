@@ -1,0 +1,86 @@
+---
+import FeatureCard from './FeatureCard.astro';
+---
+
+<section id="features" class="px-6 py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl">
+    <div class="max-w-2xl">
+      <p class="mb-3 inline-flex items-center gap-2 text-sm font-semibold tracking-widest text-accent uppercase">
+        <span class="h-px w-3.5 bg-current"></span>
+        Features
+      </p>
+      <h2 class="font-display text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+        Everything your garage needs
+      </h2>
+      <p class="mt-4 text-lg text-text-secondary">
+        Revlog keeps every Vehicle, every Log Entry, and every detail in one place — built for owners
+        who keep their bikes for years, not just a season.
+      </p>
+    </div>
+
+    <div class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <FeatureCard
+        title="Your garage, organized"
+        description="Every Vehicle you own, in one Garage — sorted by what's been logged most recently."
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3 21V10L12 4l9 6v11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M3 21h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+          <path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </FeatureCard>
+
+      <FeatureCard
+        title="A permanent service history"
+        description="Every Log Entry — oil changes, repairs, and more — stays with the Vehicle for as long as you own it."
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"></circle>
+          <path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </FeatureCard>
+
+      <FeatureCard
+        title="Insurance, in one place"
+        description="Track policy details and renewal dates alongside your service history, right on the Vehicle page."
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3l7 3v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </FeatureCard>
+
+      <FeatureCard
+        title="Seven Log Entry types"
+        description="Maintenance, Repair, Inspection, Modification, Incident, Event, and Other — categorize everything you do to your bike."
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.5"></rect>
+        </svg>
+      </FeatureCard>
+
+      <FeatureCard
+        title="Your data belongs to you"
+        description="Service history is owned by you, the Owner — not the dealership — and travels with the Vehicle."
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"></rect>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+        </svg>
+      </FeatureCard>
+
+      <FeatureCard
+        title="Guided onboarding"
+        description="Add your first Vehicle and start logging maintenance in minutes, with a guided setup."
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 3v18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M5 4h11l-2 3 2 3H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </FeatureCard>
+    </div>
+  </div>
+</section>
