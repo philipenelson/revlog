@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { AccountStatus } from "@maintenance-log/domain";
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/infrastructure/http/apiClient";
 
 export interface Session {
   accessToken: string;

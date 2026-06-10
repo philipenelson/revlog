@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { logger } from "@/lib/logger";
+import { logger } from "@/infrastructure/logging/logger";
 import styles from "./edit-vehicle.module.css";
 
 interface VehicleFields {

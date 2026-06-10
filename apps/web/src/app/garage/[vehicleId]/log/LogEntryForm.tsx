@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useRef } from 'react';
-import type { MediaRef } from '@/lib/media/MediaStore';
+import type { MediaRef } from '@/infrastructure/media/MediaStore';
 import styles from './log-entry.module.css';
 
 /* ── Constants ─────────────────────────────────────────────────── */

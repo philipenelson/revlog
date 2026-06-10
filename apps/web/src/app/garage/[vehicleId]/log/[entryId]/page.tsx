@@ -2,9 +2,9 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@/infrastructure/http/apiClient';
 import { useAuth } from '@/lib/auth/AuthProvider';
-import { useMediaStore } from '@/lib/media/useMediaStore';
+import { useMediaStore } from '@/infrastructure/media/useMediaStore';
 import {
   LogEntryForm,
   type LogEntryFormState,

@@ -3,9 +3,9 @@
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { StatusOrb } from "@/components/StatusOrb";
-import { apiFetch, apiUpload, ApiError } from "@/lib/api";
+import { apiFetch, apiUpload, ApiError } from "@/infrastructure/http/apiClient";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { logger } from "@/lib/logger";
+import { logger } from "@/infrastructure/logging/logger";
 import styles from "./onboarding.module.css";
 
 type Step = 1 | 2 | 3;

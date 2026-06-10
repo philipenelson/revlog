@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { logger } from "@/lib/logger";
+import { logger } from "@/infrastructure/logging/logger";
 import styles from "./garage.module.css";
 
 interface VehicleSummary {

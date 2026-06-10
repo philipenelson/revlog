@@ -6,10 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, loginSchema, type RegisterInput, type LoginInput } from "@maintenance-log/domain";
 import { googleBrand } from "@maintenance-log/ui-tokens/colors";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
 import { useAuth, type Session } from "@/lib/auth/AuthProvider";
 import { routeForAccountStatus } from "@/lib/auth/routeForAccountStatus";
-import { logger } from "@/lib/logger";
+import { logger } from "@/infrastructure/logging/logger";
 import styles from "./login.module.css";
 
 const SIGN_IN_USER_ERROR =

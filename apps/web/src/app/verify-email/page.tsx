@@ -2,11 +2,11 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
 import { useAuth, type Session } from "@/lib/auth/AuthProvider";
 import { routeForAccountStatus } from "@/lib/auth/routeForAccountStatus";
 import { StatusOrb } from "@/components/StatusOrb";
-import { logger } from "@/lib/logger";
+import { logger } from "@/infrastructure/logging/logger";
 import styles from "./verify-email.module.css";
 
 type ScreenState = "waiting" | "verifying" | "verified" | "error";
