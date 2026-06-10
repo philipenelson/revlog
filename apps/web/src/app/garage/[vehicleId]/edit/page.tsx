@@ -3,23 +3,17 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
-import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
-import { useAuth } from "@/lib/auth/AuthProvider";
+import { useAuth } from "@/application/providers/AuthProvider";
+import { ApiError } from "@/model/errors";
+import { getVehicle, updateVehicle } from "@/model/services/vehicleService";
+import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
+import type { VehicleDraft, VehicleDraftErrors } from "@/model/types";
 import { logger } from "@/infrastructure/logging/logger";
 import styles from "./edit-vehicle.module.css";
 
-interface VehicleFields {
-  nickname: string;
-  make: string;
-  model: string;
-  year: string;
-  mileage: string;
-}
-
-type FieldErrors = Partial<Record<keyof VehicleFields, string>>;
+type VehicleFields = VehicleDraft;
+type FieldErrors = VehicleDraftErrors;
 type LoadState = "loading" | "ready" | "not-found" | "error";
-
-const CURRENT_YEAR = new Date().getFullYear();
 
 export default function EditVehiclePage() {
   const { vehicleId } = useParams<{ vehicleId: string }>();
@@ -40,11 +34,8 @@ export default function EditVehiclePage() {
 
   useEffect(() => {
     if (!session || !vehicleId) return;
-    apiFetch<{ vehicle: { nickname: string | null; make: string; model: string; year: number; mileage: number } }>(
-      `/vehicles/${vehicleId}`,
-      { headers: { Authorization: `Bearer ${session.accessToken}` } },
-    )
-      .then(({ vehicle }) => {
+    getVehicle(session.accessToken, vehicleId)
+      .then((vehicle) => {
         setFields({
           nickname: vehicle.nickname ?? "",
           make: vehicle.make,
@@ -73,18 +64,7 @@ export default function EditVehiclePage() {
   }
 
   function validateFields(): FieldErrors {
-    const next: FieldErrors = {};
-    if (!fields.make.trim()) next.make = "Enter the manufacturer.";
-    if (!fields.model.trim()) next.model = "Enter the model.";
-    const year = Number(fields.year.trim());
-    if (!/^\d+$/.test(fields.year.trim()) || year < 1900 || year > CURRENT_YEAR + 1) {
-      next.year = `Enter a year between 1900 and ${CURRENT_YEAR + 1}.`;
-    }
-    const mileage = Number(fields.mileage.trim().replace(/,/g, ""));
-    if (!/^[\d,]+$/.test(fields.mileage.trim()) || mileage < 0) {
-      next.mileage = "Enter the current mileage.";
-    }
-    return next;
+    return validateVehicleDraft(fields, { enforceYearRange: true });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -102,16 +82,12 @@ export default function EditVehiclePage() {
     setSubmitting(true);
 
     try {
-      await apiFetch(`/vehicles/${vehicleId}`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-        body: JSON.stringify({
-          nickname: fields.nickname.trim() || null,
-          make: fields.make.trim(),
-          model: fields.model.trim(),
-          year: Number(fields.year.trim()),
-          mileage: Number(fields.mileage.trim().replace(/,/g, "")),
-        }),
+      await updateVehicle(session.accessToken, vehicleId, {
+        nickname: fields.nickname.trim() || null,
+        make: fields.make.trim(),
+        model: fields.model.trim(),
+        year: Number(fields.year.trim()),
+        mileage: Number(fields.mileage.trim().replace(/,/g, "")),
       });
       router.push(`/garage/${vehicleId}`);
     } catch (err) {

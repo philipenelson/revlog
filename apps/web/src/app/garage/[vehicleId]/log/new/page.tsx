@@ -2,8 +2,8 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useRef } from 'react';
-import { apiFetch } from '@/infrastructure/http/apiClient';
-import { useAuth } from '@/lib/auth/AuthProvider';
+import { useAuth } from '@/application/providers/AuthProvider';
+import { createLogEntry } from '@/model/services/logEntryService';
 import { useMediaStore } from '@/infrastructure/media/useMediaStore';
 import {
   LogEntryForm,
@@ -58,11 +58,7 @@ export default function NewLogEntryPage() {
         })),
       };
 
-      await apiFetch(`/vehicles/${vehicleId}/log`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-        body: JSON.stringify(body),
-      });
+      await createLogEntry(session.accessToken, vehicleId, body);
 
       router.push(`/garage/${vehicleId}`);
     } catch (err) {

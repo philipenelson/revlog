@@ -3,8 +3,11 @@
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { StatusOrb } from "@/components/StatusOrb";
-import { apiFetch, apiUpload, ApiError } from "@/infrastructure/http/apiClient";
-import { useAuth } from "@/lib/auth/AuthProvider";
+import { useAuth } from "@/application/providers/AuthProvider";
+import { ApiError } from "@/model/errors";
+import { createVehicle, createVehicleWithPhoto } from "@/model/services/vehicleService";
+import { skipOnboarding } from "@/model/services/onboardingService";
+import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
 import { logger } from "@/infrastructure/logging/logger";
 import styles from "./onboarding.module.css";
 
@@ -67,12 +70,7 @@ export default function OnboardingPage() {
   }
 
   function validateDraft(): FieldErrors {
-    const next: FieldErrors = {};
-    if (!draft.make.trim()) next.make = "Enter the manufacturer.";
-    if (!draft.model.trim()) next.model = "Enter the model.";
-    if (!/^\d+$/.test(draft.year.trim())) next.year = "Enter a numeric year.";
-    if (!/^[\d,]+$/.test(draft.mileage.trim())) next.mileage = "Enter the current mileage.";
-    return next;
+    return validateVehicleDraft(draft, { enforceYearRange: false });
   }
 
   function activateAccount() {
@@ -92,27 +90,17 @@ export default function OnboardingPage() {
     setVehicleError(null);
     setSubmitting(true);
     try {
+      const payload = {
+        nickname: draft.nickname.trim() || undefined,
+        make: draft.make.trim(),
+        model: draft.model.trim(),
+        year: Number(draft.year.trim()),
+        mileage: Number(draft.mileage.trim().replace(/,/g, "")),
+      };
       if (photoFile) {
-        const fd = new FormData();
-        fd.append("photo", photoFile);
-        fd.append("make", draft.make.trim());
-        fd.append("model", draft.model.trim());
-        fd.append("year", draft.year.trim());
-        fd.append("mileage", draft.mileage.trim().replace(/,/g, ""));
-        if (draft.nickname.trim()) fd.append("nickname", draft.nickname.trim());
-        await apiUpload<unknown>("/vehicles", fd, session.accessToken);
+        await createVehicleWithPhoto(session.accessToken, payload, photoFile);
       } else {
-        await apiFetch("/vehicles", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${session.accessToken}` },
-          body: JSON.stringify({
-            nickname: draft.nickname.trim() || undefined,
-            make: draft.make.trim(),
-            model: draft.model.trim(),
-            year: Number(draft.year.trim()),
-            mileage: Number(draft.mileage.trim().replace(/,/g, "")),
-          }),
-        });
+        await createVehicle(session.accessToken, payload);
       }
       activateAccount();
       setVehicle({ ...draft });
@@ -138,10 +126,7 @@ export default function OnboardingPage() {
     setSkipError(null);
     setSkipping(true);
     try {
-      await apiFetch("/onboarding/skip", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
+      await skipOnboarding(session.accessToken);
       activateAccount();
       router.push("/garage");
     } catch (err) {

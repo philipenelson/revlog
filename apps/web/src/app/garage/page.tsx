@@ -3,25 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
-import { useAuth } from "@/lib/auth/AuthProvider";
+import { useAuth } from "@/application/providers/AuthProvider";
+import { ApiError } from "@/model/errors";
+import { listVehicles } from "@/model/services/vehicleService";
+import type { VehicleSummary } from "@/model/types";
 import { logger } from "@/infrastructure/logging/logger";
 import styles from "./garage.module.css";
-
-interface VehicleSummary {
-  id: string;
-  nickname: string | null;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  photoUrl: string | null;
-  logEntryCount: number;
-}
-
-interface VehiclesResponse {
-  vehicles: VehicleSummary[];
-}
 
 const CURRENT_USER = { name: "Jordan Reyes", initials: "JR" };
 
@@ -59,12 +46,10 @@ export default function GaragePage() {
 
     let cancelled = false;
 
-    apiFetch<VehiclesResponse>("/vehicles", {
-      headers: { Authorization: `Bearer ${session.accessToken}` },
-    })
-      .then((data) => {
+    listVehicles(session.accessToken)
+      .then((vehicles) => {
         if (cancelled) return;
-        setVehicles(data.vehicles);
+        setVehicles(vehicles);
         setLoadState("loaded");
       })
       .catch((err) => {

@@ -3,24 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
-import { apiFetch, apiUpload, ApiError } from "@/infrastructure/http/apiClient";
-import { useAuth } from "@/lib/auth/AuthProvider";
+import { useAuth } from "@/application/providers/AuthProvider";
+import { ApiError } from "@/model/errors";
+import { createVehicle, createVehicleWithPhoto } from "@/model/services/vehicleService";
+import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
+import type { VehicleDraft, VehicleDraftErrors as FieldErrors } from "@/model/types";
 import { logger } from "@/infrastructure/logging/logger";
 import styles from "./add-vehicle.module.css";
 
-interface VehicleDraft {
-  nickname: string;
-  make: string;
-  model: string;
-  year: string;
-  mileage: string;
-}
-
-type FieldErrors = Partial<Record<keyof VehicleDraft, string>>;
-
 const EMPTY_DRAFT: VehicleDraft = { nickname: "", make: "", model: "", year: "", mileage: "" };
-
-const CURRENT_YEAR = new Date().getFullYear();
 
 export default function AddVehiclePage() {
   const router = useRouter();
@@ -60,18 +51,7 @@ export default function AddVehiclePage() {
   }
 
   function validateDraft(): FieldErrors {
-    const next: FieldErrors = {};
-    if (!draft.make.trim()) next.make = "Enter the manufacturer.";
-    if (!draft.model.trim()) next.model = "Enter the model.";
-    const year = Number(draft.year.trim());
-    if (!/^\d+$/.test(draft.year.trim()) || year < 1900 || year > CURRENT_YEAR + 1) {
-      next.year = `Enter a year between 1900 and ${CURRENT_YEAR + 1}.`;
-    }
-    const mileage = Number(draft.mileage.trim().replace(/,/g, ""));
-    if (!/^[\d,]+$/.test(draft.mileage.trim()) || mileage < 0) {
-      next.mileage = "Enter the current mileage.";
-    }
-    return next;
+    return validateVehicleDraft(draft, { enforceYearRange: true });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -89,27 +69,17 @@ export default function AddVehiclePage() {
     setSubmitting(true);
 
     try {
+      const payload = {
+        nickname: draft.nickname.trim() || undefined,
+        make: draft.make.trim(),
+        model: draft.model.trim(),
+        year: Number(draft.year.trim()),
+        mileage: Number(draft.mileage.trim().replace(/,/g, "")),
+      };
       if (photoFile) {
-        const fd = new FormData();
-        fd.append("photo", photoFile);
-        fd.append("make", draft.make.trim());
-        fd.append("model", draft.model.trim());
-        fd.append("year", draft.year.trim());
-        fd.append("mileage", draft.mileage.trim().replace(/,/g, ""));
-        if (draft.nickname.trim()) fd.append("nickname", draft.nickname.trim());
-        await apiUpload<unknown>("/vehicles", fd, session.accessToken);
+        await createVehicleWithPhoto(session.accessToken, payload, photoFile);
       } else {
-        await apiFetch("/vehicles", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${session.accessToken}` },
-          body: JSON.stringify({
-            nickname: draft.nickname.trim() || undefined,
-            make: draft.make.trim(),
-            model: draft.model.trim(),
-            year: Number(draft.year.trim()),
-            mileage: Number(draft.mileage.trim().replace(/,/g, "")),
-          }),
-        });
+        await createVehicle(session.accessToken, payload);
       }
       router.push("/garage");
     } catch (err) {

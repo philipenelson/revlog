@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, DM_Sans, Geist_Mono } from "next/font/google";
-import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { AuthProvider } from "@/application/providers/AuthProvider";
 import { MediaStoreProvider } from "@/infrastructure/media/MediaStoreProvider";
 import "./globals.css";
 

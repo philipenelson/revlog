@@ -3,53 +3,18 @@
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
-import { useAuth } from "@/lib/auth/AuthProvider";
+import { useAuth } from "@/application/providers/AuthProvider";
+import { ApiError } from "@/model/errors";
+import { getVehicle } from "@/model/services/vehicleService";
+import { saveInsurance } from "@/model/services/insuranceService";
+import type {
+  InsuranceInput,
+  InsuranceRecord,
+  LogEntrySummary,
+  VehicleDetail,
+} from "@/model/types";
 import { logger } from "@/infrastructure/logging/logger";
 import styles from "./vehicle-detail.module.css";
-
-/* ── Types ──────────────────────────────────────────────────────── */
-
-interface InsuranceRecord {
-  company: string | null;
-  policyNumber: string | null;
-  startDate: string | null;
-  expiryDate: string | null;
-  premium: string | null;
-  premiumPeriod: "MONTHLY" | "QUARTERLY" | "BIANNUAL" | "ANNUAL" | null;
-  towNumber: string | null;
-  notes: string | null;
-}
-
-interface LogEntrySummary {
-  id: string;
-  typeId: string;
-  title: string;
-  date: string;
-  time: string | null;
-  mileage: number | null;
-  itemCount: number;
-  mediaCount: number;
-  totalCost: string | null;
-}
-
-interface VehicleStats {
-  totalSpent: string;
-  lastLoggedAt: string | null;
-}
-
-interface VehicleDetail {
-  id: string;
-  nickname: string | null;
-  make: string;
-  model: string;
-  year: number;
-  mileage: number;
-  photoUrl: string | null;
-  insurance: InsuranceRecord | null;
-  logEntries: LogEntrySummary[];
-  stats: VehicleStats;
-}
 
 /* ── Constants ──────────────────────────────────────────────────── */
 
@@ -113,12 +78,10 @@ export default function VehicleDetailPage() {
 
     let cancelled = false;
 
-    apiFetch<{ vehicle: VehicleDetail }>(`/vehicles/${vehicleId}`, {
-      headers: { Authorization: `Bearer ${session.accessToken}` },
-    })
-      .then((data) => {
+    getVehicle(session.accessToken, vehicleId)
+      .then((vehicle) => {
         if (cancelled) return;
-        setVehicle(data.vehicle);
+        setVehicle(vehicle);
         setLoadState("loaded");
       })
       .catch((err) => {
@@ -141,19 +104,9 @@ export default function VehicleDetailPage() {
     setInsuranceOpen(true);
   }
 
-  async function handleInsuranceSave(input: Partial<InsuranceRecord>): Promise<void> {
-    const data = await apiFetch<{ insurance: InsuranceRecord }>(
-      `/vehicles/${vehicleId}/insurance`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${session!.accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(input),
-      },
-    );
-    setVehicle((prev) => (prev ? { ...prev, insurance: data.insurance } : null));
+  async function handleInsuranceSave(input: InsuranceInput): Promise<void> {
+    const insurance = await saveInsurance(session!.accessToken, vehicleId, input);
+    setVehicle((prev) => (prev ? { ...prev, insurance } : null));
   }
 
   const displayName = vehicle
@@ -518,7 +471,7 @@ function NotFoundState() {
 interface InsuranceDialogProps {
   insurance: InsuranceRecord | null;
   initialEditMode: boolean;
-  onSave: (input: Partial<InsuranceRecord>) => Promise<void>;
+  onSave: (input: InsuranceInput) => Promise<void>;
   onClose: () => void;
 }
 
@@ -545,8 +498,8 @@ function InsuranceDialog({ insurance, initialEditMode, onSave, onClose }: Insura
         policyNumber: policyNumber.trim() || null,
         startDate: startDate || null,
         expiryDate: expiryDate || null,
-        premium: premium ? parseFloat(premium) as unknown as string : null,
-        premiumPeriod: (premiumPeriod as InsuranceRecord["premiumPeriod"]) || null,
+        premium: premium ? parseFloat(premium) : null,
+        premiumPeriod: (premiumPeriod as InsuranceInput["premiumPeriod"]) || null,
         towNumber: towNumber.trim() || null,
         notes: notes.trim() || null,
       });

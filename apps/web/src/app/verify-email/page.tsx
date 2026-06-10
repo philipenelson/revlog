@@ -2,9 +2,10 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiFetch, ApiError } from "@/infrastructure/http/apiClient";
-import { useAuth, type Session } from "@/lib/auth/AuthProvider";
-import { routeForAccountStatus } from "@/lib/auth/routeForAccountStatus";
+import { ApiError } from "@/model/errors";
+import { verifyEmail } from "@/model/services/authService";
+import { useAuth } from "@/application/providers/AuthProvider";
+import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 import { StatusOrb } from "@/components/StatusOrb";
 import { logger } from "@/infrastructure/logging/logger";
 import styles from "./verify-email.module.css";
@@ -33,7 +34,7 @@ function VerifyEmailScreen() {
     if (!token || requested.current) return;
     requested.current = true;
 
-    apiFetch<Session>(`/auth/verify-email?token=${encodeURIComponent(token)}`)
+    verifyEmail(token)
       .then((session) => {
         setSession(session);
         setScreenState("verified");

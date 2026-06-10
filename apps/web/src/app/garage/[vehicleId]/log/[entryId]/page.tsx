@@ -2,8 +2,14 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { apiFetch } from '@/infrastructure/http/apiClient';
-import { useAuth } from '@/lib/auth/AuthProvider';
+import { useAuth } from '@/application/providers/AuthProvider';
+import {
+  getLogEntry,
+  updateLogEntry,
+  deleteLogEntry,
+  type LogEntryPayload,
+} from '@/model/services/logEntryService';
+import type { LogEntryDetail } from '@/model/types';
 import { useMediaStore } from '@/infrastructure/media/useMediaStore';
 import {
   LogEntryForm,
@@ -13,32 +19,7 @@ import {
 } from '../LogEntryForm';
 import styles from '../log-entry.module.css';
 
-interface LogEntryResponse {
-  logEntry: {
-    id: string;
-    typeId: string;
-    title: string;
-    date: string;
-    time: string | null;
-    mileage: number | null;
-    notes: string | null;
-    items: Array<{
-      id: string;
-      categoryId: string;
-      description: string;
-      quantity: string | null;
-      unitCost: string | null;
-    }>;
-    media: Array<{
-      id: string;
-      path: string;
-      mediaType: 'IMAGE' | 'VIDEO';
-      caption: string | null;
-    }>;
-  };
-}
-
-function entryToFormState(entry: LogEntryResponse['logEntry']): LogEntryFormState {
+function entryToFormState(entry: LogEntryDetail): LogEntryFormState {
   const items: LogItemDraft[] = entry.items.map((item) => ({
     id: item.id,
     categoryId: item.categoryId,
@@ -77,12 +58,10 @@ export default function EditLogEntryPage() {
     if (!session) return;
     let cancelled = false;
 
-    apiFetch<LogEntryResponse>(`/vehicles/${vehicleId}/log/${entryId}`, {
-      headers: { Authorization: `Bearer ${session.accessToken}` },
-    })
-      .then((data) => {
+    getLogEntry(session.accessToken, vehicleId, entryId)
+      .then((entry) => {
         if (cancelled) return;
-        setFormState(entryToFormState(data.logEntry));
+        setFormState(entryToFormState(entry));
         setIsLoading(false);
       })
       .catch((err) => {
@@ -111,7 +90,7 @@ export default function EditLogEntryPage() {
         }),
       );
 
-      const body: Record<string, unknown> = {
+      const body: LogEntryPayload = {
         typeId: formState.typeId,
         title: formState.title.trim(),
         date: formState.date,
@@ -130,7 +109,7 @@ export default function EditLogEntryPage() {
       };
 
       if (savedMedia.length > 0) {
-        body['media'] = savedMedia.map((m, idx) => ({
+        body.media = savedMedia.map((m, idx) => ({
           path: m.ref.path,
           mediaType: m.ref.mediaType,
           caption: m.caption.trim() || null,
@@ -138,11 +117,7 @@ export default function EditLogEntryPage() {
         }));
       }
 
-      await apiFetch(`/vehicles/${vehicleId}/log/${entryId}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-        body: JSON.stringify(body),
-      });
+      await updateLogEntry(session.accessToken, vehicleId, entryId, body);
 
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
@@ -157,10 +132,7 @@ export default function EditLogEntryPage() {
     setIsDeleting(true);
 
     try {
-      await apiFetch(`/vehicles/${vehicleId}/log/${entryId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
+      await deleteLogEntry(session.accessToken, vehicleId, entryId);
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete entry');
