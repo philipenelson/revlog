@@ -103,6 +103,22 @@ function jSignIn(accountStatus = "ACTIVE") {
   cy.wait("@login");
 }
 
+/**
+ * Stubs POST /auth/refresh so a fresh page load (cy.visit, which wipes the
+ * in-memory access token — ADR 0016/0017) silently restores a session
+ * instead of redirecting to /login.
+ */
+function jStubAuthRefresh(accountStatus = "ACTIVE") {
+  cy.intercept("POST", "**/auth/refresh", {
+    statusCode: 200,
+    body: {
+      accessToken: J_ACCESS_TOKEN,
+      user: { id: "e2e-user", accountId: "e2e-account", role: "OWNER" },
+      account: { id: "e2e-account", status: accountStatus },
+    },
+  }).as("refresh");
+}
+
 function jSignIntoGarage() {
   cy.intercept("GET", "**/vehicles", {
     statusCode: 200,
@@ -121,6 +137,7 @@ function jSignIntoVehicleDetail(vehicleBody = { vehicle: VEHICLE_DETAIL_FIXTURE 
   }).as("getVehicleDetail");
 
   jSignIn();
+  jStubAuthRefresh();
   cy.visit(`/garage/${J_VEHICLE_ID}`);
   cy.wait("@getVehicleDetail");
 }
@@ -218,7 +235,7 @@ describe("App smoke test — happy paths", () => {
       cy.location("pathname").should("eq", "/onboarding");
 
       cy.get('[data-testid="step-welcome"]').should("be.visible");
-      cy.contains("button", "Add first vehicle").click();
+      cy.get('[data-testid="add-first-vehicle-btn"]').click();
 
       cy.get('[data-testid="make-input"]').type("Triumph");
       cy.get('[data-testid="model-input"]').type("Street Triple RS");
@@ -230,13 +247,13 @@ describe("App smoke test — happy paths", () => {
         body: { vehicle: J_VEHICLE_FIXTURE },
       }).as("createVehicle");
 
-      cy.contains("button", "Add vehicle").click();
+      cy.get('[data-testid="continue-btn"]').click();
       cy.wait("@createVehicle");
 
       cy.get('[data-testid="step-ready"]').should("be.visible");
-      cy.contains("Triumph · Street Triple RS").should("be.visible");
+      cy.contains("Triumph Street Triple RS is in your garage").should("be.visible");
 
-      cy.contains("button", "Go to garage").click();
+      cy.get('[data-testid="go-to-garage-btn"]').click();
       cy.wait("@getVehicles");
       cy.location("pathname").should("eq", "/garage");
     });
@@ -256,7 +273,7 @@ describe("App smoke test — happy paths", () => {
       jSignIn("ONBOARDING");
       cy.location("pathname").should("eq", "/onboarding");
 
-      cy.contains("button", "Skip onboarding").click();
+      cy.get('[data-testid="skip-onboarding-btn"]').click();
       cy.wait("@skipOnboarding");
       cy.wait("@getVehicles");
 
@@ -375,6 +392,7 @@ describe("App smoke test — happy paths", () => {
   describe("log entry — create", () => {
     it("selects a type, fills the title, saves, and navigates back to vehicle detail", () => {
       cy.setCookie("refreshToken", "e2e-journey-session");
+      jStubAuthRefresh();
       cy.visit(`/garage/${J_VEHICLE_ID}/log/new`);
 
       cy.intercept("POST", `**/vehicles/${J_VEHICLE_ID}/log`, {
@@ -396,6 +414,7 @@ describe("App smoke test — happy paths", () => {
   describe("log entry — edit", () => {
     it("pre-fills the form, updates the title, saves, and navigates back", () => {
       cy.setCookie("refreshToken", "e2e-journey-session");
+      jStubAuthRefresh();
 
       cy.intercept("GET", `**/vehicles/${J_VEHICLE_ID}/log/${J_ENTRY_ID}`, {
         statusCode: 200,
@@ -426,6 +445,7 @@ describe("App smoke test — happy paths", () => {
   describe("log entry — delete", () => {
     it("opens the delete dialog, confirms, and navigates back to vehicle detail", () => {
       cy.setCookie("refreshToken", "e2e-journey-session");
+      jStubAuthRefresh();
 
       cy.intercept("GET", `**/vehicles/${J_VEHICLE_ID}/log/${J_ENTRY_ID}`, {
         statusCode: 200,
@@ -453,6 +473,7 @@ describe("App smoke test — happy paths", () => {
   describe("edit vehicle", () => {
     it("pre-fills the form, updates mileage, saves, and navigates back to vehicle detail", () => {
       cy.setCookie("refreshToken", "e2e-journey-session");
+      jStubAuthRefresh();
 
       cy.intercept("GET", `**/vehicles/${J_VEHICLE_ID}`, {
         statusCode: 200,
