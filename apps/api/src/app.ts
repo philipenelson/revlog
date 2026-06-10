@@ -12,17 +12,20 @@ import { PrismaAccountRepository } from './repositories/account.repository';
 import { PrismaVehicleRepository } from './repositories/vehicle.repository';
 import { PrismaLogEntryRepository } from './repositories/log-entry.repository';
 import { PrismaInsuranceRepository } from './repositories/insurance.repository';
+import { PrismaNewsletterRepository } from './repositories/newsletter.repository';
 import { AuthService } from './services/auth.service';
 import { VehicleService } from './services/vehicle.service';
 import { AccountService } from './services/account.service';
 import { LogEntryService } from './services/log-entry.service';
 import { InsuranceService } from './services/insurance.service';
+import { NewsletterService } from './services/newsletter.service';
 import { createAuthRouter } from './routes/auth';
 import { createVehicleRouter } from './routes/vehicles';
 import { createOnboardingRouter } from './routes/onboarding';
 import { createLogEntryRouter } from './routes/log-entries';
 import { createInsuranceRouter } from './routes/insurance';
 import { createLookupRouter } from './routes/lookup';
+import { createNewsletterRouter } from './routes/newsletter';
 import { errorMiddleware } from './middleware/error';
 
 const allowedOrigins = [process.env.APP_URL ?? 'http://localhost:3000'];
@@ -35,11 +38,13 @@ export function createApp(): Express {
   const vehicleRepo = new PrismaVehicleRepository(prisma);
   const logEntryRepo = new PrismaLogEntryRepository(prisma);
   const insuranceRepo = new PrismaInsuranceRepository(prisma);
+  const newsletterRepo = new PrismaNewsletterRepository(prisma);
   const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail });
   const vehicleService = new VehicleService(vehicleRepo, accountRepo);
   const accountService = new AccountService(accountRepo);
   const logEntryService = new LogEntryService(logEntryRepo, vehicleRepo, prisma);
   const insuranceService = new InsuranceService(insuranceRepo, vehicleRepo);
+  const newsletterService = new NewsletterService(newsletterRepo);
 
   const app = express();
 
@@ -69,6 +74,7 @@ export function createApp(): Express {
   app.use('/vehicles/:vehicleId/insurance', createInsuranceRouter(insuranceService));
   app.use('/vehicles/:vehicleId/log', createLogEntryRouter(logEntryService));
   app.use('/onboarding', createOnboardingRouter(accountService));
+  app.use('/newsletter', createNewsletterRouter(newsletterService));
 
   app.use(createLookupRouter());
 

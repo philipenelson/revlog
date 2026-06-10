@@ -66,6 +66,12 @@ model RefreshToken {
   @@index([userId])
 }
 
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 model Vehicle {
   id         String            @id @default(uuid())
   accountId  String
