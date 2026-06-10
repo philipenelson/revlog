@@ -1,0 +1,22 @@
+---
+import Logo from './Logo.astro';
+import { WEB_APP_URL } from '../lib/env';
+
+const year = new Date().getFullYear();
+---
+
+<footer data-testid="site-footer" class="border-t border-border-muted">
+  <div class="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-between sm:text-left">
+    <Logo />
+
+    <a
+      data-testid="open-web-app-footer"
+      href={WEB_APP_URL}
+      class="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+    >
+      Open web app
+    </a>
+
+    <p class="text-sm text-text-tertiary">&copy; {year} Revlog. All rights reserved.</p>
+  </div>
+</footer>

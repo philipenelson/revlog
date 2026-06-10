@@ -1,0 +1,32 @@
+---
+import Logo from './Logo.astro';
+import { WEB_APP_URL } from '../lib/env';
+---
+
+<header
+  data-testid="site-header"
+  class="sticky top-0 z-20 border-b border-border-muted bg-surface-base/90 backdrop-blur"
+>
+  <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
+    <a href="#top" class="shrink-0" aria-label="Revlog home">
+      <Logo />
+    </a>
+
+    <nav class="hidden items-center gap-8 sm:flex" aria-label="Primary">
+      <a href="#features" class="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary">
+        Features
+      </a>
+      <a href="#roadmap" class="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary">
+        Roadmap
+      </a>
+    </nav>
+
+    <a
+      data-testid="open-web-app-nav"
+      href={WEB_APP_URL}
+      class="inline-flex shrink-0 items-center gap-2 rounded-md border border-accent bg-accent-muted px-4 py-2 text-sm font-semibold text-accent-light transition-colors hover:bg-accent hover:text-surface-base"
+    >
+      Open web app
+    </a>
+  </div>
+</header>
