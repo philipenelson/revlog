@@ -30,6 +30,22 @@ const ENTRY_FIXTURE = {
 };
 
 /**
+ * cy.visit() always starts with a null in-memory session (ADR 0016).
+ * Stub the silent restore so the page has a session to call the API
+ * with — same pattern as journey.cy.ts's jStubAuthRefresh.
+ */
+function stubLogEntryAuthRefresh() {
+  cy.intercept("POST", "**/auth/refresh", {
+    statusCode: 200,
+    body: {
+      accessToken: ACCESS_TOKEN,
+      user: { id: "e2e-user", accountId: "e2e-account", role: "OWNER" },
+      account: { id: "e2e-account", status: "ACTIVE" },
+    },
+  }).as("refresh");
+}
+
+/**
  * Sign into the app and navigate to the log entry create screen.
  * Stubs auth, vehicles list, and any other needed endpoints.
  */
@@ -74,7 +90,9 @@ function signIntoNewLogEntry() {
 describe("Log entry create screen (/garage/:vehicleId/log/new)", () => {
   beforeEach(() => {
     cy.setCookie("refreshToken", "e2e-log-entry-session");
+    stubLogEntryAuthRefresh();
     cy.visit(`/garage/${VEHICLE_ID}/log/new`);
+    cy.wait("@refresh");
   });
 
   it("renders the page heading and back link", () => {
@@ -206,7 +224,9 @@ describe("Log entry edit screen (/garage/:vehicleId/log/:entryId)", () => {
       body: { logEntry: ENTRY_FIXTURE },
     }).as("getEntry");
 
+    stubLogEntryAuthRefresh();
     cy.visit(`/garage/${VEHICLE_ID}/log/${ENTRY_ID}`);
+    cy.wait("@refresh");
     cy.wait("@getEntry");
   });
 
