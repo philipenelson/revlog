@@ -49,10 +49,28 @@ function signIn(beforeVisit: () => void = () => {}) {
   cy.wait("@login");
 }
 
+/**
+ * The second `cy.visit()` to /garage/[vehicleId]/edit wipes the in-memory
+ * session (ADR 0016). Stub the silent restore so the page has a session to
+ * fetch the vehicle with — same pattern as journey.cy.ts's jStubAuthRefresh.
+ */
+function stubEditVehicleAuthRefresh() {
+  cy.intercept("POST", "**/auth/refresh", {
+    statusCode: 200,
+    body: {
+      accessToken: ACCESS_TOKEN,
+      user: { id: "e2e-user", accountId: "e2e-account", role: "OWNER" },
+      account: { id: "e2e-account", status: "ACTIVE" },
+    },
+  }).as("refresh");
+}
+
 describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
   it("pre-fills all fields from the vehicle detail", () => {
     signIn(stubDetailOk);
+    stubEditVehicleAuthRefresh();
     cy.visit(`/garage/${VEHICLE_ID}/edit`);
+    cy.wait("@refresh");
     cy.wait("@getVehicle");
 
     cy.get('[data-testid="nickname-input"]').should("have.value", VEHICLE_FIXTURE.nickname);
@@ -68,7 +86,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
     }).as("slowGet");
 
     signIn();
+    stubEditVehicleAuthRefresh();
     cy.visit(`/garage/${VEHICLE_ID}/edit`);
+    cy.wait("@refresh");
     cy.get('[data-testid="loading-skeleton"]').should("exist");
     cy.wait("@slowGet");
     cy.get('[data-testid="edit-vehicle-form"]').should("exist");
@@ -78,7 +98,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
     it("calls PATCH and redirects to vehicle detail on save", () => {
       signIn(stubDetailOk);
       stubPatchOk({ make: "Yamaha", model: "MT-07" });
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.wait("@getVehicle");
 
       cy.get('[data-testid="make-input"]').clear().type("Yamaha");
@@ -96,7 +118,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
     it("sends nickname as null when the nickname field is cleared", () => {
       signIn(stubDetailOk);
       stubPatchOk({ nickname: null });
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.wait("@getVehicle");
 
       cy.get('[data-testid="nickname-input"]').clear();
@@ -113,7 +137,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
         req.reply({ delay: 400, statusCode: 200, body: { vehicle: VEHICLE_FIXTURE } });
       }).as("slowPatch");
 
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.wait("@getVehicle");
       cy.get('[data-testid="save-btn"]').click();
       cy.get('[data-testid="save-btn"]').should("be.disabled");
@@ -126,7 +152,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
       signIn(stubDetailOk);
       stubDetailOk();
 
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.wait("@getVehicle");
       cy.get('[data-testid="cancel-btn"]').click();
 
@@ -138,7 +166,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
   describe("client-side validation", () => {
     it("shows an error when make is empty", () => {
       signIn(stubDetailOk);
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.wait("@getVehicle");
 
       cy.get('[data-testid="make-input"]').clear();
@@ -149,7 +179,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
 
     it("shows an error when year is invalid", () => {
       signIn(stubDetailOk);
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.wait("@getVehicle");
 
       cy.get('[data-testid="year-input"]').clear().type("abcd");
@@ -167,7 +199,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
         body: { error: "Validation error" },
       }).as("patchError");
 
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.wait("@getVehicle");
       cy.get('[data-testid="save-btn"]').click();
       cy.wait("@patchError");
@@ -184,7 +218,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
       });
 
       signIn();
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.contains("Vehicle not found").should("be.visible");
       cy.contains("Back to garage").should("be.visible");
     });
@@ -196,7 +232,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
       });
 
       signIn();
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.contains("Vehicle not found").should("be.visible");
     });
 
@@ -207,7 +245,9 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
       });
 
       signIn();
+      stubEditVehicleAuthRefresh();
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
       cy.contains("Something went wrong").should("be.visible");
     });
   });
