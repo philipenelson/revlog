@@ -27,7 +27,7 @@
       <button
         type="submit"
         data-testid="newsletter-submit"
-        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-accent px-6 py-3 text-sm font-semibold text-[var(--accent-contrast)] shadow-[var(--shadow-accent-btn)] transition-colors hover:bg-accent-hover"
+        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-accent px-6 py-3 text-sm font-semibold text-[var(--accent-contrast)] shadow-[var(--shadow-accent-btn)] transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         Subscribe
       </button>
@@ -44,3 +44,56 @@
     </p>
   </div>
 </section>
+
+<script>
+  import { API_URL } from '../lib/env';
+
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const form = document.querySelector<HTMLFormElement>('[data-testid="newsletter-form"]');
+  const emailInput = document.querySelector<HTMLInputElement>('[data-testid="newsletter-email-input"]');
+  const submitButton = document.querySelector<HTMLButtonElement>('[data-testid="newsletter-submit"]');
+  const validationError = document.querySelector<HTMLElement>('[data-testid="newsletter-validation-error"]');
+  const serverError = document.querySelector<HTMLElement>('[data-testid="newsletter-server-error"]');
+  const success = document.querySelector<HTMLElement>('[data-testid="newsletter-success"]');
+
+  function hideMessages() {
+    validationError?.classList.add('hidden');
+    serverError?.classList.add('hidden');
+    success?.classList.add('hidden');
+  }
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideMessages();
+
+    const email = emailInput?.value.trim() ?? '';
+
+    if (!EMAIL_PATTERN.test(email)) {
+      validationError?.classList.remove('hidden');
+      return;
+    }
+
+    if (submitButton) submitButton.disabled = true;
+
+    try {
+      const response = await fetch(`${API_URL}/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Subscribe request failed with status ${response.status}`);
+      }
+
+      form.reset();
+      form.classList.add('hidden');
+      success?.classList.remove('hidden');
+    } catch {
+      serverError?.classList.remove('hidden');
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+  });
+</script>

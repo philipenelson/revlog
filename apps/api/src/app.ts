@@ -28,7 +28,10 @@ import { createLookupRouter } from './routes/lookup';
 import { createNewsletterRouter } from './routes/newsletter';
 import { errorMiddleware } from './middleware/error';
 
-const allowedOrigins = [process.env.APP_URL ?? 'http://localhost:3000'];
+const allowedOrigins = [
+  process.env.APP_URL ?? 'http://localhost:3000',
+  process.env.WEBSITE_URL ?? 'http://localhost:4321',
+];
 
 export function createApp(): Express {
   // Composition root — the only place concrete implementations are wired together.
