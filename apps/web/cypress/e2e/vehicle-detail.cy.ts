@@ -78,6 +78,22 @@ const VEHICLE_DETAIL_WITH_PHOTO = {
 };
 
 /**
+ * The second `cy.visit()` to /garage/:id wipes the in-memory session
+ * (ADR 0016). Stub the silent restore so the page has a session to fetch
+ * the vehicle with — same pattern as journey.cy.ts's jStubAuthRefresh.
+ */
+function stubVehicleDetailAuthRefresh() {
+  cy.intercept("POST", "**/auth/refresh", {
+    statusCode: 200,
+    body: {
+      accessToken: ACCESS_TOKEN,
+      user: { id: "e2e-user", accountId: "e2e-account", role: "OWNER" },
+      account: { id: "e2e-account", status: "ACTIVE" },
+    },
+  }).as("refresh");
+}
+
+/**
  * Sign in and navigate to the vehicle detail page for VEHICLE_ID.
  * `stubDetail` sets up the GET /vehicles/:id intercept before visiting.
  */
@@ -101,7 +117,9 @@ function signIntoVehicleDetail(stubDetail: () => void) {
   cy.contains("button", "Continue").click();
   cy.wait("@login");
 
+  stubVehicleDetailAuthRefresh();
   cy.visit(`/garage/${VEHICLE_ID}`);
+  cy.wait("@refresh");
 }
 
 function stubVehicleDetail(body: unknown, statusCode = 200) {
@@ -230,7 +248,7 @@ describe("Vehicle Detail screen", () => {
 
       cy.get('[data-testid="insurance-add-btn"]').click();
       cy.get('[data-testid="insurance-dialog"]').should("be.visible");
-      cy.get('[data-testid="dialog-save-btn"]').should("be.visible");
+      cy.get('[data-testid="dialog-save-btn"]').scrollIntoView().should("be.visible");
       cy.get('[data-testid="dialog-edit-btn"]').should("not.exist");
     });
 
