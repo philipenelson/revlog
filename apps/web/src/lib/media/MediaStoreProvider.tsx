@@ -1,17 +1,13 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { MediaStore } from './MediaStore';
+import { OpfsMediaStore } from './OpfsMediaStore';
 
 const MediaStoreContext = createContext<MediaStore | null>(null);
 
-export function MediaStoreProvider({
-  store,
-  children,
-}: {
-  store: MediaStore;
-  children: React.ReactNode;
-}) {
+export function MediaStoreProvider({ children }: { children: React.ReactNode }) {
+  const [store] = useState<MediaStore>(() => new OpfsMediaStore());
   return <MediaStoreContext.Provider value={store}>{children}</MediaStoreContext.Provider>;
 }
 
