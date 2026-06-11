@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { logger } from "@/infrastructure/logging/logger";
-import styles from "./onboarding.module.css";
+import { useLogScreenCrash } from "@/application/hooks/useLogScreenCrash";
+import styles from "@/application/screens/onboarding/onboarding.module.css";
 
 export default function OnboardingError({
   error,
@@ -11,9 +10,7 @@ export default function OnboardingError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    logger.error("onboarding screen crashed", { message: error.message, digest: error.digest });
-  }, [error]);
+  useLogScreenCrash("onboarding", error);
 
   return (
     <div className={styles.scene}>
