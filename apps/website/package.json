@@ -12,7 +12,9 @@
     "astro": "astro",
     "lint": "astro check",
     "type-check": "astro check",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
   },
   "dependencies": {
     "astro": "^6.4.4",
@@ -21,5 +23,8 @@
     "@fontsource-variable/outfit": "^5",
     "@fontsource-variable/dm-sans": "^5",
     "@fontsource-variable/geist-mono": "^5"
+  },
+  "devDependencies": {
+    "cypress": "^15.16.0"
   }
 }

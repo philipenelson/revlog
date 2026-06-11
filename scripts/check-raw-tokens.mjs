@@ -26,8 +26,10 @@ const staged = execSync("git diff --cached --name-only --diff-filter=ACM")
 
 if (staged.length === 0) process.exit(0);
 
-// Matches hex color literals: #abc, #aabbcc, #aabbccdd (3, 6, or 8 hex digits)
-const HEX_RE = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}(?:[0-9a-fA-F]{2})?)?(?![0-9a-fA-F])/;
+// Matches hex color literals: #abc, #aabbcc, #aabbccdd (3, 6, or 8 hex digits).
+// The trailing (?!\w) avoids false positives on identifiers/anchors that happen to
+// start with hex-like characters, e.g. href="#features" or "#roadmap".
+const HEX_RE = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}(?:[0-9a-fA-F]{2})?)?(?!\w)/;
 
 const violations = [];
 
