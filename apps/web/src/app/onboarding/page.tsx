@@ -2,7 +2,7 @@
 
 import { useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { StatusOrb } from "@/components/StatusOrb";
+import { StatusOrb } from "@/application/components/StatusOrb";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { ApiError } from "@/model/errors";
 import { createVehicle, createVehicleWithPhoto } from "@/model/services/vehicleService";

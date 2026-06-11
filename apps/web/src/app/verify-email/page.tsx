@@ -6,7 +6,7 @@ import { ApiError } from "@/model/errors";
 import { verifyEmail } from "@/model/services/authService";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
-import { StatusOrb } from "@/components/StatusOrb";
+import { StatusOrb } from "@/application/components/StatusOrb";
 import { logger } from "@/infrastructure/logging/logger";
 import styles from "./verify-email.module.css";
 
