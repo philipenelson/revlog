@@ -1,14 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { AccountStatus } from "@maintenance-log/domain";
-import { apiFetch } from "@/lib/api";
+import { refreshSession } from "@/model/services/authService";
+import type { Session } from "@/model/types";
 
-export interface Session {
-  accessToken: string;
-  user: { id: string; accountId: string; role: string };
-  account: { id: string; status: AccountStatus };
-}
+export type { Session };
 
 interface AuthContextValue {
   session: Session | null;
@@ -28,14 +24,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Reloading or directly navigating to a protected route wipes this in-memory
   // state (ADR 0016) but leaves the HttpOnly refreshToken cookie intact. Attempt
-  // a silent restore on mount — apiFetch's credentials: "include" sends the
-  // cookie automatically. A 401 here just means "not signed in," the overwhelming
-  // common case (e.g. every fresh visit to /login) — not worth logging as an error.
-  // See UC-AUTH-7 (login.md) and ADR 0017.
+  // a silent restore on mount — the cookie is sent automatically. A 401 here just
+  // means "not signed in," the overwhelming common case (e.g. every fresh visit
+  // to /login) — not worth logging as an error. See UC-AUTH-7 (login.md) and ADR 0017.
   useEffect(() => {
     let cancelled = false;
 
-    apiFetch<Session>("/auth/refresh", { method: "POST" })
+    refreshSession()
       .then((restored) => {
         if (!cancelled) setSessionState(restored);
       })

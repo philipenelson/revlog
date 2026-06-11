@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { logger } from "@/lib/logger";
-import styles from "./garage.module.css";
+import { useLogScreenCrash } from "@/application/hooks/useLogScreenCrash";
+import styles from "@/application/screens/garage/garage.module.css";
 
 export default function GarageError({
   error,
@@ -11,9 +10,7 @@ export default function GarageError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    logger.error("garage screen crashed", { message: error.message, digest: error.digest });
-  }, [error]);
+  useLogScreenCrash("garage", error);
 
   return (
     <div className={styles.scene}>
