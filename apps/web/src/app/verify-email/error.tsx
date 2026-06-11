@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { logger } from "@/infrastructure/logging/logger";
-import styles from "./verify-email.module.css";
+import { useLogScreenCrash } from "@/application/hooks/useLogScreenCrash";
+import styles from "@/application/screens/verify-email/verify-email.module.css";
 
 export default function VerifyEmailError({
   error,
@@ -11,9 +10,7 @@ export default function VerifyEmailError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    logger.error("verify-email screen crashed", { message: error.message, digest: error.digest });
-  }, [error]);
+  useLogScreenCrash("verify-email", error);
 
   return (
     <div className={styles.scene}>

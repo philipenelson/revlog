@@ -1,18 +1,12 @@
 import type { ReactNode } from "react";
 
-export interface FormFieldClasses {
-  field: string;
-  fieldLabel: string;
-  optional: string;
-  fieldError: string;
-}
-
 export interface FormFieldProps {
   label: string;
   id: string;
   optional?: boolean;
   error?: string;
-  classes: FormFieldClasses;
+  /** The host screen's CSS-module object — must define `field`, `fieldLabel`, `optional`, `fieldError`. */
+  classes: Record<string, string>;
   children: ReactNode;
 }
 
