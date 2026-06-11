@@ -1,11 +1,13 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useState, useRef } from 'react';
-import type { MediaRef } from '@/infrastructure/media/MediaStore';
-import styles from './log-entry.module.css';
+import Link from "next/link";
+import { useRef } from "react";
+import { AttachIcon, BackArrowIcon } from "@/application/components/icons";
+import { itemRowTotal, type LogEntryFormState } from "@/model/logEntryDraft";
+import { useLogEntryFormViewModel } from "./useLogEntryFormViewModel";
+import styles from "./log-entry.module.css";
 
-/* ── Constants ─────────────────────────────────────────────────── */
+/* ── Display constants ──────────────────────────────────────────── */
 
 const TYPE_META: Record<string, { label: string; tooltip: string; icon: string }> = {
   MAINTENANCE: { label: 'Maintenance', tooltip: 'Routine upkeep — oil change, tyre swap, chain service', icon: '🔧' },
@@ -24,57 +26,7 @@ const CATEGORY_META: Record<string, { label: string; tooltip: string }> = {
   OTHER: { label: 'Other', tooltip: 'Anything else' },
 };
 
-const MAX_MEDIA_FILES = 10;
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
-
-export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-/* ── Types ─────────────────────────────────────────────────────── */
-
-export interface LogItemDraft {
-  id: string; // local key
-  categoryId: string;
-  description: string;
-  quantity: string;
-  unitCost: string;
-}
-
-export interface MediaDraft {
-  id: string; // local key
-  file: File;
-  url: string;
-  caption: string;
-  savedRef?: MediaRef; // set after mediaStore.save()
-}
-
-export interface LogEntryFormState {
-  typeId: string;
-  title: string;
-  date: string;
-  time: string;
-  mileage: string;
-  notes: string;
-  items: LogItemDraft[];
-  mediaDrafts: MediaDraft[];
-}
-
-export function emptyFormState(): LogEntryFormState {
-  return {
-    typeId: '',
-    title: '',
-    date: todayIso(),
-    time: '',
-    mileage: '',
-    notes: '',
-    items: [],
-    mediaDrafts: [],
-  };
-}
-
-export interface LogEntryFormProps {
+export interface LogEntryFormViewProps {
   vehicleId: string;
   mode: 'create' | 'edit';
   state: LogEntryFormState;
@@ -85,31 +37,7 @@ export interface LogEntryFormProps {
   error: string | null;
 }
 
-/* ── Helpers ────────────────────────────────────────────────────── */
-
-function rowTotal(item: LogItemDraft): string | null {
-  const q = parseFloat(item.quantity);
-  const u = parseFloat(item.unitCost);
-  if (!isNaN(q) && !isNaN(u)) return (q * u).toFixed(2);
-  return null;
-}
-
-function grandTotal(items: LogItemDraft[]): string | null {
-  let sum = 0;
-  let hasAny = false;
-  for (const item of items) {
-    const t = rowTotal(item);
-    if (t !== null) {
-      sum += parseFloat(t);
-      hasAny = true;
-    }
-  }
-  return hasAny ? sum.toFixed(2) : null;
-}
-
-/* ── Component ──────────────────────────────────────────────────── */
-
-export function LogEntryForm({
+export function LogEntryFormView({
   vehicleId,
   mode,
   state,
@@ -118,84 +46,9 @@ export function LogEntryForm({
   onDelete,
   isSaving,
   error,
-}: LogEntryFormProps) {
+}: LogEntryFormViewProps) {
+  const vm = useLogEntryFormViewModel(state, onChange, isSaving);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [mediaError, setMediaError] = useState<string | null>(null);
-
-  const canSave = state.typeId.length > 0 && state.title.trim().length > 0 && !isSaving;
-
-  function setField<K extends keyof LogEntryFormState>(key: K, value: LogEntryFormState[K]) {
-    onChange({ ...state, [key]: value });
-  }
-
-  function addItem() {
-    const newItem: LogItemDraft = {
-      id: crypto.randomUUID(),
-      categoryId: 'PART',
-      description: '',
-      quantity: '',
-      unitCost: '',
-    };
-    onChange({ ...state, items: [...state.items, newItem] });
-  }
-
-  function updateItem(id: string, patch: Partial<LogItemDraft>) {
-    onChange({
-      ...state,
-      items: state.items.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    });
-  }
-
-  function removeItem(id: string) {
-    onChange({ ...state, items: state.items.filter((item) => item.id !== id) });
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setMediaError(null);
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-
-    if (state.mediaDrafts.length + files.length > MAX_MEDIA_FILES) {
-      setMediaError(`Maximum ${MAX_MEDIA_FILES} files allowed`);
-      return;
-    }
-
-    const newDrafts: MediaDraft[] = [];
-    for (const file of files) {
-      const isVideo = file.type.startsWith('video/');
-      const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
-      if (file.size > maxBytes) {
-        const limit = isVideo ? '100 MB' : '10 MB';
-        setMediaError(`"${file.name}" exceeds the ${limit} limit`);
-        continue;
-      }
-      newDrafts.push({
-        id: crypto.randomUUID(),
-        file,
-        url: URL.createObjectURL(file),
-        caption: '',
-      });
-    }
-
-    onChange({ ...state, mediaDrafts: [...state.mediaDrafts, ...newDrafts] });
-    // reset so the same file can be picked again
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }
-
-  function removeMedia(id: string) {
-    const draft = state.mediaDrafts.find((m) => m.id === id);
-    if (draft) URL.revokeObjectURL(draft.url);
-    onChange({ ...state, mediaDrafts: state.mediaDrafts.filter((m) => m.id !== id) });
-  }
-
-  function updateCaption(id: string, caption: string) {
-    onChange({
-      ...state,
-      mediaDrafts: state.mediaDrafts.map((m) => (m.id === id ? { ...m, caption } : m)),
-    });
-  }
-
-  const total = grandTotal(state.items);
 
   return (
     <div className={styles.scene}>
@@ -203,7 +56,7 @@ export function LogEntryForm({
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <Link href={`/garage/${vehicleId}`} className={styles.backLink} data-testid="back-link">
-            <BackIcon />
+            <BackArrowIcon size={14} />
             Back
           </Link>
           <span className={styles.headerTitle} data-testid="page-heading">
@@ -213,7 +66,7 @@ export function LogEntryForm({
         <button
           type="button"
           className={styles.btnSave}
-          disabled={!canSave}
+          disabled={!vm.canSave}
           onClick={onSave}
           data-testid="save-btn"
         >
@@ -232,7 +85,7 @@ export function LogEntryForm({
                 type="button"
                 title={meta.tooltip}
                 className={`${styles.pill} ${state.typeId === id ? styles.pillActive : ''}`}
-                onClick={() => setField('typeId', id)}
+                onClick={() => vm.setField('typeId', id)}
                 data-testid={`type-pill-${id}`}
                 data-active={state.typeId === id ? 'true' : 'false'}
               >
@@ -254,7 +107,7 @@ export function LogEntryForm({
               type="text"
               className={styles.input}
               value={state.title}
-              onChange={(e) => setField('title', e.target.value)}
+              onChange={(e) => vm.setField('title', e.target.value)}
               maxLength={100}
               placeholder="e.g. 10,000 km service"
               data-testid="title-input"
@@ -277,7 +130,7 @@ export function LogEntryForm({
                 type="date"
                 className={styles.input}
                 value={state.date}
-                onChange={(e) => setField('date', e.target.value)}
+                onChange={(e) => vm.setField('date', e.target.value)}
                 data-testid="date-input"
               />
             </div>
@@ -288,7 +141,7 @@ export function LogEntryForm({
                 type="text"
                 className={styles.input}
                 value={state.time}
-                onChange={(e) => setField('time', e.target.value)}
+                onChange={(e) => vm.setField('time', e.target.value)}
                 placeholder="e.g. 14:30"
                 data-testid="time-input"
               />
@@ -302,7 +155,7 @@ export function LogEntryForm({
                   min={0}
                   className={styles.input}
                   value={state.mileage}
-                  onChange={(e) => setField('mileage', e.target.value)}
+                  onChange={(e) => vm.setField('mileage', e.target.value)}
                   placeholder="e.g. 15000"
                   data-testid="mileage-input"
                 />
@@ -321,7 +174,7 @@ export function LogEntryForm({
               id="entry-notes"
               className={styles.textarea}
               value={state.notes}
-              onChange={(e) => setField('notes', e.target.value)}
+              onChange={(e) => vm.setField('notes', e.target.value)}
               maxLength={5000}
               placeholder="Any additional details..."
               rows={4}
@@ -337,7 +190,7 @@ export function LogEntryForm({
             <button
               type="button"
               className={styles.btnAddItem}
-              onClick={addItem}
+              onClick={vm.addItem}
               data-testid="add-item-btn"
             >
               + Add item
@@ -355,21 +208,21 @@ export function LogEntryForm({
                 <div />
               </div>
               {state.items.map((item) => {
-                const t = rowTotal(item);
+                const t = itemRowTotal(item);
                 return (
                   <div key={item.id} className={styles.itemRow} data-testid="item-row">
                     <input
                       type="text"
                       className={styles.input}
                       value={item.description}
-                      onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                      onChange={(e) => vm.updateItem(item.id, { description: e.target.value })}
                       placeholder="Description"
                       data-testid="item-description"
                     />
                     <select
                       className={styles.select}
                       value={item.categoryId}
-                      onChange={(e) => updateItem(item.id, { categoryId: e.target.value })}
+                      onChange={(e) => vm.updateItem(item.id, { categoryId: e.target.value })}
                       data-testid="item-category"
                     >
                       {Object.entries(CATEGORY_META).map(([id, meta]) => (
@@ -384,7 +237,7 @@ export function LogEntryForm({
                       step="any"
                       className={styles.input}
                       value={item.quantity}
-                      onChange={(e) => updateItem(item.id, { quantity: e.target.value })}
+                      onChange={(e) => vm.updateItem(item.id, { quantity: e.target.value })}
                       placeholder="1"
                       data-testid="item-quantity"
                     />
@@ -394,7 +247,7 @@ export function LogEntryForm({
                       step="0.01"
                       className={styles.input}
                       value={item.unitCost}
-                      onChange={(e) => updateItem(item.id, { unitCost: e.target.value })}
+                      onChange={(e) => vm.updateItem(item.id, { unitCost: e.target.value })}
                       placeholder="0.00"
                       data-testid="item-unit-cost"
                     />
@@ -404,7 +257,7 @@ export function LogEntryForm({
                     <button
                       type="button"
                       className={styles.btnRemoveRow}
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => vm.removeItem(item.id)}
                       aria-label="Remove item"
                       data-testid="remove-item-btn"
                     >
@@ -416,7 +269,7 @@ export function LogEntryForm({
 
               <div className={styles.itemsTotal} data-testid="items-total">
                 <span className={styles.itemsTotalLabel}>Total</span>
-                <span className={styles.itemsTotalValue}>{total !== null ? `$${total}` : '—'}</span>
+                <span className={styles.itemsTotalValue}>{vm.total !== null ? `$${vm.total}` : '—'}</span>
               </div>
             </div>
           )}
@@ -441,7 +294,7 @@ export function LogEntryForm({
                     <button
                       type="button"
                       className={styles.mediaRemoveBtn}
-                      onClick={() => removeMedia(m.id)}
+                      onClick={() => vm.removeMedia(m.id)}
                       aria-label="Remove"
                       data-testid="media-remove-btn"
                     >
@@ -451,7 +304,7 @@ export function LogEntryForm({
                       type="text"
                       className={styles.mediaCaptionInput}
                       value={m.caption}
-                      onChange={(e) => updateCaption(m.id, e.target.value)}
+                      onChange={(e) => vm.updateCaption(m.id, e.target.value)}
                       placeholder="Caption…"
                       maxLength={300}
                       data-testid="media-caption-input"
@@ -462,9 +315,9 @@ export function LogEntryForm({
             </div>
           )}
 
-          {mediaError && <div className={styles.errorBanner}>{mediaError}</div>}
+          {vm.mediaError && <div className={styles.errorBanner}>{vm.mediaError}</div>}
 
-          {state.mediaDrafts.length < MAX_MEDIA_FILES && (
+          {vm.canAttachMore && (
             <label className={styles.fileInputWrapper} data-testid="file-input-label">
               <input
                 ref={fileInputRef}
@@ -472,7 +325,7 @@ export function LogEntryForm({
                 className={styles.fileInput}
                 accept="image/*,video/*"
                 multiple
-                onChange={handleFileChange}
+                onChange={(e) => vm.handleFileChange(e, fileInputRef.current)}
                 data-testid="file-input"
               />
               <span className={styles.fileInputLabel}>
@@ -495,7 +348,7 @@ export function LogEntryForm({
           <button
             type="button"
             className={styles.btnSave}
-            disabled={!canSave}
+            disabled={!vm.canSave}
             onClick={onSave}
             data-testid="save-btn-bottom"
           >
@@ -506,35 +359,5 @@ export function LogEntryForm({
         {error && <div className={styles.errorBanner} data-testid="form-error">{error}</div>}
       </div>
     </div>
-  );
-}
-
-/* ── Icons ──────────────────────────────────────────────────────── */
-
-function BackIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-      <path
-        d="M12.5 7.5h-10M6.5 4.5l-3 3 3 3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function AttachIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-      <path
-        d="M13 6.5L6.5 13a4 4 0 01-5.657-5.657L8.5 0.5l3.535 3.536L4.5 11.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
