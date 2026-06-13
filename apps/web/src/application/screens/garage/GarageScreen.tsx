@@ -62,7 +62,7 @@ export function GarageScreen() {
         </div>
 
         {vm.loadState === "loading" && <LoadingState />}
-        {vm.loadState === "error" && <ErrorState onRetry={vm.retry} />}
+        {vm.loadState === "error" && <ErrorState onRetry={() => console.log('TODO: fix error handling')} />}
         {vm.isEmpty && <EmptyState />}
         {vm.isPopulated && (
           <div className={styles.vehicleGrid} data-testid="vehicle-grid">

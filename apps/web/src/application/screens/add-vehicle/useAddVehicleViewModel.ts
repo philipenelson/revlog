@@ -2,7 +2,6 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/application/providers/AuthProvider";
 import { ApiError } from "@/model/errors";
 import { createVehicle, createVehicleWithPhoto } from "@/model/services/vehicleService";
 import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
@@ -29,7 +28,6 @@ export interface AddVehicleViewModel {
 
 export function useAddVehicleViewModel(): AddVehicleViewModel {
   const router = useRouter();
-  const { session } = useAuth();
 
   const [draft, setDraft] = useState<VehicleDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<VehicleDraftErrors>({});
@@ -65,11 +63,6 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    if (!session) {
-      setSubmitError("You are not signed in. Please sign in and try again.");
-      return;
-    }
-
     setSubmitError(null);
     setSubmitting(true);
 
@@ -82,9 +75,9 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
         mileage: Number(draft.mileage.trim().replace(/,/g, "")),
       };
       if (photoFile) {
-        await createVehicleWithPhoto(session.accessToken, payload, photoFile);
+        await createVehicleWithPhoto(payload, photoFile);
       } else {
-        await createVehicle(session.accessToken, payload);
+        await createVehicle(payload);
       }
       router.push("/garage");
     } catch (err) {

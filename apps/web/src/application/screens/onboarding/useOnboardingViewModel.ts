@@ -2,7 +2,6 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/application/providers/AuthProvider";
 import { ApiError } from "@/model/errors";
 import { createVehicle, createVehicleWithPhoto } from "@/model/services/vehicleService";
 import { skipOnboarding } from "@/model/services/onboardingService";
@@ -10,6 +9,7 @@ import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/model/types";
 import { logger } from "@/infrastructure/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
+import { sessionService } from '@/model/services/sessionService';
 
 export type OnboardingStep = 1 | 2 | 3;
 
@@ -43,7 +43,6 @@ export interface OnboardingViewModel {
 
 export function useOnboardingViewModel(): OnboardingViewModel {
   const router = useRouter();
-  const { session, setSession } = useAuth();
   const [step, setStep] = useState<OnboardingStep>(1);
   const [draft, setDraft] = useState<VehicleDraft>(EMPTY_DRAFT);
   const [errors, setErrors] = useState<VehicleDraftErrors>({});
@@ -77,7 +76,16 @@ export function useOnboardingViewModel(): OnboardingViewModel {
   }
 
   function activateAccount() {
-    if (session) setSession({ ...session, account: { ...session.account, status: "ACTIVE" } });
+    const session = sessionService.getSession();
+    if (session) {
+      sessionService.setSession({
+        ...session,
+        account: {
+          ...session.account,
+          status: 'ACTIVE'
+        }
+      });
+    }
   }
 
   async function handleContinue(e: FormEvent) {
@@ -85,10 +93,6 @@ export function useOnboardingViewModel(): OnboardingViewModel {
     const nextErrors = validateVehicleDraft(draft, { enforceYearRange: false });
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    if (!session) {
-      setVehicleError(SERVICE_ERROR);
-      return;
-    }
 
     setVehicleError(null);
     setSubmitting(true);
@@ -101,9 +105,9 @@ export function useOnboardingViewModel(): OnboardingViewModel {
         mileage: Number(draft.mileage.trim().replace(/,/g, "")),
       };
       if (photoFile) {
-        await createVehicleWithPhoto(session.accessToken, payload, photoFile);
+        await createVehicleWithPhoto(payload, photoFile);
       } else {
-        await createVehicle(session.accessToken, payload);
+        await createVehicle(payload);
       }
       activateAccount();
       setVehicle({ ...draft });
@@ -121,15 +125,10 @@ export function useOnboardingViewModel(): OnboardingViewModel {
   }
 
   async function handleSkip() {
-    if (!session) {
-      setSkipError(SERVICE_ERROR);
-      return;
-    }
-
     setSkipError(null);
     setSkipping(true);
     try {
-      await skipOnboarding(session.accessToken);
+      await skipOnboarding();
       activateAccount();
       router.push("/garage");
     } catch (err) {

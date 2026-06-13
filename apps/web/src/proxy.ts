@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const REFRESH_COOKIE = "refreshToken";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (!request.cookies.get(REFRESH_COOKIE)) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

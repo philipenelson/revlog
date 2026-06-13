@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAuth } from "@/application/providers/AuthProvider";
 import { useMediaStore } from "@/infrastructure/media/useMediaStore";
 import { createLogEntry } from "@/model/services/logEntryService";
 import {
@@ -25,7 +24,6 @@ export function useNewLogEntryViewModel(): NewLogEntryViewModel {
   const router = useRouter();
   const params = useParams<{ vehicleId: string }>();
   const vehicleId = params.vehicleId;
-  const { session } = useAuth();
   const mediaStore = useMediaStore();
 
   const [formState, setFormState] = useState<LogEntryFormState>(emptyLogEntryFormState);
@@ -35,14 +33,13 @@ export function useNewLogEntryViewModel(): NewLogEntryViewModel {
   const localEntryIdRef = useRef(crypto.randomUUID());
 
   async function handleSave() {
-    if (!session) return;
     setIsSaving(true);
     setError(null);
 
     try {
       // Save media files to OPFS first
       const savedMedia = await saveDraftMedia(mediaStore, localEntryIdRef.current, formState.mediaDrafts);
-      await createLogEntry(session.accessToken, vehicleId, buildLogEntryPayload(formState, savedMedia));
+      await createLogEntry(vehicleId, buildLogEntryPayload(formState, savedMedia));
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — please try again");

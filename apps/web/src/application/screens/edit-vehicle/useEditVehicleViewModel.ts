@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/application/providers/AuthProvider";
 import { ApiError } from "@/model/errors";
 import { getVehicle, updateVehicle } from "@/model/services/vehicleService";
 import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
@@ -25,7 +24,6 @@ export interface EditVehicleViewModel {
 export function useEditVehicleViewModel(): EditVehicleViewModel {
   const { vehicleId } = useParams<{ vehicleId: string }>();
   const router = useRouter();
-  const { session } = useAuth();
 
   const [loadState, setLoadState] = useState<EditVehicleLoadState>("loading");
   const [fields, setFields] = useState<VehicleDraft>({
@@ -40,8 +38,8 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!session || !vehicleId) return;
-    getVehicle(session.accessToken, vehicleId)
+    if (!vehicleId) return;
+    getVehicle(vehicleId)
       .then((vehicle) => {
         setFields({
           nickname: vehicle.nickname ?? "",
@@ -60,7 +58,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
           setLoadState("error");
         }
       });
-  }, [session, vehicleId]);
+  }, [vehicleId]);
 
   function updateField(field: keyof VehicleDraft) {
     return (e: ChangeEvent<HTMLInputElement>) => {
@@ -76,16 +74,11 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    if (!session) {
-      setSubmitError("You are not signed in. Please sign in and try again.");
-      return;
-    }
-
     setSubmitError(null);
     setSubmitting(true);
 
     try {
-      await updateVehicle(session.accessToken, vehicleId, {
+      await updateVehicle(vehicleId, {
         nickname: fields.nickname.trim() || null,
         make: fields.make.trim(),
         model: fields.model.trim(),

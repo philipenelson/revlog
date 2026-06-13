@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAuth } from "@/application/providers/AuthProvider";
 import { useMediaStore } from "@/infrastructure/media/useMediaStore";
 import { getLogEntry, updateLogEntry, deleteLogEntry } from "@/model/services/logEntryService";
 import {
@@ -31,7 +30,6 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
   const router = useRouter();
   const params = useParams<{ vehicleId: string; entryId: string }>();
   const { vehicleId, entryId } = params;
-  const { session } = useAuth();
   const mediaStore = useMediaStore();
 
   const [formState, setFormState] = useState<LogEntryFormState | null>(null);
@@ -42,10 +40,9 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (!session) return;
     let cancelled = false;
 
-    getLogEntry(session.accessToken, vehicleId, entryId)
+    getLogEntry(vehicleId, entryId)
       .then((entry) => {
         if (cancelled) return;
         setFormState(entryToFormState(entry));
@@ -60,10 +57,10 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
     return () => {
       cancelled = true;
     };
-  }, [session, vehicleId, entryId]);
+  }, [vehicleId, entryId]);
 
   async function handleSave() {
-    if (!session || !formState) return;
+    if (!formState) return;
     setIsSaving(true);
     setError(null);
 
@@ -71,7 +68,7 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
       // Save any new media drafts to OPFS, grouped under the real entry ID
       const savedMedia = await saveDraftMedia(mediaStore, entryId, formState.mediaDrafts);
       const payload = buildLogEntryPayload(formState, savedMedia.length > 0 ? savedMedia : null);
-      await updateLogEntry(session.accessToken, vehicleId, entryId, payload);
+      await updateLogEntry(vehicleId, entryId, payload);
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — please try again");
@@ -81,11 +78,10 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
   }
 
   async function handleDelete() {
-    if (!session) return;
     setIsDeleting(true);
 
     try {
-      await deleteLogEntry(session.accessToken, vehicleId, entryId);
+      await deleteLogEntry(vehicleId, entryId);
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete entry");
