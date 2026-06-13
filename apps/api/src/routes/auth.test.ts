@@ -31,6 +31,7 @@ const validRegisterBody = {
 
 const verifyEmailResult = {
   accessToken: 'eyJmake.token.here',
+  accessTokenExpiresAt: '2026-06-13T12:15:00.000Z',
   refreshToken: 'a'.repeat(64),
   user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
   account: { id: 'acc-1', status: 'ONBOARDING' },
@@ -43,6 +44,7 @@ const validLoginBody = {
 
 const loginResult = {
   accessToken: 'eyJmake.token.here',
+  accessTokenExpiresAt: '2026-06-13T12:15:00.000Z',
   refreshToken: 'b'.repeat(64),
   user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
   account: { id: 'acc-1', status: 'ACTIVE' },
@@ -121,6 +123,7 @@ describe('GET /auth/verify-email', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       accessToken: verifyEmailResult.accessToken,
+      accessTokenExpiresAt: verifyEmailResult.accessTokenExpiresAt,
       user: verifyEmailResult.user,
       account: verifyEmailResult.account,
     });
@@ -192,6 +195,7 @@ describe('POST /auth/login', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       accessToken: loginResult.accessToken,
+      accessTokenExpiresAt: loginResult.accessTokenExpiresAt,
       user: loginResult.user,
       account: loginResult.account,
     });
@@ -250,6 +254,7 @@ describe('POST /auth/login', () => {
 
 const refreshResult = {
   accessToken: 'eyJmake.token.here',
+  accessTokenExpiresAt: '2026-06-13T12:15:00.000Z',
   refreshToken: 'd'.repeat(64),
   user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
   account: { id: 'acc-1', status: 'ACTIVE' },
@@ -268,6 +273,7 @@ describe('POST /auth/refresh', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       accessToken: refreshResult.accessToken,
+      accessTokenExpiresAt: refreshResult.accessTokenExpiresAt,
       user: refreshResult.user,
       account: refreshResult.account,
     });

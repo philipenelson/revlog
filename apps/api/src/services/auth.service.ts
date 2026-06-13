@@ -39,6 +39,7 @@ export interface IEmailService {
 
 export interface VerifyEmailResult {
   accessToken: string;
+  accessTokenExpiresAt: string; // ISO 8601 — when the access token's `exp` lapses
   refreshToken: string;
   user: { id: string; accountId: string; role: string };
   account: { id: string; status: AccountStatus };
@@ -85,14 +86,15 @@ export class AuthService {
     // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
     const account = (await this.accountRepo.findById(user.accountId))!;
 
-    const [accessToken] = await Promise.all([
+    const [signed] = await Promise.all([
       signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
     ]);
 
     logger.info({ userId: user.id }, 'email verified');
     return {
-      accessToken,
+      accessToken: signed.token,
+      accessTokenExpiresAt: signed.expiresAt.toISOString(),
       refreshToken: raw,
       user: { id: user.id, accountId: user.accountId, role: user.role },
       account: { id: account.id, status: account.status },
@@ -115,14 +117,15 @@ export class AuthService {
     // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
     const account = (await this.accountRepo.findById(user.accountId))!;
 
-    const [accessToken] = await Promise.all([
+    const [signed] = await Promise.all([
       signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
     ]);
 
     logger.info({ userId: user.id }, 'user logged in');
     return {
-      accessToken,
+      accessToken: signed.token,
+      accessTokenExpiresAt: signed.expiresAt.toISOString(),
       refreshToken: raw,
       user: { id: user.id, accountId: user.accountId, role: user.role },
       account: { id: account.id, status: account.status },
@@ -149,7 +152,7 @@ export class AuthService {
 
     // Rotation: delete the old row and insert a new one (ADR 0012 / ADR 0017) — keeps
     // "is this token still valid" and "replace it" as separate, individually-failable steps.
-    const [accessToken] = await Promise.all([
+    const [signed] = await Promise.all([
       signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.deleteById(record.id),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
@@ -157,7 +160,8 @@ export class AuthService {
 
     logger.info({ userId: user.id }, 'session refreshed');
     return {
-      accessToken,
+      accessToken: signed.token,
+      accessTokenExpiresAt: signed.expiresAt.toISOString(),
       refreshToken: raw,
       user: { id: user.id, accountId: user.accountId, role: user.role },
       account: { id: account.id, status: account.status },

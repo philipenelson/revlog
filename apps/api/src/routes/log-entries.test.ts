@@ -86,7 +86,7 @@ function buildApp() {
 
 let authHeader: string;
 beforeAll(async () => {
-  const token = await signAccessToken({ sub: 'user-1', accountId: 'account-1', role: 'OWNER' });
+  const { token } = await signAccessToken({ sub: 'user-1', accountId: 'account-1', role: 'OWNER' });
   authHeader = `Bearer ${token}`;
 });
 
