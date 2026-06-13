@@ -9,7 +9,7 @@ import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/model/types";
 import { logger } from "@/infrastructure/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
-import { sessionService } from '@/model/services/sessionService';
+import { sessionStore } from '@/infrastructure/session/sessionStore';
 
 export type OnboardingStep = 1 | 2 | 3;
 
@@ -76,9 +76,9 @@ export function useOnboardingViewModel(): OnboardingViewModel {
   }
 
   function activateAccount() {
-    const session = sessionService.getSession();
+    const session = sessionStore.getSession();
     if (session) {
-      sessionService.setSession({
+      sessionStore.setSession({
         ...session,
         account: {
           ...session.account,

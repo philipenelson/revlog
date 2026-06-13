@@ -1,4 +1,4 @@
-import { sessionService } from '@/model/services/sessionService';
+import { sessionStore } from '@/infrastructure/session/sessionStore';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -18,7 +18,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
     credentials: 'include',
-    headers: { Authorization: `Bearer ${sessionService.getSession()?.accessToken}` },
+    headers: { Authorization: `Bearer ${sessionStore.getSession()?.accessToken}` },
     body: formData,
   });
 
@@ -48,7 +48,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ..._init?.headers,
   });
 
-  const session = sessionService.getSession();
+  const session = sessionStore.getSession();
   if (session) {
     headers.append('Authorization', `Bearer ${session.accessToken}`);
   }

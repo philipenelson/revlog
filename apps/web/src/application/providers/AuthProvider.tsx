@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { refreshSession } from "@/model/services/authService";
 import type { Session } from "@/model/types";
 import { useRouter } from 'next/navigation';
-import { sessionService } from '@/model/services/sessionService';
+import { sessionStore } from '@/infrastructure/session/sessionStore';
 import { registerResponseInterceptor } from '@/infrastructure/http/apiClient';
 import { logger } from '@/infrastructure/logging/logger';
 
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     refreshSession()
       .then((restored) => {
-        if (!cancelled) sessionService.setSession(restored);
+        if (!cancelled) sessionStore.setSession(restored);
       })
       .catch(() => {
         // No valid session to restore — consumers gate on `isRestoring` and
@@ -57,10 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = {
-    session: sessionService.getSession(),
+    session: sessionStore.getSession(),
     isRestoring,
-    setSession: sessionService.setSession,
-    clearSession: sessionService.clearSession,
+    setSession: sessionStore.setSession,
+    clearSession: sessionStore.clearSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
