@@ -4,6 +4,8 @@ import type { AccountStatus } from "@maintenance-log/domain";
 
 export interface Session {
   accessToken: string;
+  /** ISO 8601 — when the access token's `exp` lapses; drives proactive refresh (ADR 0021). */
+  accessTokenExpiresAt: string;
   user: { id: string; accountId: string; role: string };
   account: { id: string; status: AccountStatus };
 }

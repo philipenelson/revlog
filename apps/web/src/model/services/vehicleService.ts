@@ -1,4 +1,4 @@
-import { apiFetch, apiUpload } from "@/infrastructure/http/apiClient";
+import { apiFetch } from "@/infrastructure/http/apiClient";
 import type { VehicleDetail, VehicleSummary } from "@/model/types";
 
 export interface CreateVehiclePayload {
@@ -47,7 +47,8 @@ export async function createVehicleWithPhoto(
   fd.append("year", String(payload.year));
   fd.append("mileage", String(payload.mileage));
   if (payload.nickname) fd.append("nickname", payload.nickname);
-  await apiUpload<unknown>("/vehicles", fd);
+  // FormData body — apiFetch lets the browser set the multipart boundary.
+  await apiFetch("/vehicles", { method: "POST", body: fd });
 }
 
 export async function updateVehicle(
