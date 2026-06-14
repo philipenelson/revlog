@@ -50,7 +50,7 @@ On mount, the screen calls `GET /auth/verify-email?token=…` (see [register-api
 
 **Reached when:** the token is valid (UC-AUTH-3 step 4).
 
-The orb completes its "verified" animation (ring draw-in + checkmark — the same component and animation onboarding's Step 3 plays). The screen stores the returned session (`accessToken`, `user`, `account`) and redirects via the shared account-status routing rule from UC-AUTH-1 step 5:
+The orb completes its "verified" animation (ring draw-in + checkmark — the same component and animation onboarding's Step 3 plays). The screen stores the returned session (`accessToken`, `accessTokenExpiresAt`, `user`, `account`) and redirects via the shared account-status routing rule from UC-AUTH-1 step 5:
 - `account.status === "ONBOARDING"` → `/onboarding`
 - `account.status === "ACTIVE"` → `/garage`
 
@@ -88,7 +88,7 @@ This screen is the on-screen half of UC-AUTH-2 and UC-AUTH-3, both fully specifi
 ### Verified state
 
 - [x] Orb plays the "verified" animation (ring draw-in + checkmark) — the shared `StatusOrb` component, `state="verified"`
-- [x] Session (`accessToken`, `user`, `account`) is stored via the `AuthProvider` before redirecting
+- [x] Session (`accessToken`, `accessTokenExpiresAt`, `user`, `account`) is stored via the `AuthProvider` before redirecting
 - [x] Redirects to `/onboarding` when `account.status === "ONBOARDING"`, to `/garage` when `account.status === "ACTIVE"` — using the shared `routeForAccountStatus` helper (see [ADR 0016](../../adr/0016-client-session-and-route-protection.md))
 - [x] No "Continue" button — the redirect is automatic
 

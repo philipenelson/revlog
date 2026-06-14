@@ -45,7 +45,7 @@ Applied by `loginSchema` in `packages/domain` before the service receives any da
 
 | Status | Body | When |
 |---|---|---|
-| 200 | `{ "accessToken": "...", "user": { "id": "...", "accountId": "...", "role": "owner" }, "account": { "id": "...", "status": "ONBOARDING" \| "ACTIVE" } }` | Credentials valid, email verified — session issued |
+| 200 | `{ "accessToken": "...", "accessTokenExpiresAt": "2026-06-13T12:34:56.000Z", "user": { "id": "...", "accountId": "...", "role": "owner" }, "account": { "id": "...", "status": "ONBOARDING" \| "ACTIVE" } }` | Credentials valid, email verified — session issued |
 | 400 | `{ "error": "Invalid input", "details": [...] }` | Zod validation failure (empty email/password, malformed email) |
 | 401 | `{ "error": "Invalid email or password" }` | No User with that email, wrong password, **or** account not yet email-verified |
 | 500 | `{ "error": "Internal server error" }` | Unexpected failure |
@@ -82,7 +82,7 @@ The `/login` screen shows the single catch-all inline error message defined in [
 
 ## Acceptance Criteria
 
-- [x] `POST /auth/login` with valid, verified credentials returns 200, sets the refresh cookie, and returns `{ accessToken, user, account }`
+- [x] `POST /auth/login` with valid, verified credentials returns 200, sets the refresh cookie, and returns `{ accessToken, accessTokenExpiresAt, user, account }`
 - [x] `POST /auth/login` returns 401 when no User exists for the given email
 - [x] `POST /auth/login` returns 401 when the password does not match
 - [x] `POST /auth/login` returns 401 when the User exists, the password matches, but `emailVerified` is `false`
@@ -102,7 +102,7 @@ The `/login` screen shows the single catch-all inline error message defined in [
 | Single 401 for "no such user," "wrong password," and "unverified" | Same status, same body, same message for all three | Distinguishing them would let an attacker enumerate registered emails and verification status — the exact reasoning [login.md](./login.md) already applies to its catch-all error copy ("Don't reveal which field is wrong"); this endpoint is where that policy is enforced server-side, not just worded client-side |
 | Reuse `verifyEmail`'s token-issuance code path | Same `signAccessToken` + `generateRefreshToken` + `refreshTokenRepo` calls, same cookie options | Two independently-written "issue a session" implementations would drift — a bug fixed in one path (e.g., a TTL change, a cookie attribute) could silently miss the other. One path, two callers |
 | Email case sanitization added to `loginSchema` | `.trim().toLowerCase()`, matching `registerSchema` | `registerSchema` already canonicalizes email before storage; `loginSchema` did not canonicalize before this endpoint was built, which would have produced a false "wrong credentials" for any User who logged in with different casing than they registered with — an input-handling bug per the root `CLAUDE.md` rule that "All string input from external sources... must be sanitized at the validation boundary" |
-| Response shape matches `verifyEmail`'s | `{ accessToken, user: { id, accountId, role }, account: { id, status } }` | The client applies one `routeForAccountStatus(account.status)` rule regardless of which of the three session-issuing endpoints (`register` doesn't issue one; `verifyEmail`, `login`, and — in V2 — `refresh` do) produced the session. A different shape here would force the client to branch on "which endpoint did I just call" |
+| Response shape matches `verifyEmail`'s | `{ accessToken, accessTokenExpiresAt, user: { id, accountId, role }, account: { id, status } }` | The client applies one `routeForAccountStatus(account.status)` rule regardless of which of the three session-issuing endpoints (`register` doesn't issue one; `verifyEmail`, `login`, and — in V2 — `refresh` do) produced the session. A different shape here would force the client to branch on "which endpoint did I just call" |
 
 ---
 

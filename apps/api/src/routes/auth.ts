@@ -36,7 +36,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     try {
       const result = await authService.login(parsed.data);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-      res.status(200).json({ accessToken: result.accessToken, user: result.user, account: result.account });
+      res.status(200).json({ accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, user: result.user, account: result.account });
     } catch (err) {
       next(err);
     }
@@ -51,7 +51,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     try {
       const result = await authService.verifyEmail(token);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-      res.status(200).json({ accessToken: result.accessToken, user: result.user, account: result.account });
+      res.status(200).json({ accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, user: result.user, account: result.account });
     } catch (err) {
       next(err);
     }
@@ -66,7 +66,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     try {
       const result = await authService.refresh(token);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-      res.status(200).json({ accessToken: result.accessToken, user: result.user, account: result.account });
+      res.status(200).json({ accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, user: result.user, account: result.account });
     } catch (err) {
       next(err);
     }

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, decodeJwt } from 'jose';
 
 function getSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -13,15 +13,25 @@ export interface AccessTokenPayload {
   role: string;
 }
 
+export interface SignedAccessToken {
+  token: string;
+  /** The token's `exp`, so the client can refresh before it lapses without decoding the JWT. */
+  expiresAt: Date;
+}
+
 // Access tokens are stateless JWTs — validated on signature + expiry with no DB lookup.
-export async function signAccessToken(payload: AccessTokenPayload): Promise<string> {
+export async function signAccessToken(payload: AccessTokenPayload): Promise<SignedAccessToken> {
   const expiresIn = process.env.JWT_EXPIRES_IN ?? '15m';
-  return new SignJWT({ accountId: payload.accountId, role: payload.role })
+  const token = await new SignJWT({ accountId: payload.accountId, role: payload.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(payload.sub)
     .setIssuedAt()
     .setExpirationTime(expiresIn)
     .sign(getSecret());
+  // Read back the `exp` jose just computed so the returned expiry is exactly the
+  // token's own claim, regardless of how the TTL string was parsed.
+  const { exp } = decodeJwt(token);
+  return { token, expiresAt: new Date((exp ?? 0) * 1000) };
 }
 
 export async function verifyAccessToken(token: string): Promise<AccessTokenPayload> {

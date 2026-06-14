@@ -228,6 +228,10 @@ describe('AuthService.verifyEmail', () => {
     const result = await service.verifyEmail('tok-abc');
 
     expect(result.accessToken).toMatch(/^eyJ/); // JWT header
+    expect(result.accessTokenExpiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // ISO 8601
+    const expiresMs = new Date(result.accessTokenExpiresAt).getTime();
+    expect(expiresMs).toBeGreaterThan(Date.now());
+    expect(expiresMs).toBeLessThan(Date.now() + 60 * 60 * 1000); // reflects the 15m TTL, not a far-future or epoch value
     expect(result.refreshToken).toMatch(/^[0-9a-f]{64}$/); // 32 bytes as hex
     expect(result.user).toEqual({ id: mockUser.id, accountId: mockUser.accountId, role: mockUser.role });
     expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
@@ -324,6 +328,10 @@ describe('AuthService.login', () => {
     const result = await service.login(validInput);
 
     expect(result.accessToken).toMatch(/^eyJ/); // JWT header
+    expect(result.accessTokenExpiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // ISO 8601
+    const expiresMs = new Date(result.accessTokenExpiresAt).getTime();
+    expect(expiresMs).toBeGreaterThan(Date.now());
+    expect(expiresMs).toBeLessThan(Date.now() + 60 * 60 * 1000); // reflects the 15m TTL, not a far-future or epoch value
     expect(result.refreshToken).toMatch(/^[0-9a-f]{64}$/); // 32 bytes as hex
     expect(result.user).toEqual({ id: mockVerifiedUser.id, accountId: mockVerifiedUser.accountId, role: mockVerifiedUser.role });
     expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
@@ -438,6 +446,10 @@ describe('AuthService.refresh', () => {
     const result = await service.refresh(RAW_TOKEN);
 
     expect(result.accessToken).toMatch(/^eyJ/); // JWT header
+    expect(result.accessTokenExpiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // ISO 8601
+    const expiresMs = new Date(result.accessTokenExpiresAt).getTime();
+    expect(expiresMs).toBeGreaterThan(Date.now());
+    expect(expiresMs).toBeLessThan(Date.now() + 60 * 60 * 1000); // reflects the 15m TTL, not a far-future or epoch value
     expect(result.refreshToken).toMatch(/^[0-9a-f]{64}$/); // 32 bytes as hex
     expect(result.user).toEqual({ id: mockVerifiedUser.id, accountId: mockVerifiedUser.accountId, role: mockVerifiedUser.role });
     expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });

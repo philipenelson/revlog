@@ -31,7 +31,7 @@ No request body, and no `Authorization` header — the credential *is* the `Http
 
 | Status | Body | When |
 |---|---|---|
-| 200 | `{ "accessToken": "...", "user": { "id": "...", "accountId": "...", "role": "owner" }, "account": { "id": "...", "status": "ONBOARDING" \| "ACTIVE" } }` | Cookie present, hash matches a live `RefreshToken` row, not expired — session re-issued and rotated |
+| 200 | `{ "accessToken": "...", "accessTokenExpiresAt": "2026-06-13T12:34:56.000Z", "user": { "id": "...", "accountId": "...", "role": "owner" }, "account": { "id": "...", "status": "ONBOARDING" \| "ACTIVE" } }` | Cookie present, hash matches a live `RefreshToken` row, not expired — session re-issued and rotated |
 | 401 | `{ "error": "Invalid or expired session" }` | Cookie missing, hash not found (garbage, already rotated, or forged), or the matched row's `expiresAt` has passed |
 | 500 | `{ "error": "Internal server error" }` | Unexpected failure |
 
@@ -64,7 +64,7 @@ Identical to every other session-issuing endpoint: store `accessToken`/`user`/`a
 
 ## Acceptance Criteria
 
-- [x] `POST /auth/refresh` with a valid, unexpired `refreshToken` cookie returns 200 with `{ accessToken, user, account }`, matching the `login`/`verifyEmail` response shape exactly
+- [x] `POST /auth/refresh` with a valid, unexpired `refreshToken` cookie returns 200 with `{ accessToken, accessTokenExpiresAt, user, account }`, matching the `login`/`verifyEmail` response shape exactly (the `accessTokenExpiresAt` ISO timestamp powers proactive client refresh — see [token-refresh.md](./token-refresh.md), [ADR 0021](../../adr/0021-proactive-access-token-refresh.md))
 - [x] On success, the old `RefreshToken` row is deleted and a new one is created (rotation) — the old raw token can no longer be used
 - [x] On success, the response sets a **new** `refreshToken` cookie with attributes identical to `login`/`verifyEmail` (`HttpOnly`, `Secure` in production, `SameSite=Strict`, `Path=/`, no `Max-Age`)
 - [x] `POST /auth/refresh` with no `refreshToken` cookie returns 401 without querying the database

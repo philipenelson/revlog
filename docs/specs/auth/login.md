@@ -138,6 +138,22 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 
 ---
 
+### UC-AUTH-8 — Proactive access-token refresh before a mid-session request
+
+**Actor:** Signed-in User whose in-memory access token has reached (or is within 30s of) its expiry while the refresh-token cookie is still valid
+**Precondition:** `AuthProvider` holds a `session` whose `accessTokenExpiresAt` is at/near now; the `HttpOnly` refresh-token cookie has not expired
+**Milestones:** [V1](../../milestones/v1.md)
+
+1. User triggers any authenticated API call after sitting on a screen (or backgrounding the tab) past the 15-minute access-token TTL
+2. Before the request leaves the client, the `apiClient` coordinator sees `accessTokenExpiresAt - now <= 30s` and pauses it
+3. It calls `POST /auth/refresh` once — concurrent requests in the same window share that single in-flight refresh, so rotation never 401s a sibling call ([ADR 0017](../../adr/0017-refresh-token-rotation.md), [token-refresh.md](./token-refresh.md))
+4. On success, `session` is replaced with the new `{ accessToken, accessTokenExpiresAt, user, account }`, the refresh cookie rotates, and the original request proceeds with the fresh token — the User notices nothing
+5. On failure (refresh cookie missing/expired/already-rotated → 401), the coordinator logs it, clears the session, and redirects to `/login`
+
+> This closes the mid-session half of the "expired access token is silently refreshed before the user notices" criterion below. [UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation) covers restoration on reload; this covers renewal *during* an open session. Full client contract: [token-refresh.md](./token-refresh.md); decision record: [ADR 0021](../../adr/0021-proactive-access-token-refresh.md).
+
+---
+
 ## Acceptance Criteria
 
 ### Sign-in form
@@ -172,7 +188,7 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [x] Access token payload contains `sub` (userId), `accountId`, and `role` — see [ADR 0002](../../adr/0002-custom-jwt-auth.md)
 - [x] Refresh token is stored as an HTTP-only, Secure, SameSite=Strict cookie
 - [x] Access token is stored in memory (not `localStorage`)
-- [ ] Expired access token is silently refreshed using the refresh token before the user notices — `POST /auth/refresh` now exists and powers silent session *restoration* on reload/direct navigation ([UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation), [ADR 0017](../../adr/0017-refresh-token-rotation.md)); proactively or reactively renewing an access token that expires *mid-session* (e.g. retrying a 401'd API call after a transparent refresh) isn't wired up yet — remains a gap, worth tracking as a follow-up
+- [~] Expired access token is silently refreshed using the refresh token before the user notices — silent *restoration* on reload/direct navigation ships ([UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation), [ADR 0017](../../adr/0017-refresh-token-rotation.md)); proactive *mid-session* renewal is now specced as [UC-AUTH-8](#uc-auth-8--proactive-access-token-refresh-before-a-mid-session-request) ([token-refresh.md](./token-refresh.md), [ADR 0021](../../adr/0021-proactive-access-token-refresh.md)) and in progress
 - [x] On browser close, refresh token cookie expires automatically (no persistent session in V1)
 
 ### Route protection
@@ -200,6 +216,8 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [x] Successful login redirects to Onboarding (Account status `ONBOARDING`) — `journey.cy.ts`
 - [x] Authenticated user visiting `/login` is redirected — `auth.cy.ts` ("Login screen — already-authenticated visitor (UC-AUTH-5)")
 - [x] Reloading or directly navigating to a protected screen with a valid refresh-token cookie silently restores the session — `garage.cy.ts` ("session restored on reload"); see [UC-AUTH-7](#uc-auth-7--silent-session-restoration-on-reload-or-direct-navigation) and [refresh-api.md](./refresh-api.md)
+- [ ] Mid-session: an authenticated request fired after the access token expires triggers exactly one `POST /auth/refresh`, then succeeds with the rotated token — no redirect ([UC-AUTH-8](#uc-auth-8--proactive-access-token-refresh-before-a-mid-session-request))
+- [ ] Mid-session: when the refresh fails (cookie expired/invalid), the User is redirected to `/login` ([UC-AUTH-8](#uc-auth-8--proactive-access-token-refresh-before-a-mid-session-request))
 
 ---
 
