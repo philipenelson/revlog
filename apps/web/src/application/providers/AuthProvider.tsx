@@ -5,7 +5,8 @@ import { refreshSession } from "@/model/services/authService";
 import type { Session } from "@/model/types";
 import { useRouter } from 'next/navigation';
 import { sessionStore } from '@/infrastructure/session/sessionStore';
-import { registerResponseInterceptor } from '@/infrastructure/http/apiClient';
+import { registerRequestInterceptor, registerResponseInterceptor } from '@/infrastructure/http/apiClient';
+import { authRequestInterceptor, createUnauthorizedInterceptor } from '@/model/services/authInterceptor';
 import { logger } from '@/infrastructure/logging/logger';
 
 interface AuthContextValue {
@@ -21,14 +22,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isRestoring, setIsRestoring] = useState(true);
   const router = useRouter();
 
+  // Wire the auth interceptors into the generic HTTP client: one proactively
+  // refreshes + attaches the token, one redirects on an unhandled 401. The
+  // interceptor logic is framework-free (model/services); this only registers
+  // it and supplies the navigation. Cleanup avoids accumulating handlers.
   useEffect(() => {
-    registerResponseInterceptor((res, path, init) => {
-      if (res.status === 401) {
-        logger.info(`Authentication failed with 401 - ${init?.method} - ${path}`);
+    const offRequest = registerRequestInterceptor(authRequestInterceptor);
+    const offResponse = registerResponseInterceptor(
+      createUnauthorizedInterceptor(() => {
+        sessionStore.clearSession();
+        logger.info('Authentication failed (401) — redirecting to /login');
         router.push('/login');
-      }
-      return res;
-    })
+      }),
+    );
+    return () => {
+      offRequest();
+      offResponse();
+    };
   }, [router]);
 
   // Reloading or directly navigating to a protected route wipes this in-memory
