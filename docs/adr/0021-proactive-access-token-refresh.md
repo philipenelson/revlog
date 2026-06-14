@@ -40,9 +40,9 @@ Refresh-token rotation ([ADR 0017](./0017-refresh-token-rotation.md)) deletes th
 All auth behaviour is expressed as **interceptors** registered on the existing `register{Request,Response}Interceptor` registry (commit `7ad0727`), which is kept precisely because it is the Open/Closed extension point for cross-cutting concerns. The interceptor signatures become **async** so a request interceptor can `await` a refresh:
 
 - **`authRequestInterceptor`** (request, async): for non-`/auth/*` paths, if the in-memory session is within the 30s lead of expiry it awaits the single-flight refresh, then attaches `Authorization: Bearer <token>`. On refresh failure it clears the session and proceeds — the request then 401s and the response interceptor handles the redirect (a single redirect path; the doomed request is the accepted worst case).
-- **`createUnauthorizedInterceptor(onUnauthorized)`** (response): on a non-`/auth/*` 401 it invokes the injected `onUnauthorized` callback. This is the retained reactive safety net for any divergence the proactive check misses.
+- **`createUnauthorizedInterceptor(onUnauthorized)`** (response): on **any** 401 it invokes the injected `onUnauthorized` callback — covering a failed silent restore (`POST /auth/refresh` on mount), a failed proactive refresh, and a token the server rejected mid-session. This is also the reactive safety net for any divergence the proactive check misses; from `/login` the redirect is a harmless no-op.
 
-`/auth/*` is excluded *inside the interceptors* (they are auth-aware by nature) — never in `apiFetch` — which also prevents the refresh call from recursively triggering a refresh.
+`/auth/*` is excluded from the *request* interceptor (it is auth-aware by nature) — never in `apiFetch` — which prevents the refresh call from recursively triggering a refresh.
 
 ### Where the auth interceptors live — `model/services`; React stays thin
 

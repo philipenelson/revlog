@@ -38,8 +38,8 @@ function withAuthHeader(init: RequestInit | undefined, accessToken: string): Req
 /**
  * Proactively refreshes the access token before it expires, then attaches it.
  * No-op for `/auth/*` and for unauthenticated requests. On refresh failure it
- * drops the session and lets the request go out unauthenticated — it 401s and
- * `createUnauthorizedInterceptor` handles the single redirect.
+ * drops the session; the refresh's own 401 (and the ensuing unauthenticated
+ * request) trigger the redirect to /login via `createUnauthorizedInterceptor`.
  */
 export const authRequestInterceptor: RequestInterceptor = async (path, init) => {
   if (isAuthPath(path)) return [path, init];
@@ -60,14 +60,15 @@ export const authRequestInterceptor: RequestInterceptor = async (path, init) => 
 };
 
 /**
- * Redirects on a 401 the proactive refresh didn't prevent (a just-cleared
- * session, or — outside V1's model — a server-side revocation / clock skew).
- * `/auth/*` is skipped so a failed refresh's own 401 doesn't fire it. The
- * navigation is injected via `onUnauthorized` so this stays framework-free.
+ * Redirects to sign-in on any 401 — whether from a failed silent restore
+ * (`POST /auth/refresh` on mount), a failed proactive refresh, or a normal
+ * request whose token the server rejected. From `/login` the redirect is a
+ * harmless no-op. The navigation is injected via `onUnauthorized` so this stays
+ * framework-free.
  */
 export function createUnauthorizedInterceptor(onUnauthorized: () => void): ResponseInterceptor {
-  return (res, path) => {
-    if (res.status === 401 && !isAuthPath(path)) onUnauthorized();
+  return (res) => {
+    if (res.status === 401) onUnauthorized();
     return res;
   };
 }

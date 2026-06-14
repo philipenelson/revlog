@@ -43,10 +43,10 @@ Auth is added to `apiFetch` as **interceptors** — `apiFetch` itself stays a ge
 3. If `accessTokenExpiresAt - now <= 30_000ms` (the **refresh lead** — an in-flight-expiry guard, not a clock-skew defence), it awaits a refresh:
    - **Single-flight**: the first caller starts one `POST /auth/refresh`; concurrent callers in the same window await that same promise. Required — rotation ([ADR 0017](../../adr/0017-refresh-token-rotation.md)) would 401 every refresh after the first, redirecting a just-refreshed User to `/login`.
    - On success, `sessionStore` is replaced with the new `{ accessToken, accessTokenExpiresAt, user, account }`, the cookie rotates, and the token is attached.
-   - On failure, it clears the session and passes the request through unauthenticated; that request then 401s and the response interceptor below redirects (one redirect path; the doomed request is the accepted worst case).
+   - On failure, it clears the session; the refresh's own 401 (and the ensuing unauthenticated request) trigger the redirect to `/login`.
 4. Otherwise attaches `Authorization: Bearer <token>` and passes the request through.
 
-**`createUnauthorizedInterceptor(onUnauthorized)`** (response interceptor): on a non-`/auth/*` 401 it invokes `onUnauthorized`. This is the retained reactive safety net for any divergence the proactive check misses.
+**`createUnauthorizedInterceptor(onUnauthorized)`** (response interceptor): on **any** 401 it invokes `onUnauthorized` — covering a failed silent restore, a failed proactive refresh, and a token the server rejected mid-session. From `/login` the redirect is a harmless no-op.
 
 ### Layering
 
