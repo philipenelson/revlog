@@ -50,7 +50,7 @@ src/
     services/                ← one service per aggregate; the ONLY place that knows
                                 API paths, auth headers, and payload shapes
   infrastructure/
-    http/apiClient.ts        ← apiFetch / apiUpload / ApiError (transport only)
+    http/apiClient.ts        ← apiFetch / ApiError (generic transport + async interceptor pipeline)
     logging/logger.ts        ← client logger
     media/                   ← MediaStore port + OPFS adapter (ADR 0019)
   utils/                     ← pure helpers (formatting, dates, files)
@@ -61,6 +61,20 @@ Rules:
 - **ViewModels own behaviour** and return data + callbacks, never JSX. Keep DOM refs in the view; pass elements into viewmodel callbacks when needed.
 - **Views never import services or the http client**; viewmodels never call `apiFetch` or build auth headers — that belongs to `model/services`.
 - Route groups use parentheses — `(auth)` groups login/register without adding a URL segment.
+
+---
+
+## HTTP client and interceptors
+
+`infrastructure/http/apiClient.ts` (`apiFetch`) is a **generic transport** — it prefixes the API base URL, runs an async interceptor pipeline, sends the request, and parses the response into JSON or throws `ApiError`. It knows nothing about sessions, tokens, auth endpoints, or React. It only talks to our API today but must stay reusable for unauthenticated or third-party endpoints, so **never add auth/session conditionals (including `/auth/*` checks) to `apiFetch`**. See [ADR 0021](../../docs/adr/0021-proactive-access-token-refresh.md).
+
+Cross-cutting HTTP behaviour is added as **interceptors**, never by editing `apiFetch` (Open/Closed):
+
+- `registerRequestInterceptor(fn)` / `registerResponseInterceptor(fn)` — both `async`, both return an **unregister** function. Request interceptors transform `(path, init)`; response interceptors transform/observe `(res, path, init)`.
+- **Auth** is two interceptors whose logic lives in `model/services/authInterceptor.ts` (plain TS — the layer that owns API paths + auth headers): `authRequestInterceptor` attaches the Bearer token and proactively refreshes the access token before expiry (single-flight); `createUnauthorizedInterceptor(onUnauthorized)` redirects on a non-`/auth/*` 401. `AuthProvider` only registers them and injects the navigation callback — React/Next stays thin.
+- **Retry/timeout** is built into the client around the `sendRequest` seam (not a per-call wrapper): default-on for idempotent methods only (POST excluded to avoid duplicate writes), configurable per-call via `apiFetch(path, init, options)` and globally. See [ADR 0022](../../docs/adr/0022-http-client-retry-policy.md).
+
+When you need new cross-cutting behaviour (tracing, logging, etc.), write an interceptor or wrap `sendRequest` — do not add branches to `apiFetch`.
 
 ---
 

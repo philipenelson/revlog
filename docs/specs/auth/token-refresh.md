@@ -34,24 +34,25 @@ All three session-issuing endpoints add **`accessTokenExpiresAt`** (ISO 8601 str
 
 ## Client behaviour (the `apiClient` coordinator)
 
-Before any non-`/auth/*` request leaves the client, `apiFetch`:
+Auth is added to `apiFetch` as **interceptors** — `apiFetch` itself stays a generic transport that knows nothing about sessions or `/auth/*` (see [ADR 0021](../../adr/0021-proactive-access-token-refresh.md)). Two interceptors carry the behaviour.
 
-1. Reads the current session from `sessionStore`. No session → send the request as-is (an unauthenticated call simply 401s naturally).
-2. If `accessTokenExpiresAt - now <= 30_000ms` (the **refresh lead** — an in-flight-expiry guard, not a clock-skew defence), trigger a refresh:
-   - **Single-flight**: the first caller starts one `POST /auth/refresh`; concurrent callers in the same window await that same promise. This is required — rotation ([ADR 0017](../../adr/0017-refresh-token-rotation.md)) would 401 every refresh after the first, redirecting a just-refreshed User to `/login`.
-   - On success, `sessionStore` is replaced with the new `{ accessToken, accessTokenExpiresAt, user, account }`, the refresh cookie rotates, and the original request proceeds with the fresh `Authorization` header.
-   - On failure, the coordinator calls `onRefreshFailed` (log + clear session + redirect to `/login`) and the request is **aborted** rather than sent — so a known-doomed request can't trigger a second redirect via the 401 safety net.
-3. `/auth/*` paths are **excluded** from the pre-check (the refresh call must not recursively trigger a refresh).
+**`authRequestInterceptor`** (async request interceptor) runs before each request:
 
-The 401 **response** path is retained as a safety net: a non-`/auth/*` response of 401 (a token the client believed valid but the server rejected) also runs `onRefreshFailed`. It no longer drives renewal — proactive refresh does — but it covers any divergence the pre-check misses.
+1. For `/auth/*` paths it is a no-op (so a refresh call never recursively triggers a refresh).
+2. Reads the current session from `sessionStore`. No session → pass the request through unchanged.
+3. If `accessTokenExpiresAt - now <= 30_000ms` (the **refresh lead** — an in-flight-expiry guard, not a clock-skew defence), it awaits a refresh:
+   - **Single-flight**: the first caller starts one `POST /auth/refresh`; concurrent callers in the same window await that same promise. Required — rotation ([ADR 0017](../../adr/0017-refresh-token-rotation.md)) would 401 every refresh after the first, redirecting a just-refreshed User to `/login`.
+   - On success, `sessionStore` is replaced with the new `{ accessToken, accessTokenExpiresAt, user, account }`, the cookie rotates, and the token is attached.
+   - On failure, it clears the session and passes the request through unauthenticated; that request then 401s and the response interceptor below redirects (one redirect path; the doomed request is the accepted worst case).
+4. Otherwise attaches `Authorization: Bearer <token>` and passes the request through.
+
+**`createUnauthorizedInterceptor(onUnauthorized)`** (response interceptor): on a non-`/auth/*` 401 it invokes `onUnauthorized`. This is the retained reactive safety net for any divergence the proactive check misses.
 
 ### Layering
 
-- The coordinator (expiry check, single-flight, header attachment, 401 net) lives in `infrastructure/http/apiClient.ts`.
-- `sessionStore` (renamed from `sessionService`, moved to `infrastructure/session/`) is read/written directly by `apiClient` — same layer.
-- `AuthProvider` injects two cross-layer callbacks once, with cleanup, via `registerSessionHooks`:
-  - `refresh` → `authService.refreshSession` (model — owns the endpoint + payload shape)
-  - `onRefreshFailed` → `sessionStore.clear()` + `logger.info(...)` + `router.push('/login')`
+- `apiFetch` (`infrastructure/http/apiClient.ts`) is a generic transport: base URL, async interceptor pipeline, send, parse. No auth, no `sessionStore`, no `/auth/*`.
+- The interceptor logic lives in `model/services/authInterceptor.ts` (plain TS — the layer that owns API paths + auth headers, [ADR 0020](../../adr/0020-web-mvvm-layered-architecture.md)). It reads `sessionStore` (infrastructure), calls `authService.refreshSession`, and holds the single-flight promise. No React.
+- `AuthProvider` is thin wiring: on mount it registers both interceptors (each registration returns an unregister for cleanup) and supplies `onUnauthorized` = `sessionStore.clearSession()` + `logger.info(...)` + `router.push('/login')` — the only React/Next touchpoint.
 
 ### Uploads
 
@@ -71,7 +72,7 @@ The 401 **response** path is retained as a safety net: a non-`/auth/*` response 
 - [ ] On a failed proactive refresh, the session is cleared, the event is logged, the User is redirected to `/login`, and the original request does not produce a second redirect
 - [ ] `/auth/*` requests never trigger the pre-request refresh check (no recursion)
 - [ ] A non-`/auth/*` 401 response still clears the session and redirects to `/login` (retained safety net)
-- [ ] `registerSessionHooks` is idempotent and returns an unregister; `AuthProvider` registers on mount and cleans up on unmount (no handler accumulation)
+- [ ] Interceptor registration returns an unregister; `AuthProvider` registers both interceptors on mount and cleans them up on unmount (no handler accumulation across remounts)
 - [ ] `apiUpload` is removed; `createVehicleWithPhoto` uploads via `apiFetch` with a `FormData` body (multipart preserved)
 
 ### E2E tests (Cypress)
@@ -90,16 +91,16 @@ The 401 **response** path is retained as a safety net: a non-`/auth/*` response 
 | Learning expiry | API returns `accessTokenExpiresAt`; client never decodes the JWT | The server owns the TTL; stating it explicitly keeps the client from parsing/trusting token internals |
 | Refresh lead | 30s | An in-flight-expiry guard so a request doesn't carry a token about to die; not a skew defence |
 | Concurrency | Single shared in-flight refresh promise | Rotation ([ADR 0017](../../adr/0017-refresh-token-rotation.md)) would 401 every concurrent refresh after the first |
-| Placement | Coordinator in `apiClient`; only `refresh` + `onRefreshFailed` injected | Inject only what crosses a layer boundary; everything else is transport ([ADR 0020](../../adr/0020-web-mvvm-layered-architecture.md)) |
+| Placement | Auth as interceptors; logic in `model/services`, `apiFetch` stays generic | Transport must stay reusable for unauthenticated/3rd-party endpoints; cross-cutting concerns are interceptors (OCP). See [ADR 0021](../../adr/0021-proactive-access-token-refresh.md) |
 | `sessionService` → `sessionStore` in infrastructure | Rename + move | It is storage, not domain; the move removes the existing backwards `apiClient → model` import |
-| Uploads | Fold `apiUpload` into `apiFetch` (`FormData` detection), keep multipart | Removes a code path that bypassed the coordinator; base64-in-JSON rejected for payload bloat + pipeline churn |
-| Interceptor registry | Removed in favour of typed `SessionHooks` | Its only consumer was the 401 redirect, now expressed directly; the push-array leaked on remount |
+| Uploads | Fold `apiUpload` into `apiFetch` (`FormData` detection), keep multipart | Removes a code path that bypassed the interceptors; base64-in-JSON rejected for payload bloat + pipeline churn |
+| Interceptor registry | Kept and made async; registration returns an unregister | It is the Open/Closed extension point for cross-cutting HTTP concerns (auth now, retry next); async lets a request interceptor await a refresh; unregister fixes the remount leak |
 
 ---
 
 ## Out of scope
 
 - **Reactive refresh-and-retry** (transparent 401 recovery) — deferred; see [ADR 0021](../../adr/0021-proactive-access-token-refresh.md) V2+
-- **Exponential-backoff retry** for timeouts / network failures — the `sendRequest` seam is in place; the policy is a follow-up
+- **Retry / timeout policy** — built into the client around the `sendRequest` seam; specified separately in [ADR 0022](../../adr/0022-http-client-retry-policy.md)
 - **Clock-skew tolerance** — out of scope; worst case is a 401 → `/login`
 - **`POST /auth/logout`** — unchanged from [refresh-api.md](./refresh-api.md)'s out-of-scope list
