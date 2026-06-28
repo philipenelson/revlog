@@ -30,6 +30,10 @@ _Avoid_: Fleet, inventory
 A motorcycle or scooter registered to a user's garage.
 _Avoid_: Bike, motorbike (use Vehicle in code; Bike is acceptable in UI copy)
 
+**Vehicle Transfer**:
+The reassignment of a Vehicle and its complete Service History from one Account to another, subject to acceptance by the recipient.
+_Avoid_: handover, sale, reassignment
+
 ### Maintenance
 
 **Log Entry**:
@@ -59,5 +63,5 @@ The complete chronological set of log entries for a vehicle. The core value the 
 _Avoid_: Maintenance history, service record
 
 **Mechanic Printout**:
-A PDF export of a vehicle's service history formatted for a workshop or buyer.
+A formatted export of a vehicle's Service History for sharing with a workshop or prospective buyer.
 _Avoid_: Service report, history export (History Export is a separate, owner-facing export format)

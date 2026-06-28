@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revlog — Mechanic Printout · Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Screen vars ── */
+    :root {
+      --surface-base:     #0B0D14;
+      --surface-raised:   #131620;
+      --border-muted:   #1E2235;
+      --border-default: #2A2E46;
+      --text-primary:   #EDF0F8;
+      --text-secondary: #8C8FA8;
+      --text-tertiary:  #50527A;
+      --accent:       #14B8D4;
+      --accent-light: #67E2F0;
+      --accent-muted: rgba(20, 184, 212, 0.12);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Screen / dark preview mode */
+    body.screen {
+      background: var(--surface-base);
+      color: var(--text-primary);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Print / light mode */
+    body.print-mode {
+      background: #fff;
+      color: #111;
+      font-family: 'DM Sans', Georgia, serif;
+    }
+
+    /* ─── Screen wrapper ── */
+    body.screen .screen-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--border-muted); background: rgba(11,13,20,0.9); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 10; }
+    body.screen .logo-wordmark { font-family: 'Outfit', sans-serif; font-size: 16px; letter-spacing: -0.025em; }
+    body.screen .logo-wordmark .rev { font-weight: 300; color: var(--text-primary); }
+    body.screen .logo-wordmark .log { font-weight: 700; color: var(--accent); }
+    body.screen .btn-print { display: inline-flex; align-items: center; gap: 7px; background: var(--accent-muted); border: 1px solid var(--accent); color: var(--accent-light); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-md); cursor: pointer; }
+    body.screen .btn-print:hover { background: var(--accent); color: #080A10; }
+    body.screen .printout { max-width: 800px; margin: 40px auto; padding: 0 32px 80px; }
+
+    /* ─── Print document styles ── */
+    .doc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid; }
+    body.screen .doc-header { border-color: var(--border-default); }
+    body.print-mode .doc-header { border-color: #e5e7eb; }
+
+    .doc-logo { font-family: 'Outfit', sans-serif; font-size: 22px; letter-spacing: -0.02em; }
+    body.screen .doc-logo .rev { font-weight: 300; color: var(--text-primary); }
+    body.screen .doc-logo .log { font-weight: 700; color: var(--accent); }
+    body.print-mode .doc-logo .rev { font-weight: 300; color: #111; }
+    body.print-mode .doc-logo .log { font-weight: 700; color: #0891b2; }
+
+    .doc-meta-right { text-align: right; }
+    .doc-report-label { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+    body.screen .doc-report-label { color: var(--text-tertiary); }
+    body.print-mode .doc-report-label { color: #6b7280; }
+    .doc-gen-date { font-size: 12px; }
+    body.screen .doc-gen-date { color: var(--text-tertiary); }
+    body.print-mode .doc-gen-date { color: #9ca3af; }
+
+    /* Vehicle identity */
+    .vehicle-identity { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 28px; padding: 24px; border-radius: var(--radius-lg); }
+    body.screen .vehicle-identity { background: var(--surface-raised); border: 1px solid var(--border-muted); }
+    body.print-mode .vehicle-identity { background: #f9fafb; border: 1px solid #e5e7eb; }
+
+    .vehicle-glyph { width: 80px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); }
+    body.screen .vehicle-glyph { background: rgba(20,184,212,0.06); border: 1px solid rgba(20,184,212,0.12); color: rgba(20,184,212,0.4); }
+    body.print-mode .vehicle-glyph { background: #f0f9ff; border: 1px solid #bae6fd; color: #7dd3fc; }
+    .vehicle-glyph svg { width: 60px; }
+
+    .vehicle-info-main { flex: 1; }
+    .vehicle-display-name { font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 4px; }
+    body.screen .vehicle-display-name { color: var(--text-primary); }
+    body.print-mode .vehicle-display-name { color: #111; }
+    .vehicle-identity-meta { font-size: 14px; margin-bottom: 16px; }
+    body.screen .vehicle-identity-meta { color: var(--text-secondary); }
+    body.print-mode .vehicle-identity-meta { color: #6b7280; }
+    .vehicle-stats-row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .vstat { }
+    .vstat-val { font-family: 'Geist Mono', monospace; font-size: 17px; font-weight: 500; letter-spacing: -0.01em; }
+    body.screen .vstat-val { color: var(--text-primary); }
+    body.print-mode .vstat-val { color: #111; }
+    .vstat-lbl { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+    body.screen .vstat-lbl { color: var(--text-tertiary); }
+    body.print-mode .vstat-lbl { color: #9ca3af; }
+
+    /* Service history */
+    .section-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid; }
+    body.screen .section-title { color: var(--text-tertiary); border-color: var(--border-muted); }
+    body.print-mode .section-title { color: #9ca3af; border-color: #e5e7eb; }
+
+    .entry { margin-bottom: 20px; padding: 18px 20px; border-radius: var(--radius-md); break-inside: avoid; }
+    body.screen .entry { background: var(--surface-raised); border: 1px solid var(--border-muted); }
+    body.print-mode .entry { background: #fff; border: 1px solid #e5e7eb; }
+
+    .entry-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .entry-type-date { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .entry-type-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+    body.screen .entry-type-badge.maintenance { background: rgba(20,184,212,0.12); color: #67E2F0; }
+    body.screen .entry-type-badge.repair { background: rgba(251,146,60,0.12); color: #FB923C; }
+    body.screen .entry-type-badge.modification { background: rgba(196,181,253,0.12); color: #C4B5FD; }
+    body.screen .entry-type-badge.inspection { background: rgba(137,180,248,0.12); color: #89B4F8; }
+    body.print-mode .entry-type-badge.maintenance { background: #e0f2fe; color: #0369a1; }
+    body.print-mode .entry-type-badge.repair { background: #fff7ed; color: #c2410c; }
+    body.print-mode .entry-type-badge.modification { background: #f5f3ff; color: #7c3aed; }
+    body.print-mode .entry-type-badge.inspection { background: #eff6ff; color: #1d4ed8; }
+    .entry-date { font-size: 12px; }
+    body.screen .entry-date { color: var(--text-tertiary); }
+    body.print-mode .entry-date { color: #9ca3af; }
+    .entry-mileage { font-size: 12px; font-family: 'Geist Mono', monospace; }
+    body.screen .entry-mileage { color: var(--text-tertiary); }
+    body.print-mode .entry-mileage { color: #9ca3af; }
+
+    .entry-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 12px; }
+    body.screen .entry-title { color: var(--text-primary); }
+    body.print-mode .entry-title { color: #111; }
+
+    /* Items table */
+    .items-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 10px; }
+    .items-table th { text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 8px 8px 0; border-bottom: 1px solid; }
+    body.screen .items-table th { color: var(--text-tertiary); border-color: var(--border-muted); }
+    body.print-mode .items-table th { color: #9ca3af; border-color: #e5e7eb; }
+    .items-table td { padding: 6px 8px 6px 0; vertical-align: top; border-bottom: 1px solid; }
+    body.screen .items-table td { color: var(--text-secondary); border-color: rgba(30,34,53,0.5); }
+    body.print-mode .items-table td { color: #374151; border-color: #f3f4f6; }
+    .items-table .num { text-align: right; font-family: 'Geist Mono', monospace; font-size: 12px; }
+    body.screen .items-table .num { color: var(--text-primary); }
+    body.print-mode .items-table .num { color: #111; }
+    .items-total { display: flex; justify-content: flex-end; gap: 16px; padding-top: 8px; font-size: 12.5px; font-weight: 600; }
+    body.screen .items-total { color: var(--text-primary); }
+    body.print-mode .items-total { color: #111; }
+
+    .entry-notes { font-size: 12.5px; line-height: 1.6; margin-top: 8px; padding-top: 8px; border-top: 1px solid; }
+    body.screen .entry-notes { color: var(--text-secondary); border-color: var(--border-muted); }
+    body.print-mode .entry-notes { color: #6b7280; border-color: #f3f4f6; }
+    .notes-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+    body.screen .notes-label { color: var(--text-tertiary); }
+    body.print-mode .notes-label { color: #9ca3af; }
+
+    /* Doc footer */
+    .doc-footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid; display: flex; justify-content: space-between; font-size: 11px; }
+    body.screen .doc-footer { border-color: var(--border-muted); color: var(--text-tertiary); }
+    body.print-mode .doc-footer { border-color: #e5e7eb; color: #9ca3af; }
+
+    /* Revoked state */
+    .revoked-state { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; gap: 16px; padding: 40px; }
+    .revoked-state.visible { display: flex; }
+    .revoked-icon { width: 64px; height: 64px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; }
+    body.screen .revoked-icon { background: var(--surface-raised); border: 1px solid var(--border-muted); color: var(--text-disabled); }
+    body.print-mode .revoked-icon { background: #f3f4f6; border: 1px solid #e5e7eb; color: #d1d5db; }
+    .revoked-title { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+    .revoked-body { font-size: 14px; max-width: 340px; line-height: 1.6; }
+    body.screen .revoked-title { color: var(--text-primary); }
+    body.screen .revoked-body { color: var(--text-secondary); }
+    body.print-mode .revoked-title { color: #111; }
+    body.print-mode .revoked-body { color: #6b7280; }
+
+    /* Preview switcher */
+    .preview-switcher { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 10px; z-index: 30; flex-wrap: wrap; max-width: 90vw; justify-content: center; }
+    body.screen .preview-switcher { background: var(--surface-raised); border: 1px dashed var(--border-strong); }
+    body.print-mode .preview-switcher { background: #fff; border: 1px dashed #e5e7eb; }
+    .preview-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.09em; padding: 0 6px; }
+    body.screen .preview-label { color: var(--text-tertiary); }
+    body.print-mode .preview-label { color: #9ca3af; }
+    .state-btn { border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 11px; padding: 5px 12px; cursor: pointer; }
+    body.screen .state-btn { background: transparent; border: 1px solid var(--border-default); color: var(--text-tertiary); }
+    body.screen .state-btn.active, body.screen .state-btn:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-muted); }
+    body.print-mode .state-btn { background: transparent; border: 1px solid #e5e7eb; color: #6b7280; }
+    body.print-mode .state-btn.active, body.print-mode .state-btn:hover { border-color: #0891b2; color: #0891b2; background: #e0f2fe; }
+
+    @media print {
+      .screen-header, .preview-switcher { display: none !important; }
+      .printout { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+      .entry { break-inside: avoid; }
+      body { background: #fff !important; }
+    }
+  </style>
+</head>
+<body class="screen">
+
+  <!-- Screen header (hidden on print) -->
+  <div class="screen-header">
+    <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+    <button class="btn-print" type="button" onclick="window.print()">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="4" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 4V2.5h5V4M4.5 11v.5h5V11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="4.5" y="8" width="5" height="3.5" rx=".5" stroke="currentColor" stroke-width="1"/></svg>
+      Print / Save as PDF
+    </button>
+  </div>
+
+  <!-- Main printout document -->
+  <div class="printout" id="printout">
+
+    <!-- Document header -->
+    <div class="doc-header">
+      <div class="doc-logo"><span class="rev">Rev</span><span class="log">log</span></div>
+      <div class="doc-meta-right">
+        <div class="doc-report-label">Vehicle Service History</div>
+        <div class="doc-gen-date">Generated Jun 28 2026</div>
+      </div>
+    </div>
+
+    <!-- Vehicle identity -->
+    <div class="vehicle-identity">
+      <div class="vehicle-glyph">
+        <svg viewBox="0 0 80 48" fill="none">
+          <circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+          <circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/>
+          <path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="16" cy="36" r="4" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="62" cy="36" r="4" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="vehicle-info-main">
+        <div class="vehicle-display-name">Blackbird</div>
+        <div class="vehicle-identity-meta">Honda · CB650R · 2019</div>
+        <div class="vehicle-stats-row">
+          <div class="vstat">
+            <div class="vstat-val">12,400 mi</div>
+            <div class="vstat-lbl">Odometer</div>
+          </div>
+          <div class="vstat">
+            <div class="vstat-val">14</div>
+            <div class="vstat-lbl">Log entries</div>
+          </div>
+          <div class="vstat">
+            <div class="vstat-val">Jun 3 2025</div>
+            <div class="vstat-lbl">Last logged</div>
+          </div>
+          <div class="vstat">
+            <div class="vstat-val">$1,840</div>
+            <div class="vstat-lbl">Total spent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service history -->
+    <div class="section-title">Service History</div>
+
+    <div class="entry">
+      <div class="entry-head">
+        <div class="entry-type-date">
+          <span class="entry-type-badge maintenance">Maintenance</span>
+          <span class="entry-date">Jun 3 2025</span>
+          <span class="entry-mileage">· 12,400 mi</span>
+        </div>
+      </div>
+      <div class="entry-title">Oil &amp; filter change</div>
+      <table class="items-table">
+        <thead><tr><th style="width:50%">Item</th><th>Category</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          <tr><td>Motul 7100 10W-40 1L</td><td>Parts</td><td class="num">4</td><td class="num">$14.00</td><td class="num">$56.00</td></tr>
+          <tr><td>HF204 Oil filter</td><td>Parts</td><td class="num">1</td><td class="num">$12.00</td><td class="num">$12.00</td></tr>
+          <tr><td>Labour</td><td>Labour</td><td class="num">0.5h</td><td class="num">$34.00</td><td class="num">$17.00</td></tr>
+        </tbody>
+      </table>
+      <div class="items-total"><span>Total</span><span>$85.00</span></div>
+      <div class="entry-notes"><span class="notes-label">Notes</span>Full synthetic 10W-40. Slightly dark when drained — next change at 13,200 mi.</div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-head">
+        <div class="entry-type-date">
+          <span class="entry-type-badge modification">Modification</span>
+          <span class="entry-date">Mar 22 2025</span>
+          <span class="entry-mileage">· 11,800 mi</span>
+        </div>
+      </div>
+      <div class="entry-title">Shorty levers + frame sliders</div>
+      <table class="items-table">
+        <thead><tr><th style="width:50%">Item</th><th>Category</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          <tr><td>Rizoma shorty lever set</td><td>Parts</td><td class="num">1</td><td class="num">$164.00</td><td class="num">$164.00</td></tr>
+          <tr><td>Puig frame sliders</td><td>Parts</td><td class="num">1</td><td class="num">$50.00</td><td class="num">$50.00</td></tr>
+        </tbody>
+      </table>
+      <div class="items-total"><span>Total</span><span>$214.00</span></div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-head">
+        <div class="entry-type-date">
+          <span class="entry-type-badge repair">Repair</span>
+          <span class="entry-date">Apr 12 2025</span>
+          <span class="entry-mileage">· 11,200 mi</span>
+        </div>
+      </div>
+      <div class="entry-title">Front brake lever replaced</div>
+      <table class="items-table">
+        <thead><tr><th style="width:50%">Item</th><th>Category</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          <tr><td>OEM brake lever PN 53170-MKN-D01</td><td>Parts</td><td class="num">1</td><td class="num">$42.00</td><td class="num">$42.00</td></tr>
+        </tbody>
+      </table>
+      <div class="items-total"><span>Total</span><span>$42.00</span></div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-head">
+        <div class="entry-type-date">
+          <span class="entry-type-badge inspection">Inspection</span>
+          <span class="entry-date">Jan 5 2025</span>
+          <span class="entry-mileage">· 10,400 mi</span>
+        </div>
+      </div>
+      <div class="entry-title">Annual roadworthy check</div>
+      <table class="items-table">
+        <thead><tr><th style="width:50%">Item</th><th>Category</th><th class="num">Qty</th><th class="num">Unit cost</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          <tr><td>Roadworthy inspection fee</td><td>Labour</td><td class="num">1</td><td class="num">$65.00</td><td class="num">$65.00</td></tr>
+        </tbody>
+      </table>
+      <div class="items-total"><span>Total</span><span>$65.00</span></div>
+      <div class="entry-notes"><span class="notes-label">Notes</span>Passed. Tyre tread at 3.2mm front, 2.8mm rear — monitor rear for next service.</div>
+    </div>
+
+    <!-- Document footer -->
+    <div class="doc-footer">
+      <span>Generated by Revlog · revlog.io</span>
+      <span>Jun 28 2026</span>
+    </div>
+
+  </div>
+
+  <!-- Revoked state (hidden by default) -->
+  <div class="revoked-state" id="revokedState">
+    <div class="revoked-icon">
+      <svg width="28" height="28" viewBox="0 0 14 14" fill="none"><path d="M2 7l2-2m0 4l-2-2m10-2l-2 2m2 0l-2-2M5 5l4 4M9 5l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </div>
+    <div class="revoked-title">This report is no longer available</div>
+    <div class="revoked-body">The owner has revoked this service history link. Contact them directly if you need access.</div>
+  </div>
+
+  <div class="preview-switcher">
+    <span class="preview-label">Preview</span>
+    <button class="state-btn active" onclick="setView('dark')">Dark (screen)</button>
+    <button class="state-btn" onclick="setView('light')">Light (print)</button>
+    <button class="state-btn" onclick="setView('revoked')">Revoked</button>
+  </div>
+
+  <script>
+    function setView(mode) {
+      document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      const body = document.body;
+      const printout = document.getElementById('printout');
+      const revoked = document.getElementById('revokedState');
+      const header = document.querySelector('.screen-header');
+
+      if (mode === 'dark') {
+        body.className = 'screen';
+        printout.style.display = '';
+        revoked.className = 'revoked-state';
+        header.style.display = '';
+      } else if (mode === 'light') {
+        body.className = 'print-mode';
+        printout.style.display = '';
+        revoked.className = 'revoked-state';
+        header.style.display = '';
+      } else if (mode === 'revoked') {
+        body.className = 'screen';
+        printout.style.display = 'none';
+        revoked.className = 'revoked-state visible';
+        header.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
