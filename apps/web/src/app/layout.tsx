@@ -1,14 +1,9 @@
 import type { Metadata } from "next";
 import { Outfit, DM_Sans, Geist_Mono } from "next/font/google";
-import dynamic from "next/dynamic";
 import { AuthProvider } from "@/application/providers/AuthProvider";
 import { MediaStoreProvider } from "@/infrastructure/media/MediaStoreProvider";
+import { CookieConsentLazy } from "@/application/components/CookieConsentLazy";
 import "./globals.css";
-
-const CookieConsent = dynamic(
-  () => import("@/application/components/CookieConsent").then((m) => m.CookieConsent),
-  { ssr: false },
-);
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -44,7 +39,7 @@ export default function RootLayout({
         <AuthProvider>
           <MediaStoreProvider>{children}</MediaStoreProvider>
         </AuthProvider>
-        <CookieConsent />
+        <CookieConsentLazy />
       </body>
     </html>
   );
