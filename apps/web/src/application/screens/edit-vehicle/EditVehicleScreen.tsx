@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useCallback, type KeyboardEvent } from "react";
 import { BackArrowIcon } from "@/application/components/icons";
 import { FormField } from "@/application/components/FormField";
 import { useEditVehicleViewModel } from "./useEditVehicleViewModel";
@@ -122,6 +123,110 @@ export function EditVehicleScreen() {
               </div>
             </form>
           )}
+        </div>
+
+        {vm.loadState === "ready" && (
+          <div className={styles.dangerZone} data-testid="danger-zone">
+            <div className={styles.dangerZoneHeader}>
+              <h2 className={styles.dangerZoneTitle}>Danger zone</h2>
+            </div>
+            <p className={styles.dangerZoneBody}>
+              Permanently delete this vehicle and all its log entries. This cannot be undone.
+            </p>
+            <button
+              type="button"
+              className={styles.btnDanger}
+              data-testid="delete-vehicle-btn"
+              onClick={vm.openDeleteDialog}
+            >
+              Delete vehicle
+            </button>
+          </div>
+        )}
+      </div>
+
+      {vm.deleteDialogOpen && (
+        <DeleteConfirmDialog
+          vehicleDisplayName={vm.vehicleDisplayName}
+          deleting={vm.deleting}
+          deleteError={vm.deleteError}
+          onConfirm={vm.handleDelete}
+          onClose={vm.closeDeleteDialog}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Delete confirmation dialog ──────────────────────────────────── */
+
+interface DeleteConfirmDialogProps {
+  vehicleDisplayName: string;
+  deleting: boolean;
+  deleteError: string | null;
+  onConfirm: () => Promise<void>;
+  onClose: () => void;
+}
+
+function DeleteConfirmDialog({ vehicleDisplayName, deleting, deleteError, onConfirm, onClose }: DeleteConfirmDialogProps) {
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Escape" && !deleting) onClose();
+    },
+    [deleting, onClose],
+  );
+
+  useEffect(() => {
+    function handleKey(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape" && !deleting) onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [deleting, onClose]);
+
+  return (
+    <div
+      className={styles.dialogBackdrop}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-dialog-title"
+      data-testid="delete-confirm-dialog"
+      onClick={(e) => { if (e.target === e.currentTarget && !deleting) onClose(); }}
+      onKeyDown={handleKeyDown}
+    >
+      <div className={styles.deleteDialog}>
+        <h2 id="delete-dialog-title" className={styles.deleteDialogTitle}>
+          Delete vehicle?
+        </h2>
+        <p className={styles.deleteDialogBody}>
+          <strong>{vehicleDisplayName}</strong> and all its log entries, items, media, and insurance will be permanently removed. This cannot be undone.
+        </p>
+
+        {deleteError && (
+          <p className={styles.deleteDialogError} role="alert" data-testid="delete-error">
+            {deleteError}
+          </p>
+        )}
+
+        <div className={styles.deleteDialogActions}>
+          <button
+            type="button"
+            className={styles.btnGhost}
+            data-testid="delete-cancel-btn"
+            onClick={onClose}
+            disabled={deleting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.btnDestructive}
+            data-testid="delete-confirm-btn"
+            onClick={onConfirm}
+            disabled={deleting}
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
         </div>
       </div>
     </div>
