@@ -1,0 +1,191 @@
+/* ── Scene ─────────────────────────────────────────────────────── */
+.scene {
+  min-height: 100dvh;
+  background: var(--surface-base);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+/* ── Card ──────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: 40px 40px 36px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Wordmark ──────────────────────────────────────────────────── */
+.wordmark {
+  font-family: var(--font-outfit);
+  font-size: 17px;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin-bottom: 32px;
+  text-align: center;
+}
+.wordmarkLight { font-weight: 300; color: var(--text-primary); }
+.wordmarkBold  { font-weight: 700; color: var(--accent); }
+
+/* ── Vehicle identity ──────────────────────────────────────────── */
+.vehicleBlock {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+}
+
+.vehicleThumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.vehicleThumbPlaceholder {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-disabled);
+  flex-shrink: 0;
+}
+
+.vehicleName {
+  font-family: var(--font-outfit);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.vehicleMeta {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+/* ── Transfer info ─────────────────────────────────────────────── */
+.headline {
+  font-family: var(--font-outfit);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.meta {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  margin-bottom: 28px;
+}
+
+/* ── Action area ───────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btnPrimary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent-contrast);
+  font-family: var(--font-dm-sans);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 22px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition-fast);
+  box-shadow: var(--shadow-accent-btn);
+  width: 100%;
+}
+.btnPrimary:hover:not(:disabled) { background: var(--accent-hover); }
+.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btnSecondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-dm-sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 13px 22px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  width: 100%;
+}
+.btnSecondary:hover:not(:disabled) { border-color: var(--border-strong); color: var(--text-primary); }
+.btnSecondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.actionError {
+  font-size: 13px;
+  color: var(--danger);
+  padding: 10px 14px;
+  background: var(--danger-glow);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Terminal states ───────────────────────────────────────────── */
+.stateIcon {
+  font-size: 40px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.btnLink {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 8px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+.btnLink:hover { text-decoration: underline; }
+
+@media (max-width: 520px) {
+  .card { padding: 28px 20px 24px; }
+}

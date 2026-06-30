@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   CalendarIcon,
@@ -14,7 +15,7 @@ import {
   VehicleGlyphIcon,
 } from "@/application/components/icons";
 import { Wordmark } from "@/application/components/Wordmark";
-import type { InsuranceRecord, LogEntrySummary, VehicleDetail } from "@/model/types";
+import type { InsuranceRecord, LogEntrySummary, PendingTransfer, VehicleDetail } from "@/model/types";
 import { formatCurrency2, formatCurrencyWhole, formatShortDate } from "@/utils/format";
 import { isWithin30Days } from "@/utils/date";
 import { useVehicleDetailViewModel } from "./useVehicleDetailViewModel";
@@ -74,22 +75,34 @@ export function VehicleDetailScreen() {
               <ShareIcon />
               Share report
             </button>
-            <Link
-              href={`/garage/${vehicleId}/edit`}
-              className={styles.btnOutline}
-              data-testid="edit-btn"
-            >
-              <EditIcon />
-              Edit
-            </Link>
-            <Link
-              href={`/garage/${vehicleId}/log/new`}
-              className={styles.btnPrimary}
-              data-testid="new-log-entry-btn"
-            >
-              <PlusIcon size={12} />
-              Log entry
-            </Link>
+            {!vehicle?.transferPending && (
+              <>
+                <Link
+                  href={`/garage/${vehicleId}/edit`}
+                  className={styles.btnOutline}
+                  data-testid="edit-btn"
+                >
+                  <EditIcon />
+                  Edit
+                </Link>
+                <button
+                  type="button"
+                  className={styles.btnOutline}
+                  onClick={vm.openTransferDialog}
+                  data-testid="transfer-btn"
+                >
+                  Transfer
+                </button>
+                <Link
+                  href={`/garage/${vehicleId}/log/new`}
+                  className={styles.btnPrimary}
+                  data-testid="new-log-entry-btn"
+                >
+                  <PlusIcon size={12} />
+                  Log entry
+                </Link>
+              </>
+            )}
           </div>
         </header>
 
@@ -127,6 +140,13 @@ export function VehicleDetailScreen() {
             <div className={styles.contentWrap}>
               <StatsStrip vehicle={vehicle} />
 
+              {vehicle.transferPending && vehicle.pendingTransfer && (
+                <TransferPendingBanner
+                  pendingTransfer={vehicle.pendingTransfer}
+                  onCancel={vm.openCancelTransferDialog}
+                />
+              )}
+
               <InsuranceRow
                 insurance={vehicle.insurance}
                 onOpen={vm.openInsurance}
@@ -159,6 +179,7 @@ export function VehicleDetailScreen() {
                         key={entry.id}
                         entry={entry}
                         vehicleId={vehicleId}
+                        locked={vehicle.transferPending}
                       />
                     ))}
                   </div>
@@ -182,6 +203,21 @@ export function VehicleDetailScreen() {
         <ShareReportDialog
           vehicleId={vehicleId}
           onClose={vm.closeShareReport}
+        />
+      )}
+
+      {vm.transferDialogOpen && (
+        <TransferDialog
+          vehicleDisplayName={displayName}
+          onSubmit={vm.handleInitiateTransfer}
+          onClose={vm.closeTransferDialog}
+        />
+      )}
+
+      {vm.cancelTransferDialogOpen && (
+        <CancelTransferDialog
+          onConfirm={vm.handleCancelTransfer}
+          onClose={vm.closeCancelTransferDialog}
         />
       )}
     </>
@@ -286,23 +322,195 @@ function InsuranceRow({
   );
 }
 
+function TransferPendingBanner({
+  pendingTransfer,
+  onCancel,
+}: {
+  pendingTransfer: PendingTransfer;
+  onCancel: () => void;
+}) {
+  return (
+    <div className={styles.transferBanner} data-testid="transfer-pending-banner">
+      <div className={styles.transferBannerText}>
+        <span className={styles.transferBannerHeadline}>
+          Transfer pending
+        </span>
+        <span className={styles.transferBannerDetail}>
+          Awaiting {pendingTransfer.recipientEmail} — expires{" "}
+          {formatShortDate(pendingTransfer.expiresAt)}. This vehicle is locked until the transfer resolves.
+        </span>
+      </div>
+      <button
+        type="button"
+        className={styles.btnDanger}
+        onClick={onCancel}
+        data-testid="cancel-transfer-btn"
+      >
+        Cancel transfer
+      </button>
+    </div>
+  );
+}
+
+function TransferDialog({
+  vehicleDisplayName,
+  onSubmit,
+  onClose,
+}: {
+  vehicleDisplayName: string;
+  onSubmit: (email: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await onSubmit(email.trim().toLowerCase());
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Something went wrong. Try again.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className={styles.dialogBackdrop} onClick={onClose} data-testid="transfer-dialog">
+      <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.dialogHeader}>
+          <h2 className={styles.dialogTitle}>Transfer {vehicleDisplayName}</h2>
+          <button type="button" className={styles.dialogClose} onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <p className={styles.stateBody}>
+          Enter the email address of the Revlog user you want to transfer this
+          vehicle and its full service history to. They will receive an email to
+          accept or decline.
+        </p>
+        <form onSubmit={handleSubmit}>
+          <div className={styles.dialogFields}>
+            <div className={styles.field}>
+              <label htmlFor="transfer-email" className={styles.fieldLabel}>
+                Recipient email
+              </label>
+              <input
+                id="transfer-email"
+                type="email"
+                className={styles.fieldInput}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="their@email.com"
+                required
+                autoFocus
+                data-testid="transfer-email-input"
+              />
+            </div>
+            {error && <p className={styles.dialogError}>{error}</p>}
+          </div>
+          <div className={styles.dialogFooter}>
+            <button
+              type="button"
+              className={styles.btnDialogCancel}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className={styles.btnDialogSave}
+              disabled={submitting || !email.trim()}
+              data-testid="transfer-submit-btn"
+            >
+              {submitting ? "Sending…" : "Send transfer"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function CancelTransferDialog({
+  onConfirm,
+  onClose,
+}: {
+  onConfirm: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleConfirm() {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await onConfirm();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Something went wrong. Try again.";
+      setError(msg);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className={styles.dialogBackdrop} onClick={onClose} data-testid="cancel-transfer-dialog">
+      <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.dialogHeader}>
+          <h2 className={styles.dialogTitle}>Cancel transfer?</h2>
+          <button type="button" className={styles.dialogClose} onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <p className={styles.stateBody}>
+          The recipient will be notified and the vehicle will be unlocked. You
+          can initiate a new transfer at any time.
+        </p>
+        {error && <p className={styles.dialogError}>{error}</p>}
+        <div className={styles.dialogFooter}>
+          <button
+            type="button"
+            className={styles.btnDialogCancel}
+            onClick={onClose}
+          >
+            Keep transfer
+          </button>
+          <button
+            type="button"
+            className={styles.btnDialogDanger}
+            onClick={handleConfirm}
+            disabled={submitting}
+            data-testid="confirm-cancel-transfer-btn"
+          >
+            {submitting ? "Cancelling…" : "Yes, cancel"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LogEntryCard({
   entry,
   vehicleId,
+  locked = false,
 }: {
   entry: LogEntrySummary;
   vehicleId: string;
+  locked?: boolean;
 }) {
   const meta = TYPE_META[entry.typeId] ?? TYPE_META["OTHER"];
   const cost = entry.totalCost ? parseFloat(entry.totalCost) : 0;
 
-  return (
-    <Link
-      href={`/garage/${vehicleId}/log/${entry.id}`}
-      className={styles.entryCard}
-      data-testid="log-entry-card"
-      data-entry-id={entry.id}
-    >
+  const cardContent = (
+    <>
       <div className={styles.entryCardTop}>
         <div className={styles.entryCardLeft}>
           <span className={`${styles.typeBadge} ${meta.cls}`} data-testid="entry-type-badge">
@@ -341,6 +549,29 @@ function LogEntryCard({
           </span>
         )}
       </div>
+    </>
+  );
+
+  if (locked) {
+    return (
+      <div
+        className={styles.entryCardLocked}
+        data-testid="log-entry-card"
+        data-entry-id={entry.id}
+      >
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/garage/${vehicleId}/log/${entry.id}`}
+      className={styles.entryCard}
+      data-testid="log-entry-card"
+      data-entry-id={entry.id}
+    >
+      {cardContent}
     </Link>
   );
 }

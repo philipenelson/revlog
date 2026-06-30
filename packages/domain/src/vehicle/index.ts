@@ -41,6 +41,11 @@ export interface DomainVehicleDetail extends DomainVehicle {
     totalSpent: string;
     lastLoggedAt: string | null;
   };
+  transferPending: boolean;
+  pendingTransfer: {
+    recipientEmail: string;
+    expiresAt: string;
+  } | null;
 }
 
 export interface UpdateVehicleData {

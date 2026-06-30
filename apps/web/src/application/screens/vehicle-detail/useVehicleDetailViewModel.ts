@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ApiError } from "@/model/errors";
 import { getVehicle } from "@/model/services/vehicleService";
 import { saveInsurance } from "@/model/services/insuranceService";
+import { initiateTransfer, cancelTransfer } from "@/model/services/transferService";
 import {
   vehicleDisplayName,
   type InsuranceInput,
@@ -32,10 +33,17 @@ export interface VehicleDetailViewModel {
   openShareReport: () => void;
   closeShareReport: () => void;
   retry: () => void;
+  transferDialogOpen: boolean;
+  openTransferDialog: () => void;
+  closeTransferDialog: () => void;
+  handleInitiateTransfer: (recipientEmail: string) => Promise<void>;
+  cancelTransferDialogOpen: boolean;
+  openCancelTransferDialog: () => void;
+  closeCancelTransferDialog: () => void;
+  handleCancelTransfer: () => Promise<void>;
 }
 
 export function useVehicleDetailViewModel(): VehicleDetailViewModel {
-  const router = useRouter();
   const params = useParams<{ vehicleId: string }>();
   const vehicleId = params.vehicleId;
 
@@ -45,12 +53,14 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
   const [insuranceOpen, setInsuranceOpen] = useState(false);
   const [insuranceEditMode, setInsuranceEditMode] = useState(false);
   const [shareReportOpen, setShareReportOpen] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [cancelTransferDialogOpen, setCancelTransferDialogOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     getVehicle(vehicleId)
-      .then((vehicle) => {
-        setVehicle(vehicle);
+      .then((v) => {
+        setVehicle(v);
         setLoadState("loaded");
       })
       .catch((err) => {
@@ -61,8 +71,7 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
           setLoadState("error");
         }
       });
-
-  }, [vehicleId, router, retryCount]);
+  }, [vehicleId, retryCount]);
 
   function openInsurance(editMode: boolean) {
     setInsuranceEditMode(editMode);
@@ -81,6 +90,28 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
       ? vehicle.logEntries.filter((e) => e.typeId === typeFilter)
       : vehicle?.logEntries ?? [];
 
+  async function handleInitiateTransfer(recipientEmail: string): Promise<void> {
+    const transfer = await initiateTransfer(vehicleId, recipientEmail);
+    setVehicle((prev) =>
+      prev
+        ? {
+            ...prev,
+            transferPending: true,
+            pendingTransfer: { recipientEmail: transfer.recipientEmail, expiresAt: transfer.expiresAt },
+          }
+        : null,
+    );
+    setTransferDialogOpen(false);
+  }
+
+  async function handleCancelTransfer(): Promise<void> {
+    await cancelTransfer(vehicleId);
+    setVehicle((prev) =>
+      prev ? { ...prev, transferPending: false, pendingTransfer: null } : null,
+    );
+    setCancelTransferDialogOpen(false);
+  }
+
   return {
     vehicleId,
     loadState,
@@ -97,9 +128,14 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
     shareReportOpen,
     openShareReport: () => setShareReportOpen(true),
     closeShareReport: () => setShareReportOpen(false),
-    retry: () => {
-      setLoadState("loading");
-      setRetryCount((c) => c + 1);
-    },
+    retry: () => setRetryCount((c) => c + 1),
+    transferDialogOpen,
+    openTransferDialog: () => setTransferDialogOpen(true),
+    closeTransferDialog: () => setTransferDialogOpen(false),
+    handleInitiateTransfer,
+    cancelTransferDialogOpen,
+    openCancelTransferDialog: () => setCancelTransferDialogOpen(true),
+    closeCancelTransferDialog: () => setCancelTransferDialogOpen(false),
+    handleCancelTransfer,
   };
 }

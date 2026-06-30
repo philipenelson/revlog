@@ -72,6 +72,14 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 }
 
+enum VehicleTransferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
 model Vehicle {
   id         String            @id @default(uuid())
   accountId  String
@@ -84,11 +92,29 @@ model Vehicle {
   photoPath  String?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-  logEntries   LogEntry[]
-  insurance    VehicleInsurance?
-  reportToken  VehicleReportToken?
+  logEntries  LogEntry[]
+  insurance   VehicleInsurance?
+  reportToken VehicleReportToken?
+  transfers   VehicleTransfer[]
 
   @@index([accountId])
+}
+
+model VehicleTransfer {
+  id                 String                @id @default(uuid())
+  vehicleId          String
+  vehicle            Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  senderAccountId    String
+  recipientEmail     String
+  recipientAccountId String?
+  token              String                @unique @default(uuid())
+  status             VehicleTransferStatus @default(PENDING)
+  expiresAt          DateTime
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([vehicleId])
+  @@index([token])
 }
 
 model VehicleInsurance {

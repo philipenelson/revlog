@@ -5,6 +5,7 @@ import { createVehicleRouter } from './vehicles';
 import { AppError, errorMiddleware } from '../middleware/error';
 import { signAccessToken } from '../lib/tokens';
 import type { VehicleService } from '../services/vehicle.service';
+import type { VehicleTransferService } from '../services/vehicle-transfer.service';
 import type { DomainVehicle, DomainVehicleDetail, DomainVehicleInsurance } from '@maintenance-log/domain';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
@@ -47,10 +48,18 @@ const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' 
   deleteVehicle: vi.fn(),
 };
 
+const mockTransferService = {
+  initiate: vi.fn(),
+  cancel: vi.fn(),
+  getTransferDetails: vi.fn(),
+  accept: vi.fn(),
+  decline: vi.fn(),
+} as unknown as VehicleTransferService;
+
 function buildApp() {
   const app = express();
   app.use(express.json());
-  app.use('/vehicles', createVehicleRouter(mockVehicleService as VehicleService));
+  app.use('/vehicles', createVehicleRouter(mockVehicleService as VehicleService, mockTransferService));
   app.use(errorMiddleware);
   return app;
 }
@@ -109,6 +118,8 @@ const mockVehicleDetail: DomainVehicleDetail = {
   insurance: mockInsurance,
   logEntries: [mockLogEntry],
   stats: { totalSpent: '45.00', lastLoggedAt: '2025-06-01' },
+  transferPending: false,
+  pendingTransfer: null,
 };
 
 const validBody = { nickname: 'Daily ride', make: 'Honda', model: 'CB500F', year: 2021, mileage: 14230 };

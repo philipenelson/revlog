@@ -602,20 +602,79 @@
 }
 .btnDialogEdit:hover { background: var(--accent-muted); }
 
-/* ── Share report dialog ────────────────────────────────────────── */
-.btnDialogDanger {
+/* ── Transfer pending banner ────────────────────────────────────── */
+.transferBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--accent-muted);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+}
+
+.transferBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transferBannerHeadline {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent-light);
+}
+
+.transferBannerDetail {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.btnDanger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: transparent;
   border: 1px solid var(--danger);
   border-radius: var(--radius-md);
   color: var(--danger);
   font-family: var(--font-dm-sans);
-  font-size: 13.5px;
-  font-weight: 500;
-  padding: 10px 18px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
   cursor: pointer;
+  white-space: nowrap;
   transition: background var(--transition-fast);
 }
-.btnDialogDanger:hover { background: var(--danger-glow); }
+.btnDanger:hover { background: var(--danger-glow); }
+
+.entryCardLocked {
+  display: block;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  opacity: 0.7;
+}
+
+/* ── Share report / transfer confirm dialog ─────────────────────── */
+.btnDialogDanger {
+  background: var(--danger);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent-contrast);
+  font-family: var(--font-dm-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 10px 22px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+.btnDialogDanger:hover:not(:disabled) { opacity: 0.85; }
+.btnDialogDanger:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .shareDialogEmpty {
   display: flex;

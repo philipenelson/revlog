@@ -28,6 +28,11 @@ export interface VehicleStats {
   lastLoggedAt: string | null;
 }
 
+export interface PendingTransfer {
+  recipientEmail: string;
+  expiresAt: string;
+}
+
 export interface VehicleDetail {
   id: string;
   nickname: string | null;
@@ -39,6 +44,24 @@ export interface VehicleDetail {
   insurance: InsuranceRecord | null;
   logEntries: LogEntrySummary[];
   stats: VehicleStats;
+  transferPending: boolean;
+  pendingTransfer: PendingTransfer | null;
+}
+
+/* ── Transfers ──────────────────────────────────────────────────── */
+
+export interface TransferDetails {
+  status: "PENDING";
+  expiresAt: string;
+  vehicle: {
+    make: string;
+    model: string;
+    year: number;
+    nickname: string | null;
+    photoUrl: string | null;
+    logEntryCount: number;
+  };
+  senderName: string;
 }
 
 /** Form draft for the add / edit / onboarding vehicle forms (raw input strings). */

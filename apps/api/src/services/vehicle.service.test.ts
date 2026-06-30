@@ -48,6 +48,8 @@ const mockVehicleDetail: DomainVehicleDetail = {
   insurance: null,
   logEntries: [],
   stats: { totalSpent: '0.00', lastLoggedAt: null },
+  transferPending: false,
+  pendingTransfer: null,
 };
 
 function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
