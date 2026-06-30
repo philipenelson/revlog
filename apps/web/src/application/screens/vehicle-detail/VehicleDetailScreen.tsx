@@ -9,6 +9,7 @@ import {
   OdometerIcon,
   PhotoIcon,
   PlusIcon,
+  ShareIcon,
   ShieldIcon,
   VehicleGlyphIcon,
 } from "@/application/components/icons";
@@ -18,6 +19,7 @@ import { formatCurrency2, formatCurrencyWhole, formatShortDate } from "@/utils/f
 import { isWithin30Days } from "@/utils/date";
 import { useVehicleDetailViewModel } from "./useVehicleDetailViewModel";
 import { InsuranceDialog } from "./InsuranceDialog";
+import { ShareReportDialog } from "./ShareReportDialog";
 import styles from "./vehicle-detail.module.css";
 
 /* ── Display constants ──────────────────────────────────────────── */
@@ -63,6 +65,15 @@ export function VehicleDetailScreen() {
             <Wordmark classes={styles} />
           </div>
           <div className={styles.topbarRight}>
+            <button
+              type="button"
+              className={styles.btnOutline}
+              onClick={vm.openShareReport}
+              data-testid="share-report-btn"
+            >
+              <ShareIcon />
+              Share report
+            </button>
             <Link
               href={`/garage/${vehicleId}/edit`}
               className={styles.btnOutline}
@@ -164,6 +175,13 @@ export function VehicleDetailScreen() {
           initialEditMode={vm.insuranceEditMode}
           onSave={vm.handleInsuranceSave}
           onClose={vm.closeInsurance}
+        />
+      )}
+
+      {vm.shareReportOpen && (
+        <ShareReportDialog
+          vehicleId={vehicleId}
+          onClose={vm.closeShareReport}
         />
       )}
     </>

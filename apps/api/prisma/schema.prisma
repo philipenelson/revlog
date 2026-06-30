@@ -84,8 +84,9 @@ model Vehicle {
   photoPath  String?
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
-  logEntries LogEntry[]
-  insurance  VehicleInsurance?
+  logEntries   LogEntry[]
+  insurance    VehicleInsurance?
+  reportToken  VehicleReportToken?
 
   @@index([accountId])
 }
@@ -160,4 +161,14 @@ model LogMedia {
   mediaType  String   // "IMAGE" | "VIDEO"
   caption    String?
   sortOrder  Int      @default(0)
+}
+
+model VehicleReportToken {
+  id        String   @id @default(uuid())
+  vehicleId String   @unique
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  token     String   @unique @default(uuid())
+  createdAt DateTime @default(now())
+
+  @@index([token])
 }
