@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Edit Vehicle</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+
+  .device {
+    width: 390px;
+    background: #0a0a0a;
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #2a2a2a;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .label {
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .nav-header {
+    background: #111;
+    border-bottom: 1px solid #1f1f1f;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .nav-back { color: #3b82f6; font-size: 15px; }
+  .nav-title { font-size: 17px; font-weight: 600; color: #fff; }
+  .nav-save { color: #3b82f6; font-size: 15px; font-weight: 700; }
+
+  .screen-content {
+    height: 700px;
+    background: #0f0f0f;
+    padding: 24px 20px;
+    overflow: hidden;
+  }
+
+  .field-group { margin-bottom: 16px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field-group { flex: 1; }
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .field-input {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #f9fafb;
+  }
+  .optional-tag { color: #4b5563; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  .danger-zone {
+    margin-top: 32px;
+    border: 1px solid #3f1616;
+    border-radius: 14px;
+    padding: 16px;
+    background: #150808;
+  }
+  .danger-title { font-size: 12px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .danger-body { font-size: 12px; color: #9c5a5a; line-height: 1.5; margin-bottom: 14px; }
+  .delete-btn {
+    background: #7f1d1d;
+    color: #fecaca;
+    padding: 13px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* confirmation dialog overlay */
+  .dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .dialog-box {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 16px;
+    padding: 24px 20px;
+    width: 100%;
+  }
+  .dialog-title { font-size: 16px; font-weight: 700; color: #f9fafb; margin-bottom: 10px; text-align: center; }
+  .dialog-body { font-size: 13px; color: #9ca3af; line-height: 1.6; text-align: center; margin-bottom: 22px; }
+  .dialog-actions { display: flex; gap: 10px; }
+  .dialog-btn { flex: 1; padding: 12px; border-radius: 10px; text-align: center; font-size: 14px; font-weight: 700; }
+  .dialog-btn.cancel { background: #27272a; color: #d1d5db; }
+  .dialog-btn.confirm { background: #dc2626; color: #fff; }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="label">Edit Vehicle — with danger zone</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">‹ Blackbird</div>
+      <div class="nav-title">Edit Vehicle</div>
+      <div class="nav-save">Save</div>
+    </div>
+    <div class="screen-content">
+      <div class="field-row">
+        <div class="field-group">
+          <div class="field-label">Make</div>
+          <div class="field-input">Honda</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Model</div>
+          <div class="field-input">CB650R</div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <div class="field-label">Year</div>
+          <div class="field-input">2019</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Current mileage</div>
+          <div class="field-input">12,500</div>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Nickname <span class="optional-tag">(optional)</span></div>
+        <div class="field-input">Blackbird</div>
+      </div>
+
+      <div class="danger-zone">
+        <div class="danger-title">Danger zone</div>
+        <div class="danger-body">Deleting this vehicle permanently removes it and all its log entries. This cannot be undone.</div>
+        <div class="delete-btn">Delete vehicle</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="label">Edit Vehicle — delete confirmation</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">‹ Blackbird</div>
+      <div class="nav-title">Edit Vehicle</div>
+      <div class="nav-save">Save</div>
+    </div>
+    <div class="screen-content" style="position:relative;">
+      <div class="field-row">
+        <div class="field-group">
+          <div class="field-label">Make</div>
+          <div class="field-input">Honda</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Model</div>
+          <div class="field-input">CB650R</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-backdrop">
+      <div class="dialog-box">
+        <div class="dialog-title">Delete Blackbird?</div>
+        <div class="dialog-body">This will permanently delete the vehicle and all its log entries. This cannot be undone.</div>
+        <div class="dialog-actions">
+          <div class="dialog-btn cancel">Cancel</div>
+          <div class="dialog-btn confirm">Delete</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

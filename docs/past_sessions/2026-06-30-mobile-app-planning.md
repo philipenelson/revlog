@@ -75,11 +75,22 @@ Documentation only — this session produced planning docs, ADRs, and specs. No 
 
 ### Designs
 
-- `docs/designs/revlog-mobile-navigation.html` — app shell: Garage root, Vehicle Detail drill-down, Settings push
-- `docs/designs/revlog-mobile-garage.html` — Garage screen: vehicle list, offline state, empty state
-- `docs/designs/revlog-mobile-log-entry.html` — log entry creation form
-- `docs/designs/revlog-mobile-settings.html` — Settings screen
-- `docs/designs/revlog-mobile-offline-sync.html` — offline indicator: all four states
+All mobile design previews live in `docs/designs/mobile/` (mirroring `docs/specs/mobile-app/`).
+
+- `docs/designs/mobile/revlog-mobile-navigation.html` — app shell: Garage root, Vehicle Detail drill-down, Settings push
+- `docs/designs/mobile/revlog-mobile-garage.html` — Garage screen: vehicle list, offline state, empty state
+- `docs/designs/mobile/revlog-mobile-log-entry.html` — log entry creation form
+- `docs/designs/mobile/revlog-mobile-settings.html` — Settings screen
+- `docs/designs/mobile/revlog-mobile-offline-sync.html` — offline indicator: all four states
+- `docs/designs/mobile/revlog-mobile-auth.html` — login and register screens
+- `docs/designs/mobile/revlog-mobile-verify-email.html` — email verification pending and success states
+- `docs/designs/mobile/revlog-mobile-forgot-password.html` — forgot password request and confirmation states
+- `docs/designs/mobile/revlog-mobile-onboarding.html` — add-first-vehicle wizard
+- `docs/designs/mobile/revlog-mobile-vehicle-detail.html` — vehicle detail screen, normal and transfer-pending states
+- `docs/designs/mobile/revlog-mobile-add-vehicle.html` — add vehicle form
+- `docs/designs/mobile/revlog-mobile-edit-vehicle.html` — edit vehicle form with delete confirmation
+- `docs/designs/mobile/revlog-mobile-vehicle-transfer.html` — initiate transfer and pending states
+- `docs/designs/mobile/revlog-mobile-mechanic-printout.html` — share report screen with native OS share sheet
 
 ### App
 

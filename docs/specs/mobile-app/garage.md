@@ -15,6 +15,8 @@ Mobile-specific differences:
 - `SyncService` triggers a pull from the API on app foreground and on explicit pull-to-refresh.
 - The offline indicator in the header signals when data may be stale or when writes are queued.
 
+Design file: [`revlog-mobile-garage.html`](../../designs/mobile/revlog-mobile-garage.html)
+
 ---
 
 ## Use Cases

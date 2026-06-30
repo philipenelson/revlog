@@ -10,6 +10,8 @@
 
 The Settings screen is unique to the mobile app — the web app has no equivalent standalone settings page. It is accessed via the gear icon in the Garage header and pushed onto the stack as a full-screen screen. It covers account information (read-only), legal page links (opening in the browser), and logout.
 
+Design file: [`revlog-mobile-settings.html`](../../designs/mobile/revlog-mobile-settings.html)
+
 ---
 
 ## Use Cases

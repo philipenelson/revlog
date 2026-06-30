@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Verify Email</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+
+  .device {
+    width: 390px;
+    background: #0a0a0a;
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #2a2a2a;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .label {
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .screen-content {
+    height: 756px;
+    background: #0f0f0f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .icon-circle {
+    width: 88px; height: 88px;
+    border-radius: 44px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    margin-bottom: 28px;
+  }
+  .icon-circle.pending { background: #18181b; border: 1px solid #27272a; }
+  .icon-circle.success { background: #052e1c; border: 1px solid #14532d; color: #4ade80; }
+
+  .title { font-size: 19px; font-weight: 700; color: #f9fafb; margin-bottom: 10px; }
+  .body { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 8px; }
+  .email-chip {
+    display: inline-block;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: #d1d5db;
+    font-weight: 600;
+    margin: 12px 0 28px;
+  }
+
+  .secondary-btn {
+    border: 1px solid #27272a;
+    color: #9ca3af;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .primary-btn {
+    background: #3b82f6;
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 28px;
+  }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="label">Verify email — pending</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="screen-content">
+      <div class="icon-circle pending">✉️</div>
+      <div class="title">Check your email</div>
+      <div class="body">We sent a verification link to</div>
+      <div class="email-chip">philip@example.com</div>
+      <div class="body">Tap the link in the email to verify your account, then come back here to sign in.</div>
+      <div class="secondary-btn">Resend email</div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="label">Verify email — verified (browser confirmation, returning to app)</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="screen-content">
+      <div class="icon-circle success">✓</div>
+      <div class="title">Email verified</div>
+      <div class="body">Your account is confirmed. Return to the Revlog app and sign in to get started.</div>
+      <div class="primary-btn">Back to sign in</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

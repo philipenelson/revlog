@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Vehicle Transfer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+
+  .device {
+    width: 390px;
+    background: #0a0a0a;
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #2a2a2a;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .label {
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .nav-header {
+    background: #111;
+    border-bottom: 1px solid #1f1f1f;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .nav-back { color: #3b82f6; font-size: 15px; }
+  .nav-title { font-size: 17px; font-weight: 600; color: #fff; }
+  .nav-spacer { width: 60px; }
+
+  .screen-content {
+    height: 700px;
+    background: #0f0f0f;
+    padding: 28px 20px;
+  }
+
+  .intro-icon { font-size: 36px; text-align: center; margin-bottom: 16px; }
+  .intro-title { font-size: 18px; font-weight: 700; color: #f9fafb; text-align: center; margin-bottom: 8px; }
+  .intro-body { font-size: 13px; color: #6b7280; text-align: center; line-height: 1.6; margin-bottom: 28px; padding: 0 8px; }
+
+  .vehicle-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 24px;
+  }
+  .vehicle-chip-icon { font-size: 20px; }
+  .vehicle-chip-name { font-size: 14px; font-weight: 700; color: #f9fafb; }
+  .vehicle-chip-meta { font-size: 11px; color: #6b7280; }
+
+  .field-group { margin-bottom: 20px; }
+  .field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .field-input { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 14px 16px; font-size: 15px; color: #f9fafb; }
+  .field-input.placeholder { color: #4b5563; }
+
+  .warning-box {
+    background: #1c1206;
+    border: 1px solid #92400e;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 12px;
+    color: #d4a35c;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .primary-btn { background: #3b82f6; color: #fff; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 700; text-align: center; }
+
+  /* pending state */
+  .pending-card {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+  }
+  .pending-icon { font-size: 32px; margin-bottom: 12px; }
+  .pending-title { font-size: 15px; font-weight: 700; color: #fbbf24; margin-bottom: 6px; }
+  .pending-body { font-size: 12px; color: #9ca3af; line-height: 1.6; margin-bottom: 18px; }
+  .cancel-btn { border: 1px solid #7f1d1d; color: #ef4444; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; text-align: center; }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="label">Initiate Transfer</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">‹ Blackbird</div>
+      <div class="nav-title">Transfer Vehicle</div>
+      <div class="nav-spacer"></div>
+    </div>
+    <div class="screen-content">
+      <div class="intro-icon">🔄</div>
+      <div class="intro-title">Transfer this vehicle</div>
+      <div class="intro-body">Send Blackbird and its complete service history to another Revlog account.</div>
+
+      <div class="vehicle-chip">
+        <span class="vehicle-chip-icon">🏍</span>
+        <div>
+          <div class="vehicle-chip-name">Blackbird</div>
+          <div class="vehicle-chip-meta">2019 Honda CB650R</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">Recipient email</div>
+        <div class="field-input placeholder">recipient@example.com</div>
+      </div>
+
+      <div class="warning-box">⚠ The recipient must accept the transfer before ownership changes. Your vehicle will be locked until they respond.</div>
+
+      <div class="primary-btn">Send transfer</div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="label">Transfer pending — on Vehicle Detail</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">‹ Garage</div>
+      <div class="nav-title">Blackbird</div>
+      <div class="nav-spacer"></div>
+    </div>
+    <div class="screen-content">
+      <div class="pending-card">
+        <div class="pending-icon">🔒</div>
+        <div class="pending-title">Transfer pending</div>
+        <div class="pending-body">Awaiting alex@example.com's response. The vehicle is locked until the transfer is accepted, declined, or cancelled.</div>
+        <div class="cancel-btn">Cancel transfer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

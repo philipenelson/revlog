@@ -17,6 +17,8 @@ Mobile-specific differences:
 - Mileage input uses a numeric keyboard.
 - Media attachment is V2 — no file picker is shown in V1.
 
+Design file: [`revlog-mobile-log-entry.html`](../../designs/mobile/revlog-mobile-log-entry.html)
+
 ---
 
 ## Use Cases

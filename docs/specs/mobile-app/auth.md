@@ -17,6 +17,8 @@ Key differences from web:
 - Silent token refresh is triggered both pre-request (same as web) and on app foreground (`AppState` change from `background` to `active`).
 - Forgot password: the Owner enters their email on mobile and receives a reset link by email. The reset form is completed in the browser — the mobile app does not handle the reset URL in V1.
 
+Design files: [`revlog-mobile-auth.html`](../../designs/mobile/revlog-mobile-auth.html) (login, register) · [`revlog-mobile-verify-email.html`](../../designs/mobile/revlog-mobile-verify-email.html) · [`revlog-mobile-forgot-password.html`](../../designs/mobile/revlog-mobile-forgot-password.html)
+
 ---
 
 ## Use Cases

@@ -12,6 +12,8 @@ The Mechanic Printout on mobile covers generating a share token and sharing the 
 
 The public printout page (`/report/[shareToken]`) is rendered by the web app in a browser — mobile does not render it natively.
 
+Design file: [`revlog-mobile-mechanic-printout.html`](../../designs/mobile/revlog-mobile-mechanic-printout.html)
+
 ---
 
 ## Use Cases

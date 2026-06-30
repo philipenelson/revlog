@@ -12,6 +12,8 @@ Vehicle Transfer on mobile covers initiating a transfer from the mobile app. The
 
 Core transfer behaviour (API, email, 7-day expiry, acceptance/decline) is unchanged from the web spec (`docs/specs/garage/vehicle-transfer.md`).
 
+Design file: [`revlog-mobile-vehicle-transfer.html`](../../designs/mobile/revlog-mobile-vehicle-transfer.html)
+
 ---
 
 ## Use Cases

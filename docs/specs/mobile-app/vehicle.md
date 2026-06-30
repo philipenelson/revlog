@@ -15,6 +15,8 @@ Mobile-specific differences:
 - Write operations (create, update, delete) apply to local SQLite and are queued in the outbox. The UI responds immediately; sync to the API happens in the background.
 - Vehicle photos are displayed when available (fetched URL from API response cached locally) but upload is V2.
 
+Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-mobile-vehicle-detail.html) · [`revlog-mobile-add-vehicle.html`](../../designs/mobile/revlog-mobile-add-vehicle.html) · [`revlog-mobile-edit-vehicle.html`](../../designs/mobile/revlog-mobile-edit-vehicle.html)
+
 ---
 
 ## Use Cases

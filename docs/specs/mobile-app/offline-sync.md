@@ -12,6 +12,8 @@ The mobile app is fully offline-first. All reads come from a local SQLite databa
 
 This spec covers the offline/sync infrastructure. See ADR 0026 (database) and ADR 0027 (outbox pattern) for architectural decisions.
 
+Design file: [`revlog-mobile-offline-sync.html`](../../designs/mobile/revlog-mobile-offline-sync.html)
+
 ---
 
 ## Components

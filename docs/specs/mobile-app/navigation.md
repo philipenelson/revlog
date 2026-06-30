@@ -10,6 +10,8 @@
 
 The mobile app uses expo-router v4 for file-based routing. The navigation structure mirrors the web app's route hierarchy but is rendered as native iOS and Android navigation stacks rather than browser page transitions. Route files are shells only — all logic and markup live in `application/screens/`. See ADR 0028.
 
+Design files: [`revlog-mobile-navigation.html`](../../designs/mobile/revlog-mobile-navigation.html) (app shell, header, Settings push) · [`revlog-mobile-onboarding.html`](../../designs/mobile/revlog-mobile-onboarding.html)
+
 ---
 
 ## Route map

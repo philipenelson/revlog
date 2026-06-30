@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Vehicle Detail</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+
+  .device {
+    width: 390px;
+    background: #0a0a0a;
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #2a2a2a;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .label {
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .nav-header {
+    background: #111;
+    border-bottom: 1px solid #1f1f1f;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .nav-back { color: #3b82f6; font-size: 15px; }
+  .nav-title { font-size: 17px; font-weight: 600; color: #fff; }
+  .header-icons { display: flex; gap: 16px; align-items: center; }
+  .icon-btn { color: #9ca3af; font-size: 17px; }
+
+  .screen-content {
+    height: 700px;
+    overflow: hidden;
+    background: #0f0f0f;
+  }
+
+  .hero-photo {
+    height: 160px;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px;
+    color: #334155;
+  }
+
+  .vehicle-heading { padding: 18px 20px 0; }
+  .vehicle-name { font-size: 22px; font-weight: 800; color: #f9fafb; }
+  .vehicle-sub { font-size: 13px; color: #6b7280; margin-top: 2px; }
+
+  .stats-row {
+    display: flex;
+    margin: 18px 20px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .stat-cell { flex: 1; padding: 14px 8px; text-align: center; border-right: 1px solid #27272a; }
+  .stat-cell:last-child { border-right: none; }
+  .stat-value { font-size: 16px; font-weight: 700; color: #f9fafb; }
+  .stat-label { font-size: 10px; color: #6b7280; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .action-row { display: flex; gap: 10px; margin: 0 20px 20px; }
+  .action-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .action-btn.primary { background: #3b82f6; color: #fff; }
+  .action-btn.secondary { background: #18181b; border: 1px solid #27272a; color: #d1d5db; }
+  .action-btn.disabled { background: #131316; border: 1px solid #1f1f1f; color: #3f3f46; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 20px 10px;
+  }
+
+  .entry-card {
+    margin: 0 20px 10px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .entry-type {
+    font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #93c5fd; background: #1e3a5f; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px;
+  }
+  .entry-title { font-size: 14px; font-weight: 700; color: #f9fafb; }
+  .entry-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .entry-mileage { font-size: 12px; color: #6b7280; text-align: right; white-space: nowrap; }
+
+  /* transfer pending */
+  .lock-banner {
+    margin: 16px 20px;
+    background: #1c1206;
+    border: 1px solid #92400e;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .lock-icon { color: #fbbf24; font-size: 16px; }
+  .lock-title { font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 2px; }
+  .lock-body { font-size: 12px; color: #d4a35c; line-height: 1.5; }
+  .cancel-btn {
+    margin: 0 20px;
+    border: 1px solid #7f1d1d;
+    color: #ef4444;
+    padding: 12px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="label">Vehicle Detail — normal state</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">‹ Garage</div>
+      <div class="nav-title">Blackbird</div>
+      <div class="header-icons">
+        <span class="icon-btn">↗</span>
+        <span class="icon-btn">✎</span>
+      </div>
+    </div>
+    <div class="screen-content">
+      <div class="hero-photo">🏍</div>
+      <div class="vehicle-heading">
+        <div class="vehicle-name">Blackbird</div>
+        <div class="vehicle-sub">2019 Honda CB650R · 12,500 mi</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-cell"><div class="stat-value">14</div><div class="stat-label">Entries</div></div>
+        <div class="stat-cell"><div class="stat-value">Jun 28</div><div class="stat-label">Last logged</div></div>
+        <div class="stat-cell"><div class="stat-value">$1,840</div><div class="stat-label">Total spent</div></div>
+      </div>
+
+      <div class="action-row">
+        <div class="action-btn primary">+ Log entry</div>
+        <div class="action-btn secondary">Share report</div>
+      </div>
+
+      <div class="section-title">Service History</div>
+      <div class="entry-card">
+        <div>
+          <div class="entry-type">Maintenance</div>
+          <div class="entry-title">Oil & filter change</div>
+          <div class="entry-meta">Jun 28, 2026</div>
+        </div>
+        <div class="entry-mileage">12,400 mi</div>
+      </div>
+      <div class="entry-card">
+        <div>
+          <div class="entry-type">Repair</div>
+          <div class="entry-title">Front brake pads</div>
+          <div class="entry-meta">Apr 02, 2026</div>
+        </div>
+        <div class="entry-mileage">11,820 mi</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="label">Vehicle Detail — transfer pending (locked)</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="nav-back">‹ Garage</div>
+      <div class="nav-title">Duke</div>
+      <div class="header-icons">
+        <span class="icon-btn" style="color:#3f3f46;">↗</span>
+        <span class="icon-btn" style="color:#3f3f46;">✎</span>
+      </div>
+    </div>
+    <div class="screen-content">
+      <div class="hero-photo" style="background: linear-gradient(135deg, #1a2e1a 0%, #0a1a0a 100%); color: #1f3d1f;">🏍</div>
+      <div class="vehicle-heading">
+        <div class="vehicle-name">Duke</div>
+        <div class="vehicle-sub">2021 KTM 390 Duke · 8,200 mi</div>
+      </div>
+
+      <div class="lock-banner">
+        <span class="lock-icon">🔒</span>
+        <div>
+          <div class="lock-title">Transfer pending</div>
+          <div class="lock-body">Awaiting alex@example.com's response. Vehicle is locked until the transfer is accepted, declined, or cancelled.</div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <div class="action-btn disabled">+ Log entry</div>
+        <div class="action-btn disabled">Share report</div>
+      </div>
+
+      <div class="cancel-btn">Cancel transfer</div>
+
+      <div class="section-title" style="margin-top:20px;">Service History</div>
+      <div class="entry-card">
+        <div>
+          <div class="entry-type">Maintenance</div>
+          <div class="entry-title">Chain & sprocket</div>
+          <div class="entry-meta">May 14, 2026</div>
+        </div>
+        <div class="entry-mileage">8,100 mi</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
