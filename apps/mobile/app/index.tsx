@@ -1,24 +1,9 @@
-import { Text, View, StyleSheet } from 'react-native';
-import { colors, spacing, fontSize } from '@maintenance-log/ui-tokens';
+import { Redirect } from 'expo-router';
 
-export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Maintenance Log</Text>
-    </View>
-  );
+// Unconditional redirect for now: AuthProvider / routeForAuthState don't
+// exist yet (tracked in docs/milestones/v1.md — Navigation). Once they
+// land, this becomes a real auth gate resolving to /garage, /welcome, or
+// /onboarding — see ADR 0030 and docs/specs/mobile-app/navigation.md.
+export default function IndexPage() {
+  return <Redirect href="/welcome" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.neutral[50],
-    padding: spacing[4],
-  },
-  heading: {
-    fontSize: fontSize['2xl'],
-    color: colors.neutral[900],
-  },
-});
