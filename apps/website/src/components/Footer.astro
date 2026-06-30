@@ -1,22 +1,36 @@
 ---
 import Logo from './Logo.astro';
-import { WEB_APP_URL } from '../lib/env';
+import { WEB_APP_URL, WEB_APP_BASE_URL } from '../lib/env';
 
 const year = new Date().getFullYear();
 ---
 
 <footer data-testid="site-footer" class="border-t border-border-muted">
-  <div class="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-10 text-center sm:flex-row sm:justify-between sm:text-left">
-    <Logo />
+  <div class="mx-auto max-w-6xl px-6 py-10">
+    <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
+      <Logo />
 
-    <a
-      data-testid="open-web-app-footer"
-      href={WEB_APP_URL}
-      class="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
-    >
-      Open web app
-    </a>
+      <a
+        data-testid="open-web-app-footer"
+        href={WEB_APP_URL}
+        class="text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+      >
+        Open web app
+      </a>
 
-    <p class="text-sm text-text-tertiary">&copy; {year} Revlog. All rights reserved.</p>
+      <p class="text-sm text-text-tertiary">&copy; {year} Revlog. All rights reserved.</p>
+    </div>
+
+    <nav class="mt-6 flex justify-center gap-6 border-t border-border-muted pt-6" aria-label="Legal">
+      <a href={`${WEB_APP_BASE_URL}/terms`} class="text-xs text-text-disabled transition-colors hover:text-text-tertiary">
+        Terms of Service
+      </a>
+      <a href={`${WEB_APP_BASE_URL}/privacy`} class="text-xs text-text-disabled transition-colors hover:text-text-tertiary">
+        Privacy Policy
+      </a>
+      <a href={`${WEB_APP_BASE_URL}/cookies`} class="text-xs text-text-disabled transition-colors hover:text-text-tertiary">
+        Cookie Policy
+      </a>
+    </nav>
   </div>
 </footer>

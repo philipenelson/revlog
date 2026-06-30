@@ -198,9 +198,9 @@ export function LoginScreen() {
 
           <p className={styles.footer}>
             By continuing you agree to our{" "}
-            <a href="#" className={styles.footerLink}>Terms of Service</a>
+            <a href="/terms" className={styles.footerLink}>Terms of Service</a>
             {" "}and{" "}
-            <a href="#" className={styles.footerLink}>Privacy Policy</a>.
+            <a href="/privacy" className={styles.footerLink}>Privacy Policy</a>.
           </p>
         </div>
       </main>
