@@ -5,22 +5,32 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { prisma } from './lib/prisma';
 import { UPLOADS_DIR } from './lib/upload';
-import { sendVerificationEmail } from './lib/email';
+import {
+  sendVerificationEmail,
+  sendTransferNotificationEmail,
+  sendTransferInvitationEmail,
+  sendTransferCancellationEmail,
+  sendTransferDeclineEmail,
+  sendTransferExpiryEmail,
+} from './lib/email';
 import { PrismaUserRepository } from './repositories/user.repository';
 import { PrismaRefreshTokenRepository } from './repositories/refresh-token.repository';
 import { PrismaAccountRepository } from './repositories/account.repository';
 import { PrismaVehicleRepository } from './repositories/vehicle.repository';
+import { PrismaVehicleTransferRepository } from './repositories/vehicle-transfer.repository';
 import { PrismaLogEntryRepository } from './repositories/log-entry.repository';
 import { PrismaInsuranceRepository } from './repositories/insurance.repository';
 import { PrismaNewsletterRepository } from './repositories/newsletter.repository';
 import { AuthService } from './services/auth.service';
 import { VehicleService } from './services/vehicle.service';
+import { VehicleTransferService } from './services/vehicle-transfer.service';
 import { AccountService } from './services/account.service';
 import { LogEntryService } from './services/log-entry.service';
 import { InsuranceService } from './services/insurance.service';
 import { NewsletterService } from './services/newsletter.service';
 import { createAuthRouter } from './routes/auth';
 import { createVehicleRouter } from './routes/vehicles';
+import { createTransferRouter } from './routes/transfers';
 import { createOnboardingRouter } from './routes/onboarding';
 import { createLogEntryRouter } from './routes/log-entries';
 import { createInsuranceRouter } from './routes/insurance';
@@ -39,11 +49,19 @@ export function createApp(): Express {
   const refreshTokenRepo = new PrismaRefreshTokenRepository(prisma);
   const accountRepo = new PrismaAccountRepository(prisma);
   const vehicleRepo = new PrismaVehicleRepository(prisma);
+  const transferRepo = new PrismaVehicleTransferRepository(prisma);
   const logEntryRepo = new PrismaLogEntryRepository(prisma);
   const insuranceRepo = new PrismaInsuranceRepository(prisma);
   const newsletterRepo = new PrismaNewsletterRepository(prisma);
   const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail });
   const vehicleService = new VehicleService(vehicleRepo, accountRepo);
+  const transferService = new VehicleTransferService(transferRepo, vehicleRepo, userRepo, {
+    sendTransferNotification: sendTransferNotificationEmail,
+    sendTransferInvitation: sendTransferInvitationEmail,
+    sendTransferCancellation: sendTransferCancellationEmail,
+    sendTransferDecline: sendTransferDeclineEmail,
+    sendTransferExpiry: sendTransferExpiryEmail,
+  }, process.env.APP_URL ?? 'http://localhost:3000');
   const accountService = new AccountService(accountRepo);
   const logEntryService = new LogEntryService(logEntryRepo, vehicleRepo, prisma);
   const insuranceService = new InsuranceService(insuranceRepo, vehicleRepo);
@@ -73,7 +91,8 @@ export function createApp(): Express {
   });
 
   app.use('/auth', createAuthRouter(authService));
-  app.use('/vehicles', createVehicleRouter(vehicleService));
+  app.use('/vehicles', createVehicleRouter(vehicleService, transferService));
+  app.use('/transfers', createTransferRouter(transferService));
   app.use('/vehicles/:vehicleId/insurance', createInsuranceRouter(insuranceService));
   app.use('/vehicles/:vehicleId/log', createLogEntryRouter(logEntryService));
   app.use('/onboarding', createOnboardingRouter(accountService));

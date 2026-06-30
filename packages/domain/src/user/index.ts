@@ -28,6 +28,7 @@ export type NewUserRegistrationData = Omit<CreateUserData, 'accountId'>;
 
 export interface IUserRepository {
   findById(id: string): Promise<DomainUser | null>;
+  findByAccountId(accountId: string): Promise<DomainUser | null>;
   findByEmail(email: string): Promise<DomainUser | null>;
   findByVerificationToken(token: string, now: Date): Promise<DomainUser | null>;
   create(data: CreateUserData): Promise<DomainUser>;

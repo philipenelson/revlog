@@ -66,6 +66,7 @@ const mockRefreshTokenRecord: DomainRefreshToken = {
 function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserRepository {
   return {
     findById: vi.fn().mockResolvedValue(null),
+    findByAccountId: vi.fn().mockResolvedValue(null),
     findByEmail: vi.fn().mockResolvedValue(null),
     findByVerificationToken: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue(mockUser),

@@ -1,6 +1,7 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { createVehicleSchema, updateVehicleSchema, type DomainVehicle, type DomainVehicleDetail } from '@maintenance-log/domain';
+import { createVehicleSchema, updateVehicleSchema, initiateTransferSchema, type DomainVehicle, type DomainVehicleDetail } from '@maintenance-log/domain';
 import type { VehicleService } from '../services/vehicle.service';
+import type { VehicleTransferService } from '../services/vehicle-transfer.service';
 import { authenticate } from '../middleware/auth';
 import { vehiclePhotoUpload } from '../lib/upload';
 
@@ -33,6 +34,8 @@ function toVehicleDetailResponse(req: Request, detail: DomainVehicleDetail) {
     insurance: detail.insurance,
     logEntries: detail.logEntries,
     stats: detail.stats,
+    transferPending: detail.transferPending,
+    pendingTransfer: detail.pendingTransfer,
   };
 }
 
@@ -42,7 +45,7 @@ function toVehicleListItemResponse(req: Request, vehicle: DomainVehicle) {
   return { ...toVehicleResponse(req, vehicle), logEntryCount: 0 };
 }
 
-export function createVehicleRouter(vehicleService: VehicleService): ExpressRouter {
+export function createVehicleRouter(vehicleService: VehicleService, transferService: VehicleTransferService): ExpressRouter {
   const router = Router();
 
   router.get('/:id', authenticate, async (req: Request, res: Response, next: NextFunction) => {
@@ -124,6 +127,41 @@ export function createVehicleRouter(vehicleService: VehicleService): ExpressRout
       }
     },
   );
+
+  router.post('/:id/transfer', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    const parsed = initiateTransferSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Validation error', details: parsed.error.issues });
+      return;
+    }
+    try {
+      const transfer = await transferService.initiate(
+        String(req.params['id']),
+        req.auth!.accountId,
+        req.auth!.sub,
+        parsed.data.recipientEmail,
+      ); // sub is the userId from JWT
+      res.status(201).json({
+        transfer: {
+          id: transfer.id,
+          status: transfer.status,
+          recipientEmail: transfer.recipientEmail,
+          expiresAt: transfer.expiresAt.toISOString(),
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.delete('/:id/transfer', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await transferService.cancel(String(req.params['id']), req.auth!.accountId);
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  });
 
   return router;
 }

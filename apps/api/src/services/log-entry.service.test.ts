@@ -72,6 +72,8 @@ function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehi
     create: vi.fn(),
     findAllByAccountId: vi.fn().mockResolvedValue([mockVehicle]),
     setPhoto: vi.fn(),
+    findDetailById: vi.fn().mockResolvedValue(null),
+    update: vi.fn(),
     ...overrides,
   };
 }

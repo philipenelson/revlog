@@ -67,6 +67,7 @@ export class PrismaVehicleRepository implements IVehicleRepository {
   }
 
   async findDetailById(vehicleId: string): Promise<DomainVehicleDetail | null> {
+    const now = new Date();
     const row = await this.db.vehicle.findUnique({
       where: { id: vehicleId },
       include: {
@@ -77,6 +78,11 @@ export class PrismaVehicleRepository implements IVehicleRepository {
             _count: { select: { media: true } },
           },
           orderBy: { date: 'desc' },
+        },
+        transfers: {
+          where: { status: 'PENDING', expiresAt: { gt: now } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
         },
       },
     });
@@ -106,7 +112,9 @@ export class PrismaVehicleRepository implements IVehicleRepository {
     const totalSpent = allCosts.length > 0
       ? allCosts.reduce((a, b) => a + b, 0).toFixed(2)
       : '0.00';
-    const lastLoggedAt = logEntries.length > 0 ? logEntries[0].date : null;
+    const lastLoggedAt = logEntries.length > 0 ? (logEntries[0]?.date ?? null) : null;
+
+    const pendingTransferRow = row.transfers.length > 0 ? row.transfers[0] : null;
 
     return {
       id: row.id,
@@ -122,6 +130,10 @@ export class PrismaVehicleRepository implements IVehicleRepository {
       insurance: mapInsurance(row.insurance),
       logEntries,
       stats: { totalSpent, lastLoggedAt },
+      transferPending: pendingTransferRow !== null,
+      pendingTransfer: pendingTransferRow
+        ? { recipientEmail: pendingTransferRow.recipientEmail, expiresAt: pendingTransferRow.expiresAt.toISOString() }
+        : null,
     };
   }
 }
