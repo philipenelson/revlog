@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError } from "@/domain/errors";
-import { listVehicles } from "@/domain/services/vehicleService";
-import type { VehicleSummary } from "@/domain/types";
+import { ApiError, listVehicles, type VehicleSummary } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type GarageLoadState = "loading" | "loaded" | "error";
@@ -20,7 +19,7 @@ export function useGarageViewModel(): GarageViewModel {
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
 
   useEffect(() => {
-    listVehicles()
+    listVehicles(cookieHttpClient)
       .then((vehicles) => {
         setVehicles(vehicles);
         setLoadState("loaded");

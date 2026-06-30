@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useMediaStore } from "@/infrastructure/media/useMediaStore";
-import { getLogEntry, updateLogEntry, deleteLogEntry } from "@/domain/services/logEntryService";
+import { getLogEntry, updateLogEntry, deleteLogEntry } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import {
   buildLogEntryPayload,
   entryToFormState,
@@ -42,7 +43,7 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
   useEffect(() => {
     let cancelled = false;
 
-    getLogEntry(vehicleId, entryId)
+    getLogEntry(cookieHttpClient, vehicleId, entryId)
       .then((entry) => {
         if (cancelled) return;
         setFormState(entryToFormState(entry));
@@ -68,7 +69,7 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
       // Save any new media drafts to OPFS, grouped under the real entry ID
       const savedMedia = await saveDraftMedia(mediaStore, entryId, formState.mediaDrafts);
       const payload = buildLogEntryPayload(formState, savedMedia.length > 0 ? savedMedia : null);
-      await updateLogEntry(vehicleId, entryId, payload);
+      await updateLogEntry(cookieHttpClient, vehicleId, entryId, payload);
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — please try again");
@@ -81,7 +82,7 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
     setIsDeleting(true);
 
     try {
-      await deleteLogEntry(vehicleId, entryId);
+      await deleteLogEntry(cookieHttpClient, vehicleId, entryId);
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete entry");

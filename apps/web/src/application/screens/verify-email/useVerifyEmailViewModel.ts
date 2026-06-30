@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ApiError } from "@/domain/errors";
-import { verifyEmail } from "@/domain/services/authService";
+import { ApiError, verifyEmail } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 import { logger } from "@/infrastructure/logging/logger";
@@ -29,7 +29,7 @@ export function useVerifyEmailViewModel(): VerifyEmailViewModel {
     if (!token || requested.current) return;
     requested.current = true;
 
-    verifyEmail(token)
+    verifyEmail(cookieHttpClient, token)
       .then((session) => {
         setSession(session);
         setScreenState("verified");

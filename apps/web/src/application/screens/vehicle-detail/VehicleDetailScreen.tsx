@@ -15,7 +15,7 @@ import {
   VehicleGlyphIcon,
 } from "@/application/components/icons";
 import { Wordmark } from "@/application/components/Wordmark";
-import type { InsuranceRecord, LogEntrySummary, PendingTransfer, VehicleDetail } from "@/domain/types";
+import type { InsuranceRecord, LogEntrySummary, PendingTransfer, VehicleDetail } from "@maintenance-log/api-client";
 import { formatCurrency2, formatCurrencyWhole, formatShortDate } from "@/utils/format";
 import { isWithin30Days } from "@/utils/date";
 import { useVehicleDetailViewModel } from "./useVehicleDetailViewModel";

@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ApiError } from "@/domain/errors";
-import { getVehicle } from "@/domain/services/vehicleService";
-import { saveInsurance } from "@/domain/services/insuranceService";
-import { initiateTransfer, cancelTransfer } from "@/domain/services/transferService";
 import {
-  vehicleDisplayName,
+  ApiError,
+  getVehicle,
+  saveInsurance,
+  initiateTransfer,
+  cancelTransfer,
   type InsuranceInput,
   type LogEntrySummary,
   type VehicleDetail,
-} from "@/domain/types";
+} from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { vehicleDisplayName } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type VehicleDetailLoadState = "loading" | "loaded" | "error" | "not-found";
@@ -58,7 +60,7 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    getVehicle(vehicleId)
+    getVehicle(cookieHttpClient, vehicleId)
       .then((v) => {
         setVehicle(v);
         setLoadState("loaded");
@@ -79,7 +81,7 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
   }
 
   async function handleInsuranceSave(input: InsuranceInput): Promise<void> {
-    const insurance = await saveInsurance(vehicleId, input);
+    const insurance = await saveInsurance(cookieHttpClient, vehicleId, input);
     setVehicle((prev) => (prev ? { ...prev, insurance } : null));
   }
 
@@ -91,7 +93,7 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
       : vehicle?.logEntries ?? [];
 
   async function handleInitiateTransfer(recipientEmail: string): Promise<void> {
-    const transfer = await initiateTransfer(vehicleId, recipientEmail);
+    const transfer = await initiateTransfer(cookieHttpClient, vehicleId, recipientEmail);
     setVehicle((prev) =>
       prev
         ? {
@@ -105,7 +107,7 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
   }
 
   async function handleCancelTransfer(): Promise<void> {
-    await cancelTransfer(vehicleId);
+    await cancelTransfer(cookieHttpClient, vehicleId);
     setVehicle((prev) =>
       prev ? { ...prev, transferPending: false, pendingTransfer: null } : null,
     );

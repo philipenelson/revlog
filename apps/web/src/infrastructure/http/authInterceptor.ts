@@ -1,7 +1,8 @@
 import { sessionStore } from '@/infrastructure/session/sessionStore';
-import { refreshSession } from '@/domain/services/authService';
+import { cookieHttpClient } from '@/infrastructure/http/CookieHttpClient';
+import { refreshSession } from '@maintenance-log/api-client';
 import type { RequestInterceptor, ResponseInterceptor } from '@/infrastructure/http/apiClient';
-import type { Session } from '@/domain/types';
+import type { Session } from '@maintenance-log/api-client';
 
 /** Refresh this many ms before the access token's `exp` — an in-flight-expiry guard (ADR 0021). */
 const REFRESH_LEAD_MS = 30_000;
@@ -18,7 +19,7 @@ function needsRefresh(session: Session): boolean {
 // 401 every refresh after the first, bouncing a just-refreshed user to /login.
 let refreshInFlight: Promise<Session> | null = null;
 function refreshOnce(): Promise<Session> {
-  refreshInFlight ??= refreshSession()
+  refreshInFlight ??= refreshSession(cookieHttpClient)
     .then((session) => {
       sessionStore.setSession(session);
       return session;

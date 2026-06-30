@@ -1,7 +1,6 @@
 import type { MediaRef, MediaStore } from "@/infrastructure/media/MediaStore";
 import { todayIso } from "@/utils/date";
-import type { LogEntryDetail } from "./types";
-import type { LogEntryPayload } from "./services/logEntryService";
+import type { LogEntryDetail, LogEntryPayload } from "@maintenance-log/api-client";
 
 /* ── Draft types ────────────────────────────────────────────────── */
 

@@ -2,8 +2,8 @@
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ApiError } from "@/domain/errors";
-import { getVehicle, updateVehicle, deleteVehicle } from "@/domain/services/vehicleService";
+import { ApiError, getVehicle, updateVehicle, deleteVehicle } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
@@ -51,7 +51,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
 
   useEffect(() => {
     if (!vehicleId) return;
-    getVehicle(vehicleId)
+    getVehicle(cookieHttpClient, vehicleId)
       .then((vehicle) => {
         setFields({
           nickname: vehicle.nickname ?? "",
@@ -93,7 +93,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     setSubmitting(true);
 
     try {
-      await updateVehicle(vehicleId, {
+      await updateVehicle(cookieHttpClient, vehicleId, {
         nickname: fields.nickname.trim() || null,
         make: fields.make.trim(),
         model: fields.model.trim(),
@@ -128,7 +128,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     setDeleteError(null);
     setDeleting(true);
     try {
-      await deleteVehicle(vehicleId);
+      await deleteVehicle(cookieHttpClient, vehicleId);
       router.push("/garage");
     } catch (err) {
       logger.error("failed to delete vehicle", { err });

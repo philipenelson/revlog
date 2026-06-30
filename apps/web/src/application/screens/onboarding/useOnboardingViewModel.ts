@@ -2,9 +2,8 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@/domain/errors";
-import { createVehicle, createVehicleWithPhoto } from "@/domain/services/vehicleService";
-import { skipOnboarding } from "@/domain/services/onboardingService";
+import { ApiError, createVehicle, createVehicleWithPhoto, skipOnboarding } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
@@ -105,9 +104,9 @@ export function useOnboardingViewModel(): OnboardingViewModel {
         mileage: Number(draft.mileage.trim().replace(/,/g, "")),
       };
       if (photoFile) {
-        await createVehicleWithPhoto(payload, photoFile);
+        await createVehicleWithPhoto(cookieHttpClient, payload, photoFile);
       } else {
-        await createVehicle(payload);
+        await createVehicle(cookieHttpClient, payload);
       }
       activateAccount();
       setVehicle({ ...draft });
@@ -128,7 +127,7 @@ export function useOnboardingViewModel(): OnboardingViewModel {
     setSkipError(null);
     setSkipping(true);
     try {
-      await skipOnboarding();
+      await skipOnboarding(cookieHttpClient);
       activateAccount();
       router.push("/garage");
     } catch (err) {

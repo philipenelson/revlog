@@ -2,8 +2,8 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@/domain/errors";
-import { createVehicle, createVehicleWithPhoto } from "@/domain/services/vehicleService";
+import { ApiError, createVehicle, createVehicleWithPhoto } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
@@ -75,9 +75,9 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
         mileage: Number(draft.mileage.trim().replace(/,/g, "")),
       };
       if (photoFile) {
-        await createVehicleWithPhoto(payload, photoFile);
+        await createVehicleWithPhoto(cookieHttpClient, payload, photoFile);
       } else {
-        await createVehicle(payload);
+        await createVehicle(cookieHttpClient, payload);
       }
       router.push("/garage");
     } catch (err) {

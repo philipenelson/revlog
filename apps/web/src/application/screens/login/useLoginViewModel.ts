@@ -10,8 +10,8 @@ import {
   type RegisterInput,
   type LoginInput,
 } from "@maintenance-log/domain";
-import { ApiError } from "@/domain/errors";
-import * as authService from "@/domain/services/authService";
+import { ApiError, login as loginRequest, register as registerRequest } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 import { logger } from "@/infrastructure/logging/logger";
@@ -92,7 +92,7 @@ export function useLoginViewModel(): LoginViewModel {
   async function onLoginSubmit(data: LoginInput) {
     setLoginError(null);
     try {
-      const session = await authService.login(data);
+      const session = await loginRequest(cookieHttpClient, data);
       setSession(session);
       router.push(nextPath ?? routeForAccountStatus(session.account.status));
     } catch (err) {
@@ -108,7 +108,7 @@ export function useLoginViewModel(): LoginViewModel {
   async function onRegisterSubmit(data: RegisterInput) {
     setRegisterError(null);
     try {
-      await authService.register(data);
+      await registerRequest(cookieHttpClient, data);
       router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
     } catch (err) {
       if (err instanceof ApiError && err.status < 500) {

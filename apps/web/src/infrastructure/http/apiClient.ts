@@ -1,24 +1,12 @@
+import { ApiError, TimeoutError } from "@maintenance-log/api-client/errors";
+import type { RequestOptions, RetryPolicy } from "@maintenance-log/api-client/HttpClient";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-export class ApiError extends Error {
-  readonly status: number;
-  readonly body: unknown;
-
-  constructor(status: number, body: unknown) {
-    super(`API request failed with status ${status}`);
-    this.name = "ApiError";
-    this.status = status;
-    this.body = body;
-  }
-}
-
-/** Thrown when our own timeout aborts a request (retryable). A caller-supplied signal abort is not. */
-export class TimeoutError extends Error {
-  constructor() {
-    super("Request timed out");
-    this.name = "TimeoutError";
-  }
-}
+// Re-exported for existing call sites; canonical definitions live in
+// packages/api-client since they're part of the HttpClient port's contract
+// (CookieHttpClient and mobile's TokenHttpClient both throw these).
+export { ApiError, TimeoutError };
 
 // Interceptors are the extension point for cross-cutting concerns (auth, …).
 // Both may be async — a request interceptor can await work (e.g. a token
@@ -31,24 +19,7 @@ export type ResponseInterceptor =
 const requestInterceptors: RequestInterceptor[] = [];
 const responseInterceptors: ResponseInterceptor[] = [];
 
-export interface RetryPolicy {
-  /** Max retries after the first attempt. */
-  retries: number;
-  /** Base backoff before the first retry; grows by `factor` each attempt. */
-  backoffMs: number;
-  factor: number;
-  /** Methods eligible for retry. POST is excluded by default — a timed-out write may have succeeded. */
-  methods: string[];
-  /** Response statuses that trigger a retry (network errors / timeouts always do, for eligible methods). */
-  statuses: number[];
-}
-
-export interface RequestOptions {
-  /** Per-call retry override; `false` disables retry entirely. Merged over the global default. */
-  retry?: Partial<RetryPolicy> | false;
-  /** Abort (and, for eligible methods, retry) the request after this many ms. Off by default. */
-  timeoutMs?: number;
-}
+// RetryPolicy / RequestOptions are the HttpClient port's shapes (packages/api-client) — imported above.
 
 const DEFAULT_RETRY: RetryPolicy = {
   retries: 2,

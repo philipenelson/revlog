@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ApiError } from "@/domain/errors";
 import {
+  ApiError,
   getTransferDetails,
   acceptTransfer,
   declineTransfer,
-} from "@/domain/services/transferService";
-import type { TransferDetails } from "@/domain/types";
+  type TransferDetails,
+} from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { logger } from "@/infrastructure/logging/logger";
 import { useAuth } from "@/application/providers/AuthProvider";
 
@@ -51,7 +52,7 @@ export function useTransferViewModel(): TransferViewModel {
       return;
     }
 
-    getTransferDetails(token)
+    getTransferDetails(cookieHttpClient, token)
       .then((t) => {
         setTransfer(t);
         setLoadState("pending");
@@ -70,7 +71,7 @@ export function useTransferViewModel(): TransferViewModel {
     setActionError(null);
     setAccepting(true);
     try {
-      const vehicleId = await acceptTransfer(token);
+      const vehicleId = await acceptTransfer(cookieHttpClient, token);
       setLoadState("accepted");
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
@@ -87,7 +88,7 @@ export function useTransferViewModel(): TransferViewModel {
     setActionError(null);
     setDeclining(true);
     try {
-      await declineTransfer(token);
+      await declineTransfer(cookieHttpClient, token);
       setLoadState("declined");
     } catch (err) {
       const msg =

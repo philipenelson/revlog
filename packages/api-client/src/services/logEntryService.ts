@@ -1,5 +1,5 @@
-import { apiFetch } from "@/infrastructure/http/apiClient";
-import type { LogEntryDetail } from "@/domain/types";
+import type { HttpClient } from '../HttpClient';
+import type { LogEntryDetail } from '../types';
 
 export interface LogItemPayload {
   categoryId: string;
@@ -11,7 +11,7 @@ export interface LogItemPayload {
 
 export interface LogMediaPayload {
   path: string;
-  mediaType: "IMAGE" | "VIDEO";
+  mediaType: 'IMAGE' | 'VIDEO';
   caption: string | null;
   sortOrder: number;
 }
@@ -28,41 +28,31 @@ export interface LogEntryPayload {
 }
 
 export async function getLogEntry(
+  client: HttpClient,
   vehicleId: string,
   entryId: string,
 ): Promise<LogEntryDetail> {
-  const data = await apiFetch<{ logEntry: LogEntryDetail }>(
-    `/vehicles/${vehicleId}/log/${entryId}`,
-  );
+  const data = await client.get<{ logEntry: LogEntryDetail }>(`/vehicles/${vehicleId}/log/${entryId}`);
   return data.logEntry;
 }
 
 export async function createLogEntry(
+  client: HttpClient,
   vehicleId: string,
   payload: LogEntryPayload,
 ): Promise<void> {
-  await apiFetch(`/vehicles/${vehicleId}/log`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  await client.post(`/vehicles/${vehicleId}/log`, payload);
 }
 
 export async function updateLogEntry(
+  client: HttpClient,
   vehicleId: string,
   entryId: string,
   payload: LogEntryPayload,
 ): Promise<void> {
-  await apiFetch(`/vehicles/${vehicleId}/log/${entryId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  await client.patch(`/vehicles/${vehicleId}/log/${entryId}`, payload);
 }
 
-export async function deleteLogEntry(
-  vehicleId: string,
-  entryId: string,
-): Promise<void> {
-  await apiFetch(`/vehicles/${vehicleId}/log/${entryId}`, {
-    method: "DELETE",
-  });
+export async function deleteLogEntry(client: HttpClient, vehicleId: string, entryId: string): Promise<void> {
+  await client.delete(`/vehicles/${vehicleId}/log/${entryId}`);
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getMechanicPrintout } from "@/domain/services/reportService";
+import { getMechanicPrintout, type MechanicPrintout } from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { vehicleDisplayName } from "@/domain/types";
-import type { MechanicPrintout } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type PrintoutLoadState = "loading" | "loaded" | "not-found" | "error";
@@ -20,7 +20,7 @@ export function useMechanicPrintoutViewModel(shareToken: string): MechanicPrinto
   const [printout, setPrintout] = useState<MechanicPrintout | null>(null);
 
   useEffect(() => {
-    getMechanicPrintout(shareToken)
+    getMechanicPrintout(cookieHttpClient, shareToken)
       .then((data) => {
         if (!data) {
           setLoadState("not-found");

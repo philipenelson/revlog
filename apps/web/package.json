@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@maintenance-log/api-client": "workspace:*",
     "@maintenance-log/domain": "workspace:*",
     "@maintenance-log/ui-tokens": "workspace:*",
     "next": "16.2.7",

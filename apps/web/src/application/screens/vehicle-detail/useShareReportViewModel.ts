@@ -6,7 +6,8 @@ import {
   createReportToken,
   revokeReportToken,
   emailReportLink,
-} from "@/domain/services/reportService";
+} from "@maintenance-log/api-client";
+import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type ShareReportState = "no-token" | "has-token" | "loading";
@@ -37,7 +38,7 @@ export function useShareReportViewModel(vehicleId: string): ShareReportViewModel
 
   // Called when the dialog opens — fetches current token state
   useEffect(() => {
-    getReportToken(vehicleId)
+    getReportToken(cookieHttpClient, vehicleId)
       .then((token) => {
         if (token.shareUrl) {
           setShareUrl(token.shareUrl);
@@ -55,7 +56,7 @@ export function useShareReportViewModel(vehicleId: string): ShareReportViewModel
   async function generateLink() {
     setState("loading");
     try {
-      const result = await createReportToken(vehicleId);
+      const result = await createReportToken(cookieHttpClient, vehicleId);
       setShareUrl(result.shareUrl);
       setState("has-token");
     } catch (err) {
@@ -77,7 +78,7 @@ export function useShareReportViewModel(vehicleId: string): ShareReportViewModel
     setEmailError(null);
     setEmailSentConfirm(null);
     try {
-      await emailReportLink(vehicleId, emailInput.trim());
+      await emailReportLink(cookieHttpClient, vehicleId, emailInput.trim());
       setEmailSentConfirm(emailInput.trim());
       setEmailInput("");
     } catch {
@@ -90,7 +91,7 @@ export function useShareReportViewModel(vehicleId: string): ShareReportViewModel
   async function revoke() {
     setState("loading");
     try {
-      await revokeReportToken(vehicleId);
+      await revokeReportToken(cookieHttpClient, vehicleId);
       setShareUrl(null);
       setEmailInput("");
       setEmailSentConfirm(null);
