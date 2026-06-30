@@ -251,4 +251,82 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
       cy.contains("Something went wrong").should("be.visible");
     });
   });
+
+  describe("delete vehicle", () => {
+    function setup() {
+      signIn(stubDetailOk);
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+    }
+
+    it("shows the danger zone after the vehicle loads", () => {
+      setup();
+      cy.get('[data-testid="danger-zone"]').should("be.visible");
+      cy.get('[data-testid="delete-vehicle-btn"]').should("be.visible");
+    });
+
+    it("opens the confirmation dialog when Delete vehicle is clicked", () => {
+      setup();
+      cy.get('[data-testid="delete-vehicle-btn"]').click();
+      cy.get('[data-testid="delete-confirm-dialog"]').should("be.visible");
+    });
+
+    it("shows the vehicle display name in the dialog body", () => {
+      setup();
+      cy.get('[data-testid="delete-vehicle-btn"]').click();
+      cy.get('[data-testid="delete-confirm-dialog"]').should("contain", VEHICLE_FIXTURE.nickname);
+    });
+
+    it("closes the dialog on Cancel without sending a DELETE request", () => {
+      cy.intercept("DELETE", `**/vehicles/${VEHICLE_ID}`).as("deleteRequest");
+
+      setup();
+      cy.get('[data-testid="delete-vehicle-btn"]').click();
+      cy.get('[data-testid="delete-cancel-btn"]').click();
+      cy.get('[data-testid="delete-confirm-dialog"]').should("not.exist");
+      cy.get("@deleteRequest.all").should("have.length", 0);
+    });
+
+    it("closes the dialog when clicking the backdrop", () => {
+      setup();
+      cy.get('[data-testid="delete-vehicle-btn"]').click();
+      cy.get('[data-testid="delete-confirm-dialog"]').click("topLeft");
+      cy.get('[data-testid="delete-confirm-dialog"]').should("not.exist");
+    });
+
+    it("navigates to /garage after confirming delete", () => {
+      cy.intercept("DELETE", `**/vehicles/${VEHICLE_ID}`, {
+        statusCode: 204,
+        body: null,
+      }).as("deleteVehicle");
+
+      cy.intercept("GET", "**/vehicles", {
+        statusCode: 200,
+        body: { vehicles: [] },
+      }).as("listVehicles");
+
+      setup();
+      cy.get('[data-testid="delete-vehicle-btn"]').click();
+      cy.get('[data-testid="delete-confirm-btn"]').click();
+      cy.wait("@deleteVehicle");
+      cy.url().should("include", "/garage");
+      cy.url().should("not.include", `/${VEHICLE_ID}`);
+    });
+
+    it("shows an inline error and keeps dialog open when DELETE fails", () => {
+      cy.intercept("DELETE", `**/vehicles/${VEHICLE_ID}`, {
+        statusCode: 500,
+        body: { error: "Internal server error" },
+      }).as("deleteVehicleError");
+
+      setup();
+      cy.get('[data-testid="delete-vehicle-btn"]').click();
+      cy.get('[data-testid="delete-confirm-btn"]').click();
+      cy.wait("@deleteVehicleError");
+      cy.get('[data-testid="delete-error"]').should("be.visible");
+      cy.get('[data-testid="delete-confirm-dialog"]').should("be.visible");
+    });
+  });
 });

@@ -66,6 +66,10 @@ export class PrismaVehicleRepository implements IVehicleRepository {
     return this.db.vehicle.update({ where: { id: vehicleId }, data });
   }
 
+  async delete(vehicleId: string): Promise<void> {
+    await this.db.vehicle.delete({ where: { id: vehicleId } });
+  }
+
   async findDetailById(vehicleId: string): Promise<DomainVehicleDetail | null> {
     const row = await this.db.vehicle.findUnique({
       where: { id: vehicleId },

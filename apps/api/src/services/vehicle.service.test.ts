@@ -57,6 +57,7 @@ function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehi
     setPhoto: vi.fn().mockResolvedValue({ ...mockVehicle, photoPath: 'new.jpg' }),
     findDetailById: vi.fn().mockResolvedValue(mockVehicleDetail),
     update: vi.fn().mockResolvedValue(mockVehicle),
+    delete: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -290,5 +291,58 @@ describe('VehicleService.updateVehicle', () => {
 
     await expect(service.updateVehicle('vehicle-1', 'account-1', updateInput)).rejects.toThrow();
     expect(vehicleRepo.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('VehicleService.deleteVehicle', () => {
+  let vehicleRepo: IVehicleRepository;
+  let accountRepo: IAccountRepository;
+  let service: VehicleService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vehicleRepo = makeFakeVehicleRepo();
+    accountRepo = makeFakeAccountRepo();
+    service = new VehicleService(vehicleRepo, accountRepo);
+  });
+
+  it('calls findDetailById to verify existence and ownership before deleting', async () => {
+    await service.deleteVehicle('vehicle-1', 'account-1');
+
+    expect(vehicleRepo.findDetailById).toHaveBeenCalledOnce();
+    expect(vehicleRepo.findDetailById).toHaveBeenCalledWith('vehicle-1');
+  });
+
+  it('calls vehicleRepo.delete with the vehicleId on success', async () => {
+    await service.deleteVehicle('vehicle-1', 'account-1');
+
+    expect(vehicleRepo.delete).toHaveBeenCalledOnce();
+    expect(vehicleRepo.delete).toHaveBeenCalledWith('vehicle-1');
+  });
+
+  it('throws a 404 AppError when the vehicle does not exist', async () => {
+    vehicleRepo = makeFakeVehicleRepo({ findDetailById: vi.fn().mockResolvedValue(null) });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    await expect(service.deleteVehicle('vehicle-1', 'account-1')).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it('throws a 403 AppError when the vehicle belongs to a different account', async () => {
+    vehicleRepo = makeFakeVehicleRepo({
+      findDetailById: vi.fn().mockResolvedValue({ ...mockVehicleDetail, accountId: 'other-account' }),
+    });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    await expect(service.deleteVehicle('vehicle-1', 'account-1')).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('does not call delete when ownership check fails', async () => {
+    vehicleRepo = makeFakeVehicleRepo({
+      findDetailById: vi.fn().mockResolvedValue({ ...mockVehicleDetail, accountId: 'other-account' }),
+    });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    await expect(service.deleteVehicle('vehicle-1', 'account-1')).rejects.toThrow();
+    expect(vehicleRepo.delete).not.toHaveBeenCalled();
   });
 });

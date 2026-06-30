@@ -3,7 +3,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ApiError } from "@/model/errors";
-import { getVehicle, updateVehicle } from "@/model/services/vehicleService";
+import { getVehicle, updateVehicle, deleteVehicle } from "@/model/services/vehicleService";
 import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/model/types";
 import { logger } from "@/infrastructure/logging/logger";
@@ -13,12 +13,19 @@ export type EditVehicleLoadState = "loading" | "ready" | "not-found" | "error";
 export interface EditVehicleViewModel {
   vehicleId: string;
   loadState: EditVehicleLoadState;
+  vehicleDisplayName: string;
   fields: VehicleDraft;
   errors: VehicleDraftErrors;
   updateField: (field: keyof VehicleDraft) => (e: ChangeEvent<HTMLInputElement>) => void;
   submitting: boolean;
   submitError: string | null;
   handleSubmit: (e: FormEvent) => Promise<void>;
+  deleteDialogOpen: boolean;
+  openDeleteDialog: () => void;
+  closeDeleteDialog: () => void;
+  deleting: boolean;
+  deleteError: string | null;
+  handleDelete: () => Promise<void>;
 }
 
 export function useEditVehicleViewModel(): EditVehicleViewModel {
@@ -26,6 +33,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
   const router = useRouter();
 
   const [loadState, setLoadState] = useState<EditVehicleLoadState>("loading");
+  const [vehicleDisplayName, setVehicleDisplayName] = useState("");
   const [fields, setFields] = useState<VehicleDraft>({
     nickname: "",
     make: "",
@@ -36,6 +44,10 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
   const [errors, setErrors] = useState<VehicleDraftErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!vehicleId) return;
@@ -48,6 +60,9 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
           year: String(vehicle.year),
           mileage: String(vehicle.mileage),
         });
+        setVehicleDisplayName(
+          vehicle.nickname || `${vehicle.make} ${vehicle.model}`,
+        );
         setLoadState("ready");
       })
       .catch((err) => {
@@ -88,7 +103,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
       if (err instanceof ApiError && err.status < 500) {
-        setSubmitError("Couldn’t save changes. Check the details and try again.");
+        setSubmitError("Couldn't save changes. Check the details and try again.");
       } else {
         logger.error("failed to update vehicle", { err });
         setSubmitError("We stalled. Our mechanics are on it — try again in a moment.");
@@ -98,14 +113,46 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     }
   }
 
+  function openDeleteDialog() {
+    setDeleteError(null);
+    setDeleteDialogOpen(true);
+  }
+
+  function closeDeleteDialog() {
+    if (deleting) return;
+    setDeleteDialogOpen(false);
+    setDeleteError(null);
+  }
+
+  async function handleDelete() {
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await deleteVehicle(vehicleId);
+      router.push("/garage");
+    } catch (err) {
+      logger.error("failed to delete vehicle", { err });
+      setDeleteError("Something went wrong. Try again in a moment.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return {
     vehicleId,
     loadState,
+    vehicleDisplayName,
     fields,
     errors,
     updateField,
     submitting,
     submitError,
     handleSubmit,
+    deleteDialogOpen,
+    openDeleteDialog,
+    closeDeleteDialog,
+    deleting,
+    deleteError,
+    handleDelete,
   };
 }

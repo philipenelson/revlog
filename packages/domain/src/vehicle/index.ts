@@ -61,4 +61,5 @@ export interface IVehicleRepository {
   // Full detail fetch — includes insurance and log entry summaries.
   findDetailById(vehicleId: string): Promise<DomainVehicleDetail | null>;
   update(vehicleId: string, data: UpdateVehicleData): Promise<DomainVehicle>;
+  delete(vehicleId: string): Promise<void>;
 }

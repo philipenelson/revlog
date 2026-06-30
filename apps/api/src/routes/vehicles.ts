@@ -54,6 +54,20 @@ export function createVehicleRouter(vehicleService: VehicleService): ExpressRout
     }
   });
 
+  router.delete('/:id', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    const vehicleId = String(req.params['id']);
+    if (!vehicleId) {
+      res.status(400).json({ error: 'Vehicle ID is required' });
+      return;
+    }
+    try {
+      await vehicleService.deleteVehicle(vehicleId, req.auth!.accountId);
+      res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.patch('/:id', authenticate, async (req: Request, res: Response, next: NextFunction) => {
     const parsed = updateVehicleSchema.safeParse(req.body);
     if (!parsed.success) {
