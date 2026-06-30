@@ -4,6 +4,7 @@
 
 export * from './schemas/auth';
 export * from './schemas/vehicle';
+export * from './schemas/vehicle-transfer';
 export * from './schemas/log-entry';
 export * from './schemas/insurance';
 export * from './schemas/newsletter';
@@ -11,6 +12,7 @@ export * from './user';
 export * from './account';
 export * from './refresh-token';
 export * from './vehicle';
+export * from './vehicle-transfer';
 export * from './log-entry';
 export * from './lookup-constants';
 export * from './newsletter';
