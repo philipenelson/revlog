@@ -217,4 +217,7 @@ update(vehicleId: string, data: UpdateVehicleInput): Promise<DomainVehicle>;
 
 - Photo edit/replace on the edit screen — photo upload exists on the detail screen via a separate flow
 - Mileage decrease validation ("mileage must not be lower than the last log entry") — V2 guard
-- Vehicle archiving / soft-delete — separate V2 feature
+
+## Related specs
+
+- [`delete-vehicle.md`](./delete-vehicle.md) — danger zone at the bottom of this screen; permanent hard delete with confirmation dialog

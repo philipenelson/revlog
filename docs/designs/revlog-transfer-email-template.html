@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="color-scheme" content="dark light">
+<meta name="supported-color-schemes" content="dark light">
+<title>Revlog — Vehicle Transfer Email · Design Preview</title>
+
+<!--[if mso]>
+<noscript>
+<xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+</noscript>
+<style>table { border-collapse: collapse; } .heading, .body-text, .mono { font-family: Arial, sans-serif !important; }</style>
+<![endif]-->
+
+<!--[if !mso]><!-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700&family=DM+Sans:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<!--<![endif]-->
+
+<style>
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+  body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+
+  .preheader { display: none !important; visibility: hidden; opacity: 0; color: transparent; height: 0; width: 0; overflow: hidden; mso-hide: all; }
+  .heading   { font-family: 'Outfit', 'DM Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  .body-text { font-family: 'DM Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  .mono      { font-family: 'Geist Mono', 'SFMono-Regular', Consolas, Menlo, monospace; }
+
+  a.btn-link:hover { background-color: #22CBEA !important; }
+
+  @media screen and (max-width: 600px) {
+    .email-wrapper { width: 100% !important; }
+    .email-card { border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+    .stack-padding { padding-left: 26px !important; padding-right: 26px !important; }
+    .heading-xl { font-size: 22px !important; line-height: 30px !important; }
+    .full-width-btn { display: block !important; width: 100% !important; box-sizing: border-box; }
+  }
+
+  /* Preview switcher (not part of email) */
+  .preview-switcher { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; background: #1A1D2E; border: 1px dashed #3E4260; border-radius: 10px; padding: 6px 8px; z-index: 30; }
+  .preview-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.09em; color: #50527A; padding: 0 6px; font-family: 'DM Sans', sans-serif; }
+  .state-btn { background: transparent; border: 1px solid #2A2E46; border-radius: 6px; color: #50527A; font-family: 'DM Sans', sans-serif; font-size: 11px; padding: 5px 12px; cursor: pointer; }
+  .state-btn.active, .state-btn:hover { border-color: #14B8D4; color: #67E2F0; background: rgba(20,184,212,0.12); }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:#0B0D14;">
+
+  <!-- ── Existing user: transfer notification ──────────────────────── -->
+  <div id="existingUserEmail">
+
+    <div class="preheader">{{senderName}} wants to transfer {{vehicleDisplayName}} to you on Revlog. Review and accept or decline — expires in 7 days.</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0B0D14;">
+      <tr>
+        <td align="center" style="padding: 40px 16px;">
+          <!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+          <table role="presentation" class="email-wrapper" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+            <!-- Wordmark -->
+            <tr>
+              <td align="center" style="padding-bottom: 28px;">
+                <span class="heading" style="font-size:20px; letter-spacing:-0.02em;">
+                  <span style="font-weight:300; color:#EDF0F8;">Rev</span><span style="font-weight:700; color:#14B8D4;">log</span>
+                </span>
+              </td>
+            </tr>
+
+            <!-- Card -->
+            <tr>
+              <td class="email-card" style="background-color:#131620; border:1px solid #1E2235; border-radius:16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+
+                  <tr>
+                    <td class="stack-padding" align="center" style="padding: 46px 48px 6px;">
+
+                      <!-- Icon badge -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td width="56" height="56" align="center" valign="middle"
+                              style="width:56px; height:56px; border-radius:14px; background-color:#1A1D2E; border:1px solid rgba(20,184,212,0.25); background-image:linear-gradient(135deg,rgba(20,184,212,0.12),transparent);">
+                            <!-- Arrow right icon -->
+                            <span style="font-size:22px; color:#14B8D4; line-height:56px;">&#8594;</span>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="height:24px; line-height:24px; font-size:1px;">&nbsp;</div>
+
+                      <p class="body-text" style="margin:0 0 10px; font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:#14B8D4;">
+                        Vehicle transfer
+                      </p>
+
+                      <h1 class="heading heading-xl" style="margin:0 0 16px; font-size:26px; line-height:34px; font-weight:700; letter-spacing:-0.02em; color:#EDF0F8;">
+                        {{senderName}} wants to<br>transfer a vehicle to you
+                      </h1>
+
+                      <p class="body-text" style="margin:0 auto 28px; max-width:420px; font-size:15px; line-height:26px; color:#8C8FA8;">
+                        You've been sent a transfer for <strong style="color:#EDF0F8;">{{vehicleDisplayName}}</strong> ({{vehicleMake}} {{vehicleModel}} {{vehicleYear}}), including its complete service history of {{logEntryCount}} log entries. Accept or decline — this transfer expires in 7 days.
+                      </p>
+
+                      <!-- Vehicle pill -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 28px;">
+                        <tr>
+                          <td style="background-color:#1A1D2E; border:1px solid #2A2E46; border-radius:10px; padding:14px 20px;">
+                            <p class="body-text" style="margin:0; font-size:13px; color:#50527A; letter-spacing:0.04em; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Vehicle</p>
+                            <p class="heading" style="margin:0; font-size:18px; font-weight:700; letter-spacing:-0.02em; color:#EDF0F8;">{{vehicleDisplayName}}</p>
+                            <p class="body-text" style="margin:4px 0 0; font-size:13px; color:#8C8FA8;">{{vehicleMake}} · {{vehicleModel}} · {{vehicleYear}}</p>
+                            <p class="body-text" style="margin:8px 0 0; font-size:12px; color:#50527A;">{{logEntryCount}} log entries included</p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- CTA -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                        <tr>
+                          <td align="center" bgcolor="#14B8D4" style="border-radius:10px;">
+                            <!--[if mso]>
+                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{transferUrl}}" style="height:46px;v-text-anchor:middle;width:240px;" arcsize="22%" stroke="f" fillcolor="#14B8D4">
+                            <w:anchorlock/>
+                            <center style="color:#080A10; font-family:Arial, sans-serif; font-size:14px; font-weight:bold;">Review transfer</center>
+                            </v:roundrect>
+                            <![endif]-->
+                            <!--[if !mso]><!-->
+                            <a href="{{transferUrl}}" target="_blank" class="btn-link full-width-btn body-text"
+                               style="display:inline-block; padding:14px 38px; font-size:14px; font-weight:600; color:#080A10; text-decoration:none; border-radius:10px; background-color:#14B8D4;">
+                              Review transfer &rarr;
+                            </a>
+                            <!--<![endif]-->
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="height:32px; line-height:32px; font-size:1px;">&nbsp;</div>
+
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr><td style="border-top:1px solid #1E2235; font-size:1px; line-height:1px;">&nbsp;</td></tr>
+                      </table>
+
+                      <div style="height:26px; line-height:26px; font-size:1px;">&nbsp;</div>
+
+                      <p class="body-text" style="margin:0 0 8px; font-size:12.5px; color:#50527A;">Button not working? Copy and paste this link:</p>
+                      <p class="mono" style="margin:0 0 28px; font-size:12px; color:#67E2F0; word-break:break-all;">{{transferUrl}}</p>
+                      <p class="body-text" style="margin:0; font-size:12px; color:#50527A;">This transfer expires on {{expiresAt}}. You can decline without creating an account — just ignore this email and it will expire automatically.</p>
+
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td class="stack-padding" align="center" style="padding: 26px 48px 40px;">
+                      <p class="body-text" style="margin:0; font-size:12.5px; line-height:20px; color:#50527A;">
+                        Not expecting this? You can safely ignore this email — no changes will be made to your account.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td align="center" style="padding: 28px 16px 0;">
+                <p class="body-text" style="margin:0; font-size:12px; color:#34375A;">
+                  &copy; 2026 Revlog &nbsp;&middot;&nbsp;
+                  <a href="#" style="color:#50527A; text-decoration:none;">Unsubscribe</a>
+                </p>
+              </td>
+            </tr>
+
+          </table>
+          <!--[if mso]></td></tr></table><![endif]-->
+        </td>
+      </tr>
+    </table>
+
+  </div>
+
+  <!-- ── New user: invite email ──────────────────────────────────── -->
+  <div id="newUserEmail" style="display:none;">
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0B0D14;">
+      <tr>
+        <td align="center" style="padding: 40px 16px;">
+          <!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+          <table role="presentation" class="email-wrapper" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+
+            <tr>
+              <td align="center" style="padding-bottom: 28px;">
+                <span class="heading" style="font-size:20px; letter-spacing:-0.02em;">
+                  <span style="font-weight:300; color:#EDF0F8;">Rev</span><span style="font-weight:700; color:#14B8D4;">log</span>
+                </span>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="email-card" style="background-color:#131620; border:1px solid #1E2235; border-radius:16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+
+                  <tr>
+                    <td class="stack-padding" align="center" style="padding: 46px 48px 6px;">
+
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td width="56" height="56" align="center" valign="middle"
+                              style="width:56px; height:56px; border-radius:14px; background-color:#1A1D2E; border:1px solid rgba(20,184,212,0.25);">
+                            <span style="font-size:22px; color:#14B8D4; line-height:56px;">&#127919;</span>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="height:24px; line-height:24px; font-size:1px;">&nbsp;</div>
+
+                      <p class="body-text" style="margin:0 0 10px; font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:#14B8D4;">
+                        You've been invited
+                      </p>
+
+                      <h1 class="heading heading-xl" style="margin:0 0 16px; font-size:26px; line-height:34px; font-weight:700; letter-spacing:-0.02em; color:#EDF0F8;">
+                        {{senderName}} is sending you<br>a vehicle on Revlog
+                      </h1>
+
+                      <p class="body-text" style="margin:0 auto 28px; max-width:420px; font-size:15px; line-height:26px; color:#8C8FA8;">
+                        <strong style="color:#EDF0F8;">{{senderName}}</strong> wants to transfer <strong style="color:#EDF0F8;">{{vehicleDisplayName}}</strong> ({{vehicleMake}} {{vehicleModel}} {{vehicleYear}}) to you, including its complete service history. Create a free Revlog account to accept or decline.
+                      </p>
+
+                      <!-- Vehicle pill -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto 28px;">
+                        <tr>
+                          <td style="background-color:#1A1D2E; border:1px solid #2A2E46; border-radius:10px; padding:14px 20px;">
+                            <p class="body-text" style="margin:0; font-size:13px; color:#50527A; letter-spacing:0.04em; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Vehicle</p>
+                            <p class="heading" style="margin:0; font-size:18px; font-weight:700; letter-spacing:-0.02em; color:#EDF0F8;">{{vehicleDisplayName}}</p>
+                            <p class="body-text" style="margin:4px 0 0; font-size:13px; color:#8C8FA8;">{{vehicleMake}} · {{vehicleModel}} · {{vehicleYear}}</p>
+                            <p class="body-text" style="margin:8px 0 0; font-size:12px; color:#50527A;">{{logEntryCount}} log entries included</p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- CTA -->
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                        <tr>
+                          <td align="center" bgcolor="#14B8D4" style="border-radius:10px;">
+                            <!--[if mso]>
+                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{registerWithTransferUrl}}" style="height:46px;v-text-anchor:middle;width:300px;" arcsize="22%" stroke="f" fillcolor="#14B8D4">
+                            <w:anchorlock/>
+                            <center style="color:#080A10; font-family:Arial, sans-serif; font-size:14px; font-weight:bold;">Create account &amp; review transfer</center>
+                            </v:roundrect>
+                            <![endif]-->
+                            <!--[if !mso]><!-->
+                            <a href="{{registerWithTransferUrl}}" target="_blank" class="btn-link full-width-btn body-text"
+                               style="display:inline-block; padding:14px 38px; font-size:14px; font-weight:600; color:#080A10; text-decoration:none; border-radius:10px; background-color:#14B8D4;">
+                              Create account &amp; review transfer &rarr;
+                            </a>
+                            <!--<![endif]-->
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="height:32px; line-height:32px; font-size:1px;">&nbsp;</div>
+
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr><td style="border-top:1px solid #1E2235; font-size:1px; line-height:1px;">&nbsp;</td></tr>
+                      </table>
+
+                      <div style="height:26px; line-height:26px; font-size:1px;">&nbsp;</div>
+
+                      <p class="body-text" style="margin:0 0 8px; font-size:12.5px; color:#50527A;">Button not working? Copy and paste this link:</p>
+                      <p class="mono" style="margin:0 0 28px; font-size:12px; color:#67E2F0; word-break:break-all;">{{registerWithTransferUrl}}</p>
+                      <p class="body-text" style="margin:0; font-size:12px; color:#50527A;">This transfer expires on {{expiresAt}}. You don't need to create an account to decline — just ignore this email and the transfer will expire automatically.</p>
+
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td class="stack-padding" align="center" style="padding: 26px 48px 40px;">
+                      <p class="body-text" style="margin:0; font-size:12.5px; line-height:20px; color:#50527A;">
+                        Revlog is a free service history tracker for motorcycle owners. Your data stays yours.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding: 28px 16px 0;">
+                <p class="body-text" style="margin:0; font-size:12px; color:#34375A;">
+                  &copy; 2026 Revlog
+                </p>
+              </td>
+            </tr>
+
+          </table>
+          <!--[if mso]></td></tr></table><![endif]-->
+        </td>
+      </tr>
+    </table>
+
+  </div>
+
+  <!-- Design preview switcher (not part of email) -->
+  <div class="preview-switcher">
+    <span class="preview-label">Preview</span>
+    <button class="state-btn active" onclick="show('existingUserEmail', this)">Existing user</button>
+    <button class="state-btn" onclick="show('newUserEmail', this)">New user invite</button>
+  </div>
+
+  <script>
+    function show(id, btn) {
+      document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('existingUserEmail').style.display = 'none';
+      document.getElementById('newUserEmail').style.display = 'none';
+      document.getElementById(id).style.display = 'block';
+    }
+  </script>
+</body>
+</html>

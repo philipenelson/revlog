@@ -3,7 +3,7 @@
 **Area:** Garage
 **Route:** `/garage/[vehicleId]`
 **Status:** Not started
-**Last updated:** 2026-06-09
+**Last updated:** 2026-06-28
 
 ---
 
@@ -17,7 +17,7 @@ This screen is the primary destination reached by selecting a Vehicle card in th
 
 ## Layout
 
-- **Top bar** — a back link (`← Garage`) to `/garage`, the Revlog wordmark, and two action buttons: `[✎ Edit]` (navigates to `/garage/[vehicleId]/edit`) and `[+ Log entry]` (navigates to `/garage/[vehicleId]/log/new`)
+- **Top bar** — a back link (`← Garage`) to `/garage`, the Revlog wordmark, and action buttons: `[✎ Edit]` (navigates to `/garage/[vehicleId]/edit`), `[Share report]` (opens the Share Report dialog — [`mechanic-printout.md`](./mechanic-printout.md)), `[Transfer]` (opens the Transfer dialog — [`vehicle-transfer.md`](./vehicle-transfer.md)), and `[+ Log entry]` (navigates to `/garage/[vehicleId]/log/new`). When a Vehicle Transfer is pending, the top bar buttons are replaced — see **Locked state** below.
 - **Hero panel** — full-width panel with a dark gradient overlay at the bottom: Vehicle photo if `photoUrl` is set; otherwise the Vehicle glyph illustration in the same style as the Garage card. Overlaid at the bottom: display name (Nickname if set, else "Make Model") and "Make · Model · Year"
 - **Stats strip** — four horizontal stat blocks: Odometer (formatted with "mi" unit), Log entries (count or "None"), Last logged (date of most recent Log Entry or "Never"), Total spent (formatted as currency or "—" when zero)
 - **Insurance row** — a compact single-line element below the stats strip: a shield icon followed by the expiry date ("Expires Jun 1 2026") when insurance is on file, or "No insurance on file" in muted text when not set. A `[Details →]` / `[Add →]` button opens the Insurance dialog. Row renders in warning colour when expiry is within 30 days.
@@ -187,8 +187,14 @@ This screen is the primary destination reached by selecting a Vehicle card in th
 
 ## Next steps
 
-### Build the Edit Vehicle screen
-`/garage/[vehicleId]/edit` is wired as a navigation target by UC-VDETAIL-5 but is not yet specced. Requires its own spec covering the edit form, `PATCH /vehicles/:vehicleId`, and the return-to-detail flow.
+### Locked state — Vehicle Transfer pending
+When `GET /vehicles/:vehicleId` returns `transferPending: true`, the top bar must replace all action buttons with a "Transfer pending" banner. See [`vehicle-transfer.md`](./vehicle-transfer.md) for the full locked-state spec.
+
+### Share Report dialog
+`[Share report]` in the top bar opens the share dialog. Full spec in [`mechanic-printout.md`](./mechanic-printout.md).
+
+### Delete Vehicle
+Permanent deletion is surfaced in the danger zone of the Edit Vehicle screen. Full spec in [`delete-vehicle.md`](./delete-vehicle.md).
 
 ### Pagination for large service histories
 Client-side filtering works while entry counts stay small. Once entries grow, `GET /vehicles/:vehicleId` should return a paginated log entry list with server-side type filtering.
@@ -197,8 +203,6 @@ Client-side filtering works while entry counts stay small. Once entries grow, `G
 
 ## Out of scope
 
-- Edit Vehicle screen and `PATCH /vehicles/:vehicleId` (separate spec)
-- Vehicle deletion/archiving (not a V1 concept)
-- Scheduled Maintenance Item reminders (V2)
-- Sharing/exporting the Service History — Mechanic Printout (V2)
-- Multi-media gallery view for attachments (V2)
+- Edit Vehicle screen and `PATCH /vehicles/:vehicleId` — [`edit-vehicle.md`](./edit-vehicle.md)
+- Scheduled Maintenance Item reminders → V2
+- Multi-media gallery view for attachments → V2
