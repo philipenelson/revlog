@@ -53,4 +53,12 @@ export class VehicleService {
     logger.info({ accountId, vehicleId }, 'vehicle updated');
     return vehicle;
   }
+
+  async deleteVehicle(vehicleId: string, accountId: string): Promise<void> {
+    const detail = await this.vehicleRepo.findDetailById(vehicleId);
+    if (!detail) throw new AppError(404, 'Vehicle not found');
+    if (detail.accountId !== accountId) throw new AppError(403, 'Forbidden');
+    await this.vehicleRepo.delete(vehicleId);
+    logger.info({ accountId, vehicleId }, 'vehicle deleted');
+  }
 }
