@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError } from "@/model/errors";
-import { listVehicles } from "@/model/services/vehicleService";
-import type { VehicleSummary } from "@/model/types";
+import { ApiError } from "@/domain/errors";
+import { listVehicles } from "@/domain/services/vehicleService";
+import type { VehicleSummary } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type GarageLoadState = "loading" | "loaded" | "error";

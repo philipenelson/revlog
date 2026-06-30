@@ -9,7 +9,7 @@ import {
   type LogEntryFormState,
   type LogItemDraft,
   type MediaDraft,
-} from "@/model/logEntryDraft";
+} from "@/domain/logEntryDraft";
 
 export interface LogEntryFormViewModel {
   canSave: boolean;

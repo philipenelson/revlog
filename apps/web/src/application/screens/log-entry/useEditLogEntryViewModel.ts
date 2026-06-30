@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useMediaStore } from "@/infrastructure/media/useMediaStore";
-import { getLogEntry, updateLogEntry, deleteLogEntry } from "@/model/services/logEntryService";
+import { getLogEntry, updateLogEntry, deleteLogEntry } from "@/domain/services/logEntryService";
 import {
   buildLogEntryPayload,
   entryToFormState,
   saveDraftMedia,
   type LogEntryFormState,
-} from "@/model/logEntryDraft";
+} from "@/domain/logEntryDraft";
 
 export interface EditLogEntryViewModel {
   vehicleId: string;

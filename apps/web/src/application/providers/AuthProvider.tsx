@@ -1,12 +1,12 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { refreshSession } from "@/model/services/authService";
-import type { Session } from "@/model/types";
+import { refreshSession } from "@/domain/services/authService";
+import type { Session } from "@/domain/types";
 import { useRouter } from 'next/navigation';
 import { sessionStore } from '@/infrastructure/session/sessionStore';
 import { registerRequestInterceptor, registerResponseInterceptor } from '@/infrastructure/http/apiClient';
-import { authRequestInterceptor, createUnauthorizedInterceptor } from '@/model/services/authInterceptor';
+import { authRequestInterceptor, createUnauthorizedInterceptor } from '@/domain/services/authInterceptor';
 import { logger } from '@/infrastructure/logging/logger';
 
 interface AuthContextValue {
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Wire the auth interceptors into the generic HTTP client: one proactively
   // refreshes + attaches the token, one redirects on an unhandled 401. The
-  // interceptor logic is framework-free (model/services); this only registers
+  // interceptor logic is framework-free (domain/services); this only registers
   // it and supplies the navigation. Cleanup avoids accumulating handlers.
   useEffect(() => {
     const offRequest = registerRequestInterceptor(authRequestInterceptor);

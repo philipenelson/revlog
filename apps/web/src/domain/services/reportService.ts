@@ -1,5 +1,5 @@
 import { apiFetch } from "@/infrastructure/http/apiClient";
-import type { VehicleReportToken, MechanicPrintout } from "@/model/types";
+import type { VehicleReportToken, MechanicPrintout } from "@/domain/types";
 
 export async function getReportToken(vehicleId: string): Promise<VehicleReportToken> {
   return apiFetch<VehicleReportToken>(`/vehicles/${vehicleId}/report-token`);

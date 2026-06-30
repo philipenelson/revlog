@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getMechanicPrintout } from "@/model/services/reportService";
-import { vehicleDisplayName } from "@/model/types";
-import type { MechanicPrintout } from "@/model/types";
+import { getMechanicPrintout } from "@/domain/services/reportService";
+import { vehicleDisplayName } from "@/domain/types";
+import type { MechanicPrintout } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type PrintoutLoadState = "loading" | "loaded" | "not-found" | "error";

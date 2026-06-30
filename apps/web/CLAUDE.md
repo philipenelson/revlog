@@ -29,7 +29,7 @@ See [ADR 0007](../../docs/adr/0007-style-architecture-guardrails.md).
 The app follows MVVM with an Application / Model / Infrastructure layering — see [ADR 0020](../../docs/adr/0020-web-mvvm-layered-architecture.md). Dependency direction is one-way:
 
 ```
-app (routes) → application (views + viewmodels) → model (types + services) → infrastructure (http, logging, media)
+app (routes) → application (views + viewmodels) → domain (types + services) → infrastructure (http, logging, media)
 ```
 
 ```
@@ -44,7 +44,7 @@ src/
     providers/               ← cross-screen state (AuthProvider)
     navigation/              ← route mapping helpers
     hooks/                   ← shared application hooks (e.g. useLogScreenCrash)
-  model/
+  domain/
     types.ts                 ← domain types shared across screens
     validation/              ← client-side draft validation
     services/                ← one service per aggregate; the ONLY place that knows
@@ -59,7 +59,7 @@ src/
 Rules:
 - **Views are logic-free** — no `useEffect`, no fetching, no business rules; they render viewmodel output and wire callbacks.
 - **ViewModels own behaviour** and return data + callbacks, never JSX. Keep DOM refs in the view; pass elements into viewmodel callbacks when needed.
-- **Views never import services or the http client**; viewmodels never call `apiFetch` or build auth headers — that belongs to `model/services`.
+- **Views never import services or the http client**; viewmodels never call `apiFetch` or build auth headers — that belongs to `domain/services`.
 - Route groups use parentheses — `(auth)` groups login/register without adding a URL segment.
 
 ---
@@ -71,7 +71,7 @@ Rules:
 Cross-cutting HTTP behaviour is added as **interceptors**, never by editing `apiFetch` (Open/Closed):
 
 - `registerRequestInterceptor(fn)` / `registerResponseInterceptor(fn)` — both `async`, both return an **unregister** function. Request interceptors transform `(path, init)`; response interceptors transform/observe `(res, path, init)`.
-- **Auth** is two interceptors whose logic lives in `model/services/authInterceptor.ts` (plain TS — the layer that owns API paths + auth headers): `authRequestInterceptor` attaches the Bearer token and proactively refreshes the access token before expiry (single-flight, skipping `/auth/*`); `createUnauthorizedInterceptor(onUnauthorized)` redirects on any 401 (a failed silent restore, a failed refresh, or a rejected token). `AuthProvider` only registers them and injects the navigation callback — React/Next stays thin.
+- **Auth** is two interceptors whose logic lives in `domain/services/authInterceptor.ts` (plain TS — the layer that owns API paths + auth headers): `authRequestInterceptor` attaches the Bearer token and proactively refreshes the access token before expiry (single-flight, skipping `/auth/*`); `createUnauthorizedInterceptor(onUnauthorized)` redirects on any 401 (a failed silent restore, a failed refresh, or a rejected token). `AuthProvider` only registers them and injects the navigation callback — React/Next stays thin.
 - **Retry/timeout** is built into the client around the `sendRequest` seam (not a per-call wrapper): default-on for idempotent methods only (POST excluded to avoid duplicate writes), configurable per-call via `apiFetch(path, init, options)` and globally. See [ADR 0022](../../docs/adr/0022-http-client-retry-policy.md).
 
 When you need new cross-cutting behaviour (tracing, logging, etc.), write an interceptor or wrap `sendRequest` — do not add branches to `apiFetch`.

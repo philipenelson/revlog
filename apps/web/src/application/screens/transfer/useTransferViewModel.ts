@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ApiError } from "@/model/errors";
+import { ApiError } from "@/domain/errors";
 import {
   getTransferDetails,
   acceptTransfer,
   declineTransfer,
-} from "@/model/services/transferService";
-import type { TransferDetails } from "@/model/types";
+} from "@/domain/services/transferService";
+import type { TransferDetails } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 import { useAuth } from "@/application/providers/AuthProvider";
 

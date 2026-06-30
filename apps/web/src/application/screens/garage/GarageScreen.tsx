@@ -9,7 +9,7 @@ import {
   VehicleGlyphIcon,
 } from "@/application/components/icons";
 import { Wordmark } from "@/application/components/Wordmark";
-import { vehicleDisplayName, type VehicleSummary } from "@/model/types";
+import { vehicleDisplayName, type VehicleSummary } from "@/domain/types";
 import { pluralize } from "@/utils/format";
 import { useGarageViewModel } from "./useGarageViewModel";
 import styles from "./garage.module.css";

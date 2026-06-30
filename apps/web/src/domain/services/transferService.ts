@@ -1,5 +1,5 @@
 import { apiFetch } from "@/infrastructure/http/apiClient";
-import type { TransferDetails } from "@/model/types";
+import type { TransferDetails } from "@/domain/types";
 
 export async function getTransferDetails(token: string): Promise<TransferDetails> {
   const data = await apiFetch<{ transfer: TransferDetails }>(`/transfers/${token}`);

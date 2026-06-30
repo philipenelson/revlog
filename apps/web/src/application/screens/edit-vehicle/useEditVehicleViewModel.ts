@@ -2,10 +2,10 @@
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ApiError } from "@/model/errors";
-import { getVehicle, updateVehicle, deleteVehicle } from "@/model/services/vehicleService";
-import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
-import type { VehicleDraft, VehicleDraftErrors } from "@/model/types";
+import { ApiError } from "@/domain/errors";
+import { getVehicle, updateVehicle, deleteVehicle } from "@/domain/services/vehicleService";
+import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
+import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type EditVehicleLoadState = "loading" | "ready" | "not-found" | "error";

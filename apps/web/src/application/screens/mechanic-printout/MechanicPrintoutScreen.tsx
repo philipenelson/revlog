@@ -1,6 +1,6 @@
 "use client";
 
-import type { PrintoutLogEntry, PrintoutLogItem } from "@/model/types";
+import type { PrintoutLogEntry, PrintoutLogItem } from "@/domain/types";
 import { formatShortDate, formatCurrency2, formatCurrencyWhole } from "@/utils/format";
 import { useMechanicPrintoutViewModel } from "./useMechanicPrintoutViewModel";
 import styles from "./mechanic-printout.module.css";

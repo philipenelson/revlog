@@ -1,4 +1,4 @@
-import type { VehicleDraft, VehicleDraftErrors } from "@/model/types";
+import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 
 const CURRENT_YEAR = new Date().getFullYear();
 

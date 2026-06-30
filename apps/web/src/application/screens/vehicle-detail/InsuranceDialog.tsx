@@ -1,7 +1,7 @@
 "use client";
 
 import { CloseIcon } from "@/application/components/icons";
-import type { InsuranceInput, InsuranceRecord } from "@/model/types";
+import type { InsuranceInput, InsuranceRecord } from "@/domain/types";
 import { formatShortDate } from "@/utils/format";
 import { formatCurrencyMin2 } from "@/utils/format";
 import { useInsuranceDialogViewModel } from "./useInsuranceDialogViewModel";

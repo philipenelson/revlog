@@ -1,5 +1,5 @@
 import { apiFetch } from "@/infrastructure/http/apiClient";
-import type { InsuranceInput, InsuranceRecord } from "@/model/types";
+import type { InsuranceInput, InsuranceRecord } from "@/domain/types";
 
 export async function saveInsurance(
   vehicleId: string,

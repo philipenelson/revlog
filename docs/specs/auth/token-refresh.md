@@ -51,7 +51,7 @@ Auth is added to `apiFetch` as **interceptors** — `apiFetch` itself stays a ge
 ### Layering
 
 - `apiFetch` (`infrastructure/http/apiClient.ts`) is a generic transport: base URL, async interceptor pipeline, send, parse. No auth, no `sessionStore`, no `/auth/*`.
-- The interceptor logic lives in `model/services/authInterceptor.ts` (plain TS — the layer that owns API paths + auth headers, [ADR 0020](../../adr/0020-web-mvvm-layered-architecture.md)). It reads `sessionStore` (infrastructure), calls `authService.refreshSession`, and holds the single-flight promise. No React.
+- The interceptor logic lives in `domain/services/authInterceptor.ts` (plain TS — the layer that owns API paths + auth headers, [ADR 0020](../../adr/0020-web-mvvm-layered-architecture.md)). It reads `sessionStore` (infrastructure), calls `authService.refreshSession`, and holds the single-flight promise. No React.
 - `AuthProvider` is thin wiring: on mount it registers both interceptors (each registration returns an unregister for cleanup) and supplies `onUnauthorized` = `sessionStore.clearSession()` + `logger.info(...)` + `router.push('/login')` — the only React/Next touchpoint.
 
 ### Uploads
@@ -91,7 +91,7 @@ Auth is added to `apiFetch` as **interceptors** — `apiFetch` itself stays a ge
 | Learning expiry | API returns `accessTokenExpiresAt`; client never decodes the JWT | The server owns the TTL; stating it explicitly keeps the client from parsing/trusting token internals |
 | Refresh lead | 30s | An in-flight-expiry guard so a request doesn't carry a token about to die; not a skew defence |
 | Concurrency | Single shared in-flight refresh promise | Rotation ([ADR 0017](../../adr/0017-refresh-token-rotation.md)) would 401 every concurrent refresh after the first |
-| Placement | Auth as interceptors; logic in `model/services`, `apiFetch` stays generic | Transport must stay reusable for unauthenticated/3rd-party endpoints; cross-cutting concerns are interceptors (OCP). See [ADR 0021](../../adr/0021-proactive-access-token-refresh.md) |
+| Placement | Auth as interceptors; logic in `domain/services`, `apiFetch` stays generic | Transport must stay reusable for unauthenticated/3rd-party endpoints; cross-cutting concerns are interceptors (OCP). See [ADR 0021](../../adr/0021-proactive-access-token-refresh.md) |
 | `sessionService` → `sessionStore` in infrastructure | Rename + move | It is storage, not domain; the move removes the existing backwards `apiClient → model` import |
 | Uploads | Fold `apiUpload` into `apiFetch` (`FormData` detection), keep multipart | Removes a code path that bypassed the interceptors; base64-in-JSON rejected for payload bloat + pipeline churn |
 | Interceptor registry | Kept and made async; registration returns an unregister | It is the Open/Closed extension point for cross-cutting HTTP concerns (auth now, retry next); async lets a request interceptor await a refresh; unregister fixes the remount leak |

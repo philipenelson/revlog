@@ -6,7 +6,7 @@ import {
   createReportToken,
   revokeReportToken,
   emailReportLink,
-} from "@/model/services/reportService";
+} from "@/domain/services/reportService";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type ShareReportState = "no-token" | "has-token" | "loading";

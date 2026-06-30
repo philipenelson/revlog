@@ -1,5 +1,5 @@
 import { apiFetch } from "@/infrastructure/http/apiClient";
-import type { Session } from "@/model/types";
+import type { Session } from "@/domain/types";
 import type { LoginInput, RegisterInput } from "@maintenance-log/domain";
 
 export function login(input: LoginInput): Promise<Session> {

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/infrastructure/http/apiClient";
-import type { VehicleDetail, VehicleSummary } from "@/model/types";
+import type { VehicleDetail, VehicleSummary } from "@/domain/types";
 
 export interface CreateVehiclePayload {
   nickname?: string;

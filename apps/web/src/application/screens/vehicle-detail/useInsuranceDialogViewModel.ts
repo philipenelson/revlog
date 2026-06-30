@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { InsuranceInput, InsuranceRecord } from "@/model/types";
+import type { InsuranceInput, InsuranceRecord } from "@/domain/types";
 
 export interface InsuranceDialogDraft {
   company: string;

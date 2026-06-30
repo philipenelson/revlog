@@ -1,4 +1,4 @@
-import type { Session } from '@/model/types';
+import type { Session } from '@/domain/types';
 
 // In-memory session holder — the access token lives here and nowhere else
 // (never localStorage/sessionStorage), per ADR 0002. Pure storage with no

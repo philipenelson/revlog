@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { VehicleGlyphIcon } from "@/application/components/icons";
 import { Wordmark } from "@/application/components/Wordmark";
-import { vehicleDisplayName } from "@/model/types";
+import { vehicleDisplayName } from "@/domain/types";
 import { formatShortDate } from "@/utils/format";
 import { useTransferViewModel } from "./useTransferViewModel";
-import type { TransferDetails } from "@/model/types";
+import type { TransferDetails } from "@/domain/types";
 import styles from "./transfer.module.css";
 
 export function TransferScreen() {

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/infrastructure/http/apiClient";
-import type { LogEntryDetail } from "@/model/types";
+import type { LogEntryDetail } from "@/domain/types";
 
 export interface LogItemPayload {
   categoryId: string;

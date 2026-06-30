@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ApiError } from "@/model/errors";
-import { verifyEmail } from "@/model/services/authService";
+import { ApiError } from "@/domain/errors";
+import { verifyEmail } from "@/domain/services/authService";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 import { logger } from "@/infrastructure/logging/logger";

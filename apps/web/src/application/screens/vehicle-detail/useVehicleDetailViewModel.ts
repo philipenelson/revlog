@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ApiError } from "@/model/errors";
-import { getVehicle } from "@/model/services/vehicleService";
-import { saveInsurance } from "@/model/services/insuranceService";
-import { initiateTransfer, cancelTransfer } from "@/model/services/transferService";
+import { ApiError } from "@/domain/errors";
+import { getVehicle } from "@/domain/services/vehicleService";
+import { saveInsurance } from "@/domain/services/insuranceService";
+import { initiateTransfer, cancelTransfer } from "@/domain/services/transferService";
 import {
   vehicleDisplayName,
   type InsuranceInput,
   type LogEntrySummary,
   type VehicleDetail,
-} from "@/model/types";
+} from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 
 export type VehicleDetailLoadState = "loading" | "loaded" | "error" | "not-found";

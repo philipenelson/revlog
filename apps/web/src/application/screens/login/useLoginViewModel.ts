@@ -10,8 +10,8 @@ import {
   type RegisterInput,
   type LoginInput,
 } from "@maintenance-log/domain";
-import { ApiError } from "@/model/errors";
-import * as authService from "@/model/services/authService";
+import { ApiError } from "@/domain/errors";
+import * as authService from "@/domain/services/authService";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 import { logger } from "@/infrastructure/logging/logger";

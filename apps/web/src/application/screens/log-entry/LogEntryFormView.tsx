@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { AttachIcon, BackArrowIcon } from "@/application/components/icons";
-import { itemRowTotal, type LogEntryFormState } from "@/model/logEntryDraft";
+import { itemRowTotal, type LogEntryFormState } from "@/domain/logEntryDraft";
 import { useLogEntryFormViewModel } from "./useLogEntryFormViewModel";
 import styles from "./log-entry.module.css";
 

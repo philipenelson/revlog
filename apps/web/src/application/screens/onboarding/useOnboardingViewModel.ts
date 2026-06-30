@@ -2,11 +2,11 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@/model/errors";
-import { createVehicle, createVehicleWithPhoto } from "@/model/services/vehicleService";
-import { skipOnboarding } from "@/model/services/onboardingService";
-import { validateVehicleDraft } from "@/model/validation/vehicleDraft";
-import type { VehicleDraft, VehicleDraftErrors } from "@/model/types";
+import { ApiError } from "@/domain/errors";
+import { createVehicle, createVehicleWithPhoto } from "@/domain/services/vehicleService";
+import { skipOnboarding } from "@/domain/services/onboardingService";
+import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
+import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/infrastructure/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
 import { sessionStore } from '@/infrastructure/session/sessionStore';

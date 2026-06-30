@@ -1,7 +1,7 @@
 import { sessionStore } from '@/infrastructure/session/sessionStore';
-import { refreshSession } from '@/model/services/authService';
+import { refreshSession } from '@/domain/services/authService';
 import type { RequestInterceptor, ResponseInterceptor } from '@/infrastructure/http/apiClient';
-import type { Session } from '@/model/types';
+import type { Session } from '@/domain/types';
 
 /** Refresh this many ms before the access token's `exp` — an in-flight-expiry guard (ADR 0021). */
 const REFRESH_LEAD_MS = 30_000;
