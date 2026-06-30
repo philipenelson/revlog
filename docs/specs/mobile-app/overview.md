@@ -37,6 +37,9 @@ Dependency direction: `application` → `domain` → `infrastructure`.
 
 ## Features in scope for V1
 
+### Welcome
+- Branded pre-auth entry screen with "Get Started" / "Log in" CTAs
+
 ### Auth
 - Login
 - Register
@@ -111,3 +114,4 @@ Dependency direction: `application` → `domain` → `infrastructure`.
 | [0027](../../adr/0027-mobile-sync-outbox-pattern.md) | Outbox pattern + SyncService |
 | [0028](../../adr/0028-mobile-navigation.md) | Garage root stack, Settings as stack push, no tab bar |
 | [0029](../../adr/0029-mobile-e2e-testing.md) | Jest unit tests + Appium E2E |
+| [0030](../../adr/0030-mobile-welcome-screen.md) | Pre-auth Welcome screen ahead of login |

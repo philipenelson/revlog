@@ -8,7 +8,7 @@
 
 ## Overview
 
-The mobile app uses expo-router v4 for file-based routing. The navigation structure mirrors the web app's route hierarchy but is rendered as native iOS and Android navigation stacks rather than browser page transitions. Route files are shells only — all logic and markup live in `application/screens/`. See ADR 0028.
+The mobile app uses expo-router v4 for file-based routing. The navigation structure mirrors the web app's route hierarchy but is rendered as native iOS and Android navigation stacks rather than browser page transitions. Route files are shells only — all logic and markup live in `application/screens/`. See ADR 0028 and ADR 0030 (Welcome screen).
 
 Design files: [`revlog-mobile-navigation.html`](../../designs/mobile/revlog-mobile-navigation.html) (app shell, header, Settings push) · [`revlog-mobile-onboarding.html`](../../designs/mobile/revlog-mobile-onboarding.html)
 
@@ -19,8 +19,10 @@ Design files: [`revlog-mobile-navigation.html`](../../designs/mobile/revlog-mobi
 ```
 app/
   _layout.tsx              ← Root stack. Wraps with AuthProvider and SyncProvider.
-                             Auth gate: unauthenticated → redirect to /login.
-  index.tsx                ← Redirects to /garage (authenticated) or /login.
+                             Auth gate: unauthenticated → redirect to /welcome.
+  index.tsx                ← Redirects to /garage (authenticated) or /welcome (no session).
+  welcome.tsx               ← Branded entry screen. "Get Started" → register,
+                             "Log in" → login. See ADR 0030.
   (auth)/
     _layout.tsx            ← Auth stack (no header chrome).
     login.tsx              ← Login and register screen.
@@ -48,7 +50,7 @@ app/
 
 ## Auth gate
 
-`app/_layout.tsx` reads auth state from `AuthProvider`. If no valid session is present, all navigation attempts redirect to `/(auth)/login`. If a valid session exists and account status is `ONBOARDING`, navigation redirects to `/onboarding`. The `routeForAuthState` helper in `application/navigation/` encapsulates this logic, mirroring `routeForAccountStatus` on the web.
+`app/_layout.tsx` reads auth state from `AuthProvider`. If no valid session is present, all navigation attempts redirect to `/welcome` (see [ADR 0030](../../adr/0030-mobile-welcome-screen.md)). If a valid session exists and account status is `ONBOARDING`, navigation redirects to `/onboarding`. The `routeForAuthState` helper in `application/navigation/` encapsulates this logic, mirroring `routeForAccountStatus` on the web, and resolves to one of `/garage`, `/welcome`, or `/onboarding`.
 
 ---
 
@@ -92,7 +94,8 @@ No custom transitions are used in V1.
 
 ## Acceptance Criteria
 
-- [ ] Unauthenticated user navigating to any Garage route is redirected to login
+- [ ] Unauthenticated user navigating to any Garage route is redirected to welcome
+- [ ] `[Log in]` and `[Get Started]` on Welcome route to `/(auth)/login` and `/(auth)/register` respectively
 - [ ] Authenticated user with ONBOARDING status is redirected to onboarding
 - [ ] Authenticated user with ACTIVE status lands on Garage list
 - [ ] Gear icon on Garage header pushes Settings screen
