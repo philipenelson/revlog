@@ -60,3 +60,7 @@ export async function updateVehicle(
     body: JSON.stringify(payload),
   });
 }
+
+export async function deleteVehicle(vehicleId: string): Promise<void> {
+  await apiFetch(`/vehicles/${vehicleId}`, { method: "DELETE" });
+}
