@@ -7,6 +7,7 @@
     "./colors": "./src/colors.ts",
     "./spacing": "./src/spacing.ts",
     "./typography": "./src/typography.ts",
+    "./radius": "./src/radius.ts",
     "./tokens.css": "./src/tokens.css"
   },
   "devDependencies": {
