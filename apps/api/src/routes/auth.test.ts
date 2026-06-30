@@ -302,12 +302,34 @@ describe('POST /auth/refresh', () => {
     expect(refreshCookie).toMatch(/SameSite=Strict/i);
   });
 
-  it('returns 401 and does not call the service when no refreshToken cookie is present', async () => {
+  it('returns 401 and does not call the service when no refreshToken cookie or header is present', async () => {
     const res = await supertest(buildApp()).post('/auth/refresh');
 
     expect(res.status).toBe(401);
     expect(res.body).toMatchObject({ error: 'Invalid or expired session' });
     expect(mockAuthService.refresh).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the Refresh-Token header when no cookie is present (mobile, ADR 0025)', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResult);
+
+    const res = await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('Refresh-Token', 'raw-header-value');
+
+    expect(res.status).toBe(200);
+    expect(mockAuthService.refresh).toHaveBeenCalledWith('raw-header-value');
+  });
+
+  it('prefers the cookie over the header when both are present', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResult);
+
+    await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('Cookie', ['refreshToken=cookie-value'])
+      .set('Refresh-Token', 'header-value');
+
+    expect(mockAuthService.refresh).toHaveBeenCalledWith('cookie-value');
   });
 
   it('returns 401 when the service throws AppError 401 for an invalid or expired token', async () => {

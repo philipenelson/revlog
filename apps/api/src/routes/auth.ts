@@ -58,7 +58,10 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
   });
 
   router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies?.[REFRESH_COOKIE];
+    // Web sends the refresh token as an httpOnly cookie. Mobile has no cookie
+    // jar (ADR 0025), so it sends a Refresh-Token header instead — checked
+    // only when no cookie is present; the web path is unchanged.
+    const token = req.cookies?.[REFRESH_COOKIE] ?? req.headers['refresh-token'];
     if (typeof token !== 'string' || !token) {
       res.status(401).json({ error: 'Invalid or expired session' });
       return;
