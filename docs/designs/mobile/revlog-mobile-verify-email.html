@@ -3,21 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <title>Revlog Mobile — Verify Email</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --surface-base:     #0B0D14;
+    --surface-raised:   #131620;
+    --surface-elevated: #1A1D2E;
+    --border-muted:   #1E2235;
+    --border-default: #2A2E46;
+    --text-primary:   #EDF0F8;
+    --text-secondary: #8C8FA8;
+    --text-tertiary:  #50527A;
+    --accent:       #14B8D4;
+    --accent-light: #67E2F0;
+    --accent-muted: rgba(20, 184, 212, 0.12);
+    --success: #34D399;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+  body { background: #15171f; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: 'DM Sans', system-ui, sans-serif; flex-wrap: wrap; -webkit-font-smoothing: antialiased; }
 
   .device {
     width: 390px;
-    background: #0a0a0a;
+    background: var(--surface-base);
     border-radius: 50px;
     overflow: hidden;
-    border: 8px solid #2a2a2a;
+    border: 8px solid #1c1e26;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
     flex-shrink: 0;
   }
   .label {
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 12px;
     text-align: center;
     margin-bottom: 12px;
@@ -25,68 +44,88 @@
     text-transform: uppercase;
   }
   .status-bar {
-    background: #0a0a0a;
+    background: var(--surface-base);
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 600;
+  }
+
+  .scene { position: relative; height: 756px; overflow: hidden; background: var(--surface-base); }
+  .scene::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, var(--border-default) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.25;
+    pointer-events: none;
+  }
+  .scene::after {
+    content: '';
+    position: absolute; top: -140px; right: -120px; width: 420px; height: 420px;
+    background: radial-gradient(ellipse at center, rgba(20, 184, 212, 0.1) 0%, transparent 65%);
+    pointer-events: none;
   }
 
   .screen-content {
-    height: 756px;
-    background: #0f0f0f;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    text-align: center;
+    position: relative; z-index: 1; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px; text-align: center;
   }
 
-  .icon-circle {
-    width: 88px; height: 88px;
-    border-radius: 44px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 40px;
-    margin-bottom: 28px;
-  }
-  .icon-circle.pending { background: #18181b; border: 1px solid #27272a; }
-  .icon-circle.success { background: #052e1c; border: 1px solid #14532d; color: #4ade80; }
+  .status-orb { position: relative; width: 84px; height: 84px; margin: 0 auto 26px; }
+  .orb-ring { width: 100%; height: 100%; display: block; }
+  .ring-track { fill: none; stroke: var(--border-default); stroke-width: 2.5; }
+  .ring-arc.pending { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 72 192; filter: drop-shadow(0 0 6px rgba(20,184,212,0.55)); }
+  .ring-arc.verified { fill: none; stroke: var(--success); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 264 264; filter: drop-shadow(0 0 9px rgba(52,211,153,0.5)); }
+  .orb-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .orb-icon svg { width: 28px; height: 28px; }
+  .icon-mail { color: var(--accent); }
+  .icon-check { color: var(--success); }
 
-  .title { font-size: 19px; font-weight: 700; color: #f9fafb; margin-bottom: 10px; }
-  .body { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 8px; }
-  .email-chip {
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  .eyebrow::before { content: ''; display: block; width: 13px; height: 1.5px; background: currentColor; border-radius: 1px; }
+  .eyebrow.success { color: var(--success); }
+
+  .title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: var(--text-primary); margin-bottom: 10px; }
+  .body { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 8px; }
+  .email-pill {
     display: inline-block;
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 13px;
-    color: #d1d5db;
-    font-weight: 600;
-    margin: 12px 0 28px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-light);
+    margin: 10px 0 24px;
   }
 
   .secondary-btn {
-    border: 1px solid #27272a;
-    color: #9ca3af;
-    padding: 14px 24px;
-    border-radius: 12px;
-    font-size: 14px;
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+    padding: 13px 24px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
     font-weight: 600;
   }
   .primary-btn {
-    background: #3b82f6;
-    color: #fff;
-    padding: 14px 28px;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 700;
-    margin-top: 28px;
+    background: var(--accent);
+    color: #080A10;
+    padding: 13px 26px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 26px;
+    box-shadow: 0 0 20px rgba(20,184,212,0.22);
   }
 </style>
 </head>
@@ -97,15 +136,26 @@
   <div class="device">
     <div class="status-bar">
       <span class="time">9:41</span>
-      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
-    <div class="screen-content">
-      <div class="icon-circle pending">✉️</div>
-      <div class="title">Check your email</div>
-      <div class="body">We sent a verification link to</div>
-      <div class="email-chip">philip@example.com</div>
-      <div class="body">Tap the link in the email to verify your account, then come back here to sign in.</div>
-      <div class="secondary-btn">Resend email</div>
+    <div class="scene">
+      <div class="screen-content">
+        <div class="status-orb">
+          <svg class="orb-ring" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="ring-track" cx="50" cy="50" r="42"/>
+            <circle class="ring-arc pending" cx="50" cy="50" r="42" transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="orb-icon">
+            <svg class="icon-mail" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 7.5l7.5 5.6 7.5-5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="eyebrow">Step 2 of 2 — Verify</div>
+        <div class="title">Check your inbox</div>
+        <div class="body">We've sent a verification link to</div>
+        <div class="email-pill">philip@example.com</div>
+        <div class="body">Tap the link in the email to verify your account, then come back here to sign in.</div>
+        <div class="secondary-btn" style="margin-top:24px;">Resend email</div>
+      </div>
     </div>
   </div>
 </div>
@@ -115,13 +165,24 @@
   <div class="device">
     <div class="status-bar">
       <span class="time">9:41</span>
-      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
-    <div class="screen-content">
-      <div class="icon-circle success">✓</div>
-      <div class="title">Email verified</div>
-      <div class="body">Your account is confirmed. Return to the Revlog app and sign in to get started.</div>
-      <div class="primary-btn">Back to sign in</div>
+    <div class="scene">
+      <div class="screen-content">
+        <div class="status-orb">
+          <svg class="orb-ring" viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="ring-track" cx="50" cy="50" r="42"/>
+            <circle class="ring-arc verified" cx="50" cy="50" r="42" transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="orb-icon">
+            <svg class="icon-check" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.3" opacity="0.3"/><path d="M7.5 12.4l3 3 6-6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          </div>
+        </div>
+        <div class="eyebrow success">Verified</div>
+        <div class="title">Email verified</div>
+        <div class="body">Your account is confirmed. Return to the Revlog app and sign in to get started.</div>
+        <div class="primary-btn">Back to sign in</div>
+      </div>
     </div>
   </div>
 </div>

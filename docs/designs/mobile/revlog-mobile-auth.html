@@ -3,21 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <title>Revlog Mobile — Auth Screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --surface-base:     #0B0D14;
+    --surface-raised:   #131620;
+    --surface-elevated: #1A1D2E;
+    --border-muted:   #1E2235;
+    --border-default: #2A2E46;
+    --text-primary:   #EDF0F8;
+    --text-secondary: #8C8FA8;
+    --text-tertiary:  #50527A;
+    --text-disabled:  #34375A;
+    --accent:       #14B8D4;
+    --accent-hover: #22CBEA;
+    --accent-light: #67E2F0;
+    --accent-muted: rgba(20, 184, 212, 0.12);
+    --radius-md: 10px;
+    --radius-lg: 16px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+  body { background: #15171f; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: 'DM Sans', system-ui, sans-serif; flex-wrap: wrap; -webkit-font-smoothing: antialiased; }
 
   .device {
     width: 390px;
-    background: #0a0a0a;
+    background: var(--surface-base);
     border-radius: 50px;
     overflow: hidden;
-    border: 8px solid #2a2a2a;
+    border: 8px solid #1c1e26;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
     flex-shrink: 0;
   }
   .label {
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 12px;
     text-align: center;
     margin-bottom: 12px;
@@ -25,79 +45,94 @@
     text-transform: uppercase;
   }
   .status-bar {
-    background: #0a0a0a;
+    background: var(--surface-base);
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 600;
   }
-  .status-bar .time { font-weight: 700; }
-  .status-bar .icons { display: flex; gap: 6px; align-items: center; }
+
+  .scene {
+    position: relative;
+    height: 756px;
+    overflow: hidden;
+    background: var(--surface-base);
+  }
+  .scene::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--border-default) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.25;
+    pointer-events: none;
+  }
+  .scene::after {
+    content: '';
+    position: absolute;
+    bottom: -160px;
+    left: -120px;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(ellipse at center, rgba(20, 184, 212, 0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
 
   .screen-content {
-    height: 756px;
-    background: #0f0f0f;
-    padding: 48px 24px 24px;
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    padding: 44px 24px 24px;
     display: flex;
     flex-direction: column;
   }
 
-  .logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; }
-  .logo-mark {
-    width: 56px; height: 56px;
-    background: #3b82f6;
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px;
-    margin-bottom: 16px;
-  }
-  .wordmark { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
-  .tagline { font-size: 13px; color: #6b7280; margin-top: 4px; }
+  .logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 36px; }
+  .logo-wordmark { font-family: 'Outfit', sans-serif; font-size: 21px; letter-spacing: -0.025em; line-height: 1; margin-top: 12px; }
+  .logo-wordmark .rev { font-weight: 300; color: var(--text-primary); }
+  .logo-wordmark .log { font-weight: 700; color: var(--accent); }
+  .tagline { font-size: 12.5px; color: var(--text-tertiary); margin-top: 6px; }
 
-  .field-group { margin-bottom: 16px; }
+  .field-group { margin-bottom: 14px; }
   .field-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
     margin-bottom: 6px;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
   }
   .field-input {
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
-    padding: 14px 16px;
-    font-size: 15px;
-    color: #f9fafb;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 13px 16px;
+    font-size: 14.5px;
+    color: var(--text-primary);
   }
-  .field-input.placeholder { color: #4b5563; }
+  .field-input.placeholder { color: var(--text-disabled); }
 
   .primary-btn {
-    background: #3b82f6;
-    color: #fff;
-    padding: 16px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
+    background: var(--accent);
+    color: #080A10;
+    padding: 15px;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
     text-align: center;
     margin-top: 8px;
-    box-shadow: 0 8px 24px rgba(59,130,246,0.3);
+    box-shadow: 0 0 20px rgba(20,184,212,0.22);
   }
 
   .link-row { text-align: center; margin-top: 16px; }
-  .link-text { font-size: 13px; color: #6b7280; }
-  .link-action { font-size: 13px; color: #3b82f6; font-weight: 600; }
-
-  .divider-row { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
-  .divider-line { flex: 1; height: 1px; background: #27272a; }
-  .divider-text { font-size: 11px; color: #4b5563; text-transform: uppercase; letter-spacing: 0.06em; }
+  .link-action { font-size: 13px; color: var(--accent-light); font-weight: 600; }
 
   .footer-link-row { margin-top: auto; text-align: center; padding-top: 16px; }
+  .link-text { font-size: 13px; color: var(--text-tertiary); }
 </style>
 </head>
 <body>
@@ -107,33 +142,41 @@
   <div class="device">
     <div class="status-bar">
       <span class="time">9:41</span>
-      <div class="icons"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div class="icons" style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
-    <div class="screen-content">
-      <div class="logo-wrap">
-        <div class="logo-mark">🏍</div>
-        <div class="wordmark">Revlog</div>
-        <div class="tagline">Service history that stays with you</div>
-      </div>
+    <div class="scene">
+      <div class="screen-content">
+        <div class="logo-wrap">
+          <svg width="40" height="40" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+            <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+          </svg>
+          <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+          <div class="tagline">Service history that stays with you</div>
+        </div>
 
-      <div class="field-group">
-        <div class="field-label">Email</div>
-        <div class="field-input">philip@example.com</div>
-      </div>
-      <div class="field-group">
-        <div class="field-label">Password</div>
-        <div class="field-input">••••••••••</div>
-      </div>
+        <div class="field-group">
+          <div class="field-label">Email</div>
+          <div class="field-input">philip@example.com</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Password</div>
+          <div class="field-input">••••••••••</div>
+        </div>
 
-      <div class="primary-btn">Sign in</div>
+        <div class="primary-btn">Sign in</div>
 
-      <div class="link-row">
-        <span class="link-action">Forgot password?</span>
-      </div>
+        <div class="link-row">
+          <span class="link-action">Forgot password?</span>
+        </div>
 
-      <div class="footer-link-row">
-        <span class="link-text">Don't have an account? </span>
-        <span class="link-action">Register</span>
+        <div class="footer-link-row">
+          <span class="link-text">Don't have an account? </span>
+          <span class="link-action">Register</span>
+        </div>
       </div>
     </div>
   </div>
@@ -144,37 +187,45 @@
   <div class="device">
     <div class="status-bar">
       <span class="time">9:41</span>
-      <div class="icons"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div class="icons" style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
-    <div class="screen-content">
-      <div class="logo-wrap">
-        <div class="logo-mark">🏍</div>
-        <div class="wordmark">Create your account</div>
-        <div class="tagline">Start tracking your vehicle's history</div>
-      </div>
+    <div class="scene">
+      <div class="screen-content">
+        <div class="logo-wrap">
+          <svg width="40" height="40" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+            <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+          </svg>
+          <div class="logo-wordmark" style="font-size:17px;">Create your account</div>
+          <div class="tagline">Start tracking your vehicle's history</div>
+        </div>
 
-      <div class="field-group">
-        <div class="field-label">Name</div>
-        <div class="field-input placeholder">Full name</div>
-      </div>
-      <div class="field-group">
-        <div class="field-label">Email</div>
-        <div class="field-input placeholder">you@example.com</div>
-      </div>
-      <div class="field-group">
-        <div class="field-label">Password</div>
-        <div class="field-input placeholder">At least 8 characters</div>
-      </div>
-      <div class="field-group">
-        <div class="field-label">Confirm password</div>
-        <div class="field-input placeholder">Re-enter password</div>
-      </div>
+        <div class="field-group">
+          <div class="field-label">Name</div>
+          <div class="field-input placeholder">Full name</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Email</div>
+          <div class="field-input placeholder">you@example.com</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Password</div>
+          <div class="field-input placeholder">At least 8 characters</div>
+        </div>
+        <div class="field-group">
+          <div class="field-label">Confirm password</div>
+          <div class="field-input placeholder">Re-enter password</div>
+        </div>
 
-      <div class="primary-btn">Create account</div>
+        <div class="primary-btn">Create account</div>
 
-      <div class="footer-link-row">
-        <span class="link-text">Already have an account? </span>
-        <span class="link-action">Sign in</span>
+        <div class="footer-link-row">
+          <span class="link-text">Already have an account? </span>
+          <span class="link-action">Sign in</span>
+        </div>
       </div>
     </div>
   </div>

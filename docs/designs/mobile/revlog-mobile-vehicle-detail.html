@@ -3,21 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <title>Revlog Mobile — Vehicle Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --surface-base:     #0B0D14;
+    --surface-raised:   #131620;
+    --surface-elevated: #1A1D2E;
+    --border-muted:   #1E2235;
+    --border-default: #2A2E46;
+    --text-primary:   #EDF0F8;
+    --text-secondary: #8C8FA8;
+    --text-tertiary:  #50527A;
+    --text-disabled:  #34375A;
+    --accent:       #14B8D4;
+    --accent-light: #67E2F0;
+    --accent-muted: rgba(20, 184, 212, 0.12);
+    --warning: #FB923C;
+    --danger:  #F87171;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+  body { background: #15171f; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: 'DM Sans', system-ui, sans-serif; flex-wrap: wrap; -webkit-font-smoothing: antialiased; }
 
   .device {
     width: 390px;
-    background: #0a0a0a;
+    background: var(--surface-base);
     border-radius: 50px;
     overflow: hidden;
-    border: 8px solid #2a2a2a;
+    border: 8px solid #1c1e26;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
     flex-shrink: 0;
   }
   .label {
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 12px;
     text-align: center;
     margin-bottom: 12px;
@@ -25,124 +47,106 @@
     text-transform: uppercase;
   }
   .status-bar {
-    background: #0a0a0a;
+    background: var(--surface-base);
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 600;
   }
   .nav-header {
-    background: #111;
-    border-bottom: 1px solid #1f1f1f;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-muted);
     height: 56px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 20px;
   }
-  .nav-back { color: #3b82f6; font-size: 15px; }
-  .nav-title { font-size: 17px; font-weight: 600; color: #fff; }
-  .header-icons { display: flex; gap: 16px; align-items: center; }
-  .icon-btn { color: #9ca3af; font-size: 17px; }
+  .nav-back { color: var(--accent); font-size: 14.5px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+  .nav-title { font-family: 'Outfit', sans-serif; font-size: 15.5px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+  .header-icons { display: flex; gap: 14px; align-items: center; }
+  .icon-btn { color: var(--text-secondary); display: flex; }
 
-  .screen-content {
-    height: 700px;
-    overflow: hidden;
-    background: #0f0f0f;
-  }
+  .screen-content { height: 700px; overflow: hidden; background: var(--surface-base); }
 
   .hero-photo {
-    height: 160px;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    height: 150px;
+    background: linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface-base) 100%);
     display: flex; align-items: center; justify-content: center;
-    font-size: 48px;
-    color: #334155;
+    color: var(--accent);
   }
+  .hero-photo svg { width: 72px; height: auto; }
 
   .vehicle-heading { padding: 18px 20px 0; }
-  .vehicle-name { font-size: 22px; font-weight: 800; color: #f9fafb; }
-  .vehicle-sub { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .vehicle-name { font-family: 'Outfit', sans-serif; font-size: 21px; font-weight: 600; letter-spacing: -0.02em; color: var(--text-primary); }
+  .vehicle-sub { font-size: 12.5px; color: var(--text-tertiary); margin-top: 2px; }
 
   .stats-row {
     display: flex;
     margin: 18px 20px;
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 14px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
     overflow: hidden;
   }
-  .stat-cell { flex: 1; padding: 14px 8px; text-align: center; border-right: 1px solid #27272a; }
+  .stat-cell { flex: 1; padding: 14px 8px; text-align: center; border-right: 1px solid var(--border-muted); }
   .stat-cell:last-child { border-right: none; }
-  .stat-value { font-size: 16px; font-weight: 700; color: #f9fafb; }
-  .stat-label { font-size: 10px; color: #6b7280; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { font-family: 'Geist Mono', monospace; font-size: 16px; font-weight: 500; color: var(--text-primary); }
+  .stat-label { font-size: 9.5px; color: var(--text-tertiary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
 
   .action-row { display: flex; gap: 10px; margin: 0 20px 20px; }
-  .action-btn {
-    flex: 1;
-    padding: 12px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 700;
-  }
-  .action-btn.primary { background: #3b82f6; color: #fff; }
-  .action-btn.secondary { background: #18181b; border: 1px solid #27272a; color: #d1d5db; }
-  .action-btn.disabled { background: #131316; border: 1px solid #1f1f1f; color: #3f3f46; }
+  .action-btn { flex: 1; padding: 12px; border-radius: var(--radius-md); text-align: center; font-size: 13px; font-weight: 600; }
+  .action-btn.primary { background: var(--accent); color: #080A10; box-shadow: 0 0 16px rgba(20,184,212,0.18); }
+  .action-btn.secondary { background: var(--surface-raised); border: 1px solid var(--border-default); color: var(--text-secondary); }
+  .action-btn.disabled { background: var(--surface-raised); border: 1px solid var(--border-muted); color: var(--text-disabled); }
 
   .section-title {
-    font-size: 11px;
-    font-weight: 600;
-    color: #4b5563;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+    letter-spacing: 0.08em; text-transform: uppercase;
     padding: 4px 20px 10px;
   }
 
   .entry-card {
     margin: 0 20px 10px;
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 14px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-lg);
     padding: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    display: flex; justify-content: space-between; align-items: flex-start;
   }
   .entry-type {
     font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
-    color: #93c5fd; background: #1e3a5f; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px;
+    color: var(--accent-light); background: var(--accent-muted); padding: 2px 6px; border-radius: var(--radius-sm); display: inline-block; margin-bottom: 6px;
   }
-  .entry-title { font-size: 14px; font-weight: 700; color: #f9fafb; }
-  .entry-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
-  .entry-mileage { font-size: 12px; color: #6b7280; text-align: right; white-space: nowrap; }
+  .entry-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+  .entry-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .entry-mileage { font-family: 'Geist Mono', monospace; font-size: 12px; color: var(--text-tertiary); text-align: right; white-space: nowrap; }
 
   /* transfer pending */
   .lock-banner {
     margin: 16px 20px;
-    background: #1c1206;
-    border: 1px solid #92400e;
-    border-radius: 12px;
+    background: rgba(251,146,60,0.06);
+    border: 1px solid rgba(251,146,60,0.3);
+    border-radius: var(--radius-md);
     padding: 14px;
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
+    display: flex; gap: 10px; align-items: flex-start;
   }
-  .lock-icon { color: #fbbf24; font-size: 16px; }
-  .lock-title { font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 2px; }
-  .lock-body { font-size: 12px; color: #d4a35c; line-height: 1.5; }
+  .lock-icon { color: var(--warning); display: flex; flex-shrink: 0; margin-top: 1px; }
+  .lock-title { font-size: 13px; font-weight: 600; color: var(--warning); margin-bottom: 2px; }
+  .lock-body { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
   .cancel-btn {
     margin: 0 20px;
-    border: 1px solid #7f1d1d;
-    color: #ef4444;
+    border: 1px solid rgba(248,113,113,0.35);
+    color: var(--danger);
     padding: 12px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     text-align: center;
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
   }
 </style>
 </head>
@@ -153,18 +157,23 @@
   <div class="device">
     <div class="status-bar">
       <span class="time">9:41</span>
-      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
     <div class="nav-header">
-      <div class="nav-back">‹ Garage</div>
+      <div class="nav-back">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Garage
+      </div>
       <div class="nav-title">Blackbird</div>
       <div class="header-icons">
-        <span class="icon-btn">↗</span>
-        <span class="icon-btn">✎</span>
+        <span class="icon-btn"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2v10M6.5 5.5L10 2l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9v6.5A1.5 1.5 0 005.5 17h9a1.5 1.5 0 001.5-1.5V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="icon-btn"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
       </div>
     </div>
     <div class="screen-content">
-      <div class="hero-photo">🏍</div>
+      <div class="hero-photo">
+        <svg viewBox="0 0 80 48" fill="none" aria-hidden="true"><circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/><circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/><path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 13 L33 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
       <div class="vehicle-heading">
         <div class="vehicle-name">Blackbird</div>
         <div class="vehicle-sub">2019 Honda CB650R · 12,500 mi</div>
@@ -207,25 +216,30 @@
   <div class="device">
     <div class="status-bar">
       <span class="time">9:41</span>
-      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
     <div class="nav-header">
-      <div class="nav-back">‹ Garage</div>
+      <div class="nav-back">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Garage
+      </div>
       <div class="nav-title">Duke</div>
       <div class="header-icons">
-        <span class="icon-btn" style="color:#3f3f46;">↗</span>
-        <span class="icon-btn" style="color:#3f3f46;">✎</span>
+        <span class="icon-btn" style="color:var(--text-disabled);"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2v10M6.5 5.5L10 2l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9v6.5A1.5 1.5 0 005.5 17h9a1.5 1.5 0 001.5-1.5V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="icon-btn" style="color:var(--text-disabled);"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
       </div>
     </div>
     <div class="screen-content">
-      <div class="hero-photo" style="background: linear-gradient(135deg, #1a2e1a 0%, #0a1a0a 100%); color: #1f3d1f;">🏍</div>
+      <div class="hero-photo">
+        <svg viewBox="0 0 80 48" fill="none" aria-hidden="true"><circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/><circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/><path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 13 L33 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
       <div class="vehicle-heading">
         <div class="vehicle-name">Duke</div>
         <div class="vehicle-sub">2021 KTM 390 Duke · 8,200 mi</div>
       </div>
 
       <div class="lock-banner">
-        <span class="lock-icon">🔒</span>
+        <span class="lock-icon"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="4.5" y="9" width="11" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 9V6.5a3.5 3.5 0 017 0V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
         <div>
           <div class="lock-title">Transfer pending</div>
           <div class="lock-body">Awaiting alex@example.com's response. Vehicle is locked until the transfer is accepted, declined, or cancelled.</div>

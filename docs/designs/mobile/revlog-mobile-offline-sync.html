@@ -3,110 +3,125 @@
 <head>
 <meta charset="UTF-8">
 <title>Revlog Mobile — Offline Sync Indicator States</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --surface-base:     #0B0D14;
+    --surface-raised:   #131620;
+    --surface-elevated: #1A1D2E;
+    --border-muted:   #1E2235;
+    --border-default: #2A2E46;
+    --text-primary:   #EDF0F8;
+    --text-secondary: #8C8FA8;
+    --text-tertiary:  #50527A;
+    --accent:       #14B8D4;
+    --accent-light: #67E2F0;
+    --accent-muted: rgba(20, 184, 212, 0.12);
+    --warning: #FB923C;
+    --danger:  #F87171;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a1a; display: flex; gap: 32px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+  body { background: #15171f; display: flex; gap: 32px; justify-content: center; align-items: flex-start; padding: 40px; font-family: 'DM Sans', system-ui, sans-serif; flex-wrap: wrap; -webkit-font-smoothing: antialiased; }
 
   .device-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
   .label {
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 11px;
     text-align: center;
-    font-family: -apple-system, sans-serif;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
   .device {
     width: 280px;
-    background: #0a0a0a;
+    background: var(--surface-base);
     border-radius: 40px;
     overflow: hidden;
-    border: 6px solid #2a2a2a;
+    border: 6px solid #1c1e26;
     box-shadow: 0 16px 40px rgba(0,0,0,0.6);
   }
   .status-bar {
-    background: #0a0a0a;
+    background: var(--surface-base);
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 20px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 12px;
     font-weight: 600;
   }
   .nav-header {
-    background: #111;
-    border-bottom: 1px solid #1f1f1f;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-muted);
     height: 52px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
   }
-  .wordmark { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .logo-group { display: flex; align-items: center; gap: 7px; }
+  .logo-wordmark { font-family: 'Outfit', sans-serif; font-size: 15px; letter-spacing: -0.025em; line-height: 1; }
+  .logo-wordmark .rev { font-weight: 300; color: var(--text-primary); }
+  .logo-wordmark .log { font-weight: 700; color: var(--accent); }
   .header-right { display: flex; align-items: center; gap: 12px; }
-  .icon-btn { color: #9ca3af; font-size: 16px; }
+  .icon-btn { color: var(--text-secondary); display: flex; }
 
-  .indicator {
-    width: 20px; height: 20px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-  }
+  .indicator { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
   .indicator.hidden { opacity: 0; }
-  .indicator.offline { color: #f59e0b; }
-  .indicator.pending { color: #60a5fa; }
-  .indicator.syncing { color: #60a5fa; animation: spin 1s linear infinite; }
-  .indicator.error { color: #ef4444; }
+  .indicator.offline { color: var(--warning); }
+  .indicator.pending { color: var(--accent); }
+  .indicator.syncing { color: var(--accent); animation: spin 1s linear infinite; }
+  .indicator.error { color: var(--danger); }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .screen-body {
-    background: #0f0f0f;
-    height: 240px;
-    padding: 16px;
-  }
+  .screen-body { background: var(--surface-base); height: 240px; padding: 16px; }
 
   .vehicle-card-mini {
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
     padding: 12px 14px;
     margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .vc-name { font-size: 14px; color: #f9fafb; font-weight: 600; }
-  .vc-meta { font-size: 11px; color: #6b7280; margin-top: 1px; }
-  .vc-entries { font-size: 11px; color: #6b7280; }
+  .vc-name { font-family: 'Outfit', sans-serif; font-size: 14px; color: var(--text-primary); font-weight: 600; }
+  .vc-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+  .vc-entries { font-size: 11px; color: var(--text-tertiary); }
 
   .pending-tag {
     font-size: 10px;
-    background: #1d3a5f;
-    color: #60a5fa;
+    background: var(--accent-muted);
+    color: var(--accent-light);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
   }
   .failed-tag {
     font-size: 10px;
-    background: #3f1515;
-    color: #ef4444;
+    background: rgba(248,113,113,0.1);
+    color: var(--danger);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
   }
 
   .state-desc {
-    background: #18181b;
-    border-radius: 10px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
     padding: 10px 14px;
     font-size: 11px;
-    color: #9ca3af;
-    line-height: 1.5;
+    color: var(--text-secondary);
+    line-height: 1.55;
     margin-top: 8px;
   }
-  .state-desc strong { color: #d1d5db; }
+  .state-desc strong { color: var(--text-primary); }
 </style>
 </head>
 <body>
@@ -117,13 +132,22 @@
   <div class="device">
     <div class="status-bar">
       <span>9:41</span>
-      <div style="display:flex;gap:4px;"><span>●●●</span><span>WiFi</span></div>
+      <div style="display:flex;gap:4px;align-items:center;"><span>●●●</span><span>WiFi</span></div>
     </div>
     <div class="nav-header">
-      <div class="wordmark">Revlog</div>
+      <div class="logo-group">
+        <svg width="18" height="18" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+          <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+          <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+        </svg>
+        <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+      </div>
       <div class="header-right">
-        <div class="indicator hidden">●</div>
-        <div class="icon-btn">⚙</div>
+        <div class="indicator hidden"></div>
+        <div class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.5-2-3.4-2.2.9a7.7 7.7 0 00-1.3-.75L15.5 5h-4l-.3 2.25c-.46.2-.9.45-1.3.75l-2.2-.9-2 3.4 1.9 1.5a6.6 6.6 0 000 1.5l-1.9 1.5 2 3.4 2.2-.9c.4.3.84.55 1.3.75L11.5 19h4l.3-2.25c.46-.2.9-.45 1.3-.75l2.2.9 2-3.4-1.9-1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
       </div>
     </div>
     <div class="screen-body">
@@ -152,13 +176,22 @@
   <div class="device">
     <div class="status-bar">
       <span>9:41</span>
-      <div style="display:flex;gap:4px;color:#6b7280;"><span>No Signal</span></div>
+      <div style="display:flex;gap:4px;color:var(--text-tertiary);"><span>No Signal</span></div>
     </div>
     <div class="nav-header">
-      <div class="wordmark">Revlog</div>
+      <div class="logo-group">
+        <svg width="18" height="18" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+          <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+          <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+        </svg>
+        <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+      </div>
       <div class="header-right">
-        <div class="indicator offline">⊗</div>
-        <div class="icon-btn">⚙</div>
+        <div class="indicator offline"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 18a4 4 0 01-.5-7.97A5.5 5.5 0 0117 8.5a4 4 0 011 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.5-2-3.4-2.2.9a7.7 7.7 0 00-1.3-.75L15.5 5h-4l-.3 2.25c-.46.2-.9.45-1.3.75l-2.2-.9-2 3.4 1.9 1.5a6.6 6.6 0 000 1.5l-1.9 1.5 2 3.4 2.2-.9c.4.3.84.55 1.3.75L11.5 19h4l.3-2.25c.46-.2.9-.45 1.3-.75l2.2.9 2-3.4-1.9-1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
       </div>
     </div>
     <div class="screen-body">
@@ -176,7 +209,7 @@
         </div>
         <div class="vc-entries">7 entries</div>
       </div>
-      <div class="state-desc"><strong>⊗ amber icon</strong> — device has no connectivity. Reads still work from local SQLite. Writes are queued in the outbox.</div>
+      <div class="state-desc"><strong>Cloud-off icon (amber)</strong> — device has no connectivity. Reads still work from local SQLite. Writes are queued in the outbox.</div>
     </div>
   </div>
 </div>
@@ -187,13 +220,22 @@
   <div class="device">
     <div class="status-bar">
       <span>9:41</span>
-      <div style="display:flex;gap:4px;"><span>●●●</span><span>WiFi</span></div>
+      <div style="display:flex;gap:4px;align-items:center;"><span>●●●</span><span>WiFi</span></div>
     </div>
     <div class="nav-header">
-      <div class="wordmark">Revlog</div>
+      <div class="logo-group">
+        <svg width="18" height="18" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+          <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+          <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+        </svg>
+        <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+      </div>
       <div class="header-right">
-        <div class="indicator syncing">↻</div>
-        <div class="icon-btn">⚙</div>
+        <div class="indicator syncing"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12a8 8 0 0114-5.3M20 4v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12a8 8 0 01-14 5.3M4 20v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.5-2-3.4-2.2.9a7.7 7.7 0 00-1.3-.75L15.5 5h-4l-.3 2.25c-.46.2-.9.45-1.3.75l-2.2-.9-2 3.4 1.9 1.5a6.6 6.6 0 000 1.5l-1.9 1.5 2 3.4 2.2-.9c.4.3.84.55 1.3.75L11.5 19h4l.3-2.25c.46-.2.9-.45 1.3-.75l2.2.9 2-3.4-1.9-1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
       </div>
     </div>
     <div class="screen-body">
@@ -211,7 +253,7 @@
         </div>
         <div class="vc-entries">7 entries</div>
       </div>
-      <div class="state-desc"><strong>↻ blue spinner</strong> — device is online, SyncService is flushing the outbox. Local changes are being confirmed by the server.</div>
+      <div class="state-desc"><strong>Spinning sync icon (teal)</strong> — device is online, SyncService is flushing the outbox. Local changes are being confirmed by the server.</div>
     </div>
   </div>
 </div>
@@ -222,13 +264,22 @@
   <div class="device">
     <div class="status-bar">
       <span>9:41</span>
-      <div style="display:flex;gap:4px;"><span>●●●</span><span>WiFi</span></div>
+      <div style="display:flex;gap:4px;align-items:center;"><span>●●●</span><span>WiFi</span></div>
     </div>
     <div class="nav-header">
-      <div class="wordmark">Revlog</div>
+      <div class="logo-group">
+        <svg width="18" height="18" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+          <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+          <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+          <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+        </svg>
+        <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+      </div>
       <div class="header-right">
-        <div class="indicator error">⚠</div>
-        <div class="icon-btn">⚙</div>
+        <div class="indicator error"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4.5 L20.5 19 H3.5 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><line x1="12" y1="10" x2="12" y2="13.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16.4" r="1" fill="currentColor"/></svg></div>
+        <div class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 13.5c.1-.5.1-1 0-1.5l1.9-1.5-2-3.4-2.2.9a7.7 7.7 0 00-1.3-.75L15.5 5h-4l-.3 2.25c-.46.2-.9.45-1.3.75l-2.2-.9-2 3.4 1.9 1.5a6.6 6.6 0 000 1.5l-1.9 1.5 2 3.4 2.2-.9c.4.3.84.55 1.3.75L11.5 19h4l.3-2.25c.46-.2.9-.45 1.3-.75l2.2.9 2-3.4-1.9-1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
       </div>
     </div>
     <div class="screen-body">
@@ -246,7 +297,7 @@
         </div>
         <div class="vc-entries">7 entries</div>
       </div>
-      <div class="state-desc"><strong>⚠ red icon</strong> — one or more outbox entries returned a non-retryable error (4xx). Affected entries are marked <em>failed</em>. Pull-to-refresh retries. V2 adds user-facing resolution.</div>
+      <div class="state-desc"><strong>Alert triangle (red)</strong> — one or more outbox entries returned a non-retryable error (4xx). Affected entries are marked <em>failed</em>. Pull-to-refresh retries. V2 adds user-facing resolution.</div>
     </div>
   </div>
 </div>

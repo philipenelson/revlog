@@ -3,142 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <title>Revlog Mobile — Log Entry Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --surface-base:     #0B0D14;
+    --surface-raised:   #131620;
+    --surface-elevated: #1A1D2E;
+    --border-muted:   #1E2235;
+    --border-default: #2A2E46;
+    --border-strong:  #3E4260;
+    --text-primary:   #EDF0F8;
+    --text-secondary: #8C8FA8;
+    --text-tertiary:  #50527A;
+    --text-disabled:  #34375A;
+    --accent:       #14B8D4;
+    --accent-light: #67E2F0;
+    --accent-muted: rgba(20, 184, 212, 0.12);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+  body { background: #15171f; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: 'DM Sans', system-ui, sans-serif; flex-wrap: wrap; -webkit-font-smoothing: antialiased; }
 
   .device {
     width: 390px;
-    background: #0a0a0a;
+    background: var(--surface-base);
     border-radius: 50px;
     overflow: hidden;
-    border: 8px solid #2a2a2a;
+    border: 8px solid #1c1e26;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
     flex-shrink: 0;
   }
   .label {
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 12px;
     text-align: center;
     margin-bottom: 12px;
-    font-family: -apple-system, sans-serif;
     letter-spacing: 0.05em;
     text-transform: uppercase;
   }
   .status-bar {
-    background: #0a0a0a;
+    background: var(--surface-base);
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 600;
   }
   .nav-header {
-    background: #111;
-    border-bottom: 1px solid #1f1f1f;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-muted);
     height: 56px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 20px;
   }
-  .nav-back { color: #3b82f6; font-size: 15px; display: flex; align-items: center; gap: 4px; }
-  .nav-title { font-size: 17px; font-weight: 600; color: #fff; }
-  .nav-save { color: #3b82f6; font-size: 15px; font-weight: 600; }
+  .nav-back { color: var(--accent); font-size: 14.5px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+  .nav-title { font-family: 'Outfit', sans-serif; font-size: 15.5px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+  .nav-save { color: var(--accent); font-size: 15px; font-weight: 600; }
 
-  .screen-content {
-    height: 700px;
-    overflow: hidden;
-    background: #0f0f0f;
-  }
-
-  .form-section {
-    padding: 16px 20px 0;
-  }
+  .screen-content { height: 700px; overflow: hidden; background: var(--surface-base); }
+  .form-section { padding: 16px 20px 0; }
   .section-label {
     font-size: 11px;
     font-weight: 600;
-    color: #4b5563;
+    color: var(--text-tertiary);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     margin-bottom: 10px;
     margin-top: 20px;
   }
   .field {
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
-    padding: 14px 16px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 13px 16px;
     margin-bottom: 10px;
   }
   .field-label {
     font-size: 11px;
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-weight: 500;
     margin-bottom: 4px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .field-value {
-    font-size: 16px;
-    color: #f9fafb;
-    font-weight: 400;
-  }
-  .field-value.placeholder { color: #4b5563; }
-  .field-row {
-    display: flex;
-    gap: 10px;
-  }
+  .field-value { font-size: 15px; color: var(--text-primary); font-weight: 400; }
+  .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
 
-  .type-row {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    margin-bottom: 10px;
-  }
+  .type-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 10px; }
   .type-chip {
-    background: #18181b;
-    border: 1px solid #27272a;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
     border-radius: 20px;
     padding: 7px 14px;
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--text-secondary);
     white-space: nowrap;
     font-weight: 500;
   }
-  .type-chip.active {
-    background: #1d4ed8;
-    border-color: #2563eb;
-    color: #fff;
-  }
+  .type-chip.active { background: var(--accent-muted); border-color: var(--accent); color: var(--accent-light); }
 
   .item-row {
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
     padding: 12px 16px;
     margin-bottom: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  .item-desc { font-size: 14px; color: #f9fafb; margin-bottom: 2px; }
-  .item-meta { font-size: 12px; color: #6b7280; }
-  .item-cost { font-size: 14px; color: #9ca3af; }
+  .item-desc { font-size: 14px; color: var(--text-primary); margin-bottom: 2px; }
+  .item-meta { font-size: 11.5px; color: var(--text-tertiary); }
+  .item-cost { font-family: 'Geist Mono', monospace; font-size: 13.5px; color: var(--text-secondary); }
 
   .add-item-btn {
-    border: 1px dashed #374151;
-    border-radius: 12px;
+    border: 1px dashed var(--border-default);
+    border-radius: var(--radius-md);
     padding: 12px 16px;
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #3b82f6;
+    color: var(--accent-light);
     font-size: 14px;
     font-weight: 500;
     margin-bottom: 10px;
@@ -146,13 +141,14 @@
 
   .save-btn {
     margin: 20px 20px;
-    background: #3b82f6;
-    border-radius: 14px;
+    background: var(--accent);
+    border-radius: var(--radius-lg);
     padding: 16px;
     text-align: center;
-    color: #fff;
-    font-size: 17px;
+    color: #080A10;
+    font-size: 16px;
     font-weight: 600;
+    box-shadow: 0 0 24px rgba(20,184,212,0.2);
   }
 </style>
 </head>
@@ -163,10 +159,13 @@
   <div class="device">
     <div class="status-bar">
       <span>9:41</span>
-      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
     <div class="nav-header">
-      <div class="nav-back">‹ Blackbird</div>
+      <div class="nav-back">
+        <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Blackbird
+      </div>
       <div class="nav-title">New Log Entry</div>
       <div class="nav-save">Save</div>
     </div>
@@ -192,14 +191,14 @@
             <div class="field-value">Jun 30, 2026</div>
           </div>
           <div class="field">
-            <div class="field-label">Mileage (km)</div>
+            <div class="field-label">Mileage (mi)</div>
             <div class="field-value">12,400</div>
           </div>
         </div>
 
         <div class="field">
           <div class="field-label">Notes (optional)</div>
-          <div class="field-value">Full synthetic 10W-40. Next change at 15,000 km.</div>
+          <div class="field-value">Full synthetic 10W-40. Next change at 15,000 mi.</div>
         </div>
 
         <div class="section-label">Items</div>
@@ -215,21 +214,21 @@
         <div class="item-row">
           <div>
             <div class="item-desc">Castrol Power 1 10W-40 1L</div>
-            <div class="item-meta">Parts · 4× · €12.50 each</div>
+            <div class="item-meta">Parts · 4× · $12.50 each</div>
           </div>
-          <div class="item-cost">€50.00</div>
+          <div class="item-cost">$50.00</div>
         </div>
 
         <div class="item-row">
           <div>
             <div class="item-desc">Oil filter HF204</div>
-            <div class="item-meta">Parts · 1× · €8.99</div>
+            <div class="item-meta">Parts · 1× · $8.99</div>
           </div>
-          <div class="item-cost">€8.99</div>
+          <div class="item-cost">$8.99</div>
         </div>
 
         <div class="add-item-btn">
-          <span style="font-size:18px;font-weight:300;">+</span>
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 2.5v9M2.5 7h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           Add item
         </div>
 

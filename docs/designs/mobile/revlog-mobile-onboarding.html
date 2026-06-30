@@ -3,21 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <title>Revlog Mobile — Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --surface-base:     #0B0D14;
+    --surface-raised:   #131620;
+    --surface-elevated: #1A1D2E;
+    --border-muted:   #1E2235;
+    --border-default: #2A2E46;
+    --text-primary:   #EDF0F8;
+    --text-secondary: #8C8FA8;
+    --text-tertiary:  #50527A;
+    --text-disabled:  #34375A;
+    --accent:       #14B8D4;
+    --accent-light: #67E2F0;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+  body { background: #15171f; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: 'DM Sans', system-ui, sans-serif; flex-wrap: wrap; -webkit-font-smoothing: antialiased; }
 
   .device {
     width: 390px;
-    background: #0a0a0a;
+    background: var(--surface-base);
     border-radius: 50px;
     overflow: hidden;
-    border: 8px solid #2a2a2a;
+    border: 8px solid #1c1e26;
     box-shadow: 0 24px 60px rgba(0,0,0,0.6);
     flex-shrink: 0;
   }
   .label {
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 12px;
     text-align: center;
     margin-bottom: 12px;
@@ -25,72 +43,55 @@
     text-transform: uppercase;
   }
   .status-bar {
-    background: #0a0a0a;
+    background: var(--surface-base);
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 600;
   }
 
-  .screen-content {
-    height: 756px;
-    background: #0f0f0f;
-    padding: 32px 24px 24px;
-    overflow: hidden;
-  }
+  .screen-content { height: 756px; background: var(--surface-base); padding: 32px 24px 24px; overflow: hidden; }
 
-  .welcome-block { text-align: center; margin-bottom: 28px; }
-  .welcome-icon { font-size: 36px; margin-bottom: 12px; }
-  .welcome-title { font-size: 20px; font-weight: 700; color: #f9fafb; margin-bottom: 6px; }
-  .welcome-body { font-size: 13px; color: #6b7280; line-height: 1.5; padding: 0 8px; }
+  /* Gauge-tick step indicator */
+  .step-track { display: flex; gap: 6px; margin-bottom: 10px; }
+  .step-tick { flex: 1; height: 3px; border-radius: 2px; background: var(--border-default); position: relative; overflow: hidden; }
+  .step-tick.done::after, .step-tick.active::after {
+    content: ''; position: absolute; inset: 0; background: var(--accent); border-radius: 2px;
+  }
+  .step-tick.active::after { box-shadow: 0 0 8px rgba(20,184,212,0.65); }
+  .step-labels { display: flex; justify-content: space-between; margin-bottom: 28px; }
+  .step-labels span { font-size: 9.5px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-disabled); }
+  .step-labels span.active { color: var(--accent); }
+  .step-labels span.done { color: var(--text-tertiary); }
+
+  .welcome-block { text-align: center; margin-bottom: 24px; }
+  .welcome-icon { color: var(--accent); margin-bottom: 12px; display: flex; justify-content: center; }
+  .welcome-title { font-family: 'Outfit', sans-serif; font-size: 19px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; letter-spacing: -0.01em; }
+  .welcome-body { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; padding: 0 8px; }
 
   .field-group { margin-bottom: 14px; }
   .field-row { display: flex; gap: 10px; }
   .field-row .field-group { flex: 1; }
-  .field-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: #9ca3af;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .field-input {
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 12px;
-    padding: 13px 16px;
-    font-size: 14px;
-    color: #f9fafb;
-  }
-  .field-input.placeholder { color: #4b5563; }
-  .optional-tag { color: #4b5563; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .field-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .field-input { background: var(--surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px 16px; font-size: 14px; color: var(--text-primary); }
+  .optional-tag { color: var(--text-disabled); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
   .primary-btn {
-    background: #3b82f6;
-    color: #fff;
-    padding: 16px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
+    background: var(--accent);
+    color: #080A10;
+    padding: 15px;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
     text-align: center;
     margin-top: 12px;
-    box-shadow: 0 8px 24px rgba(59,130,246,0.3);
+    box-shadow: 0 0 20px rgba(20,184,212,0.22);
   }
-  .skip-link {
-    text-align: center;
-    font-size: 13px;
-    color: #6b7280;
-    margin-top: 16px;
-  }
-
-  .progress-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 24px; }
-  .dot { width: 6px; height: 6px; border-radius: 3px; background: #27272a; }
-  .dot.active { width: 18px; background: #3b82f6; }
+  .skip-link { text-align: center; font-size: 13px; color: var(--text-tertiary); margin-top: 16px; }
 </style>
 </head>
 <body>
@@ -100,16 +101,24 @@
   <div class="device">
     <div class="status-bar">
       <span class="time">9:41</span>
-      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+      <div style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
     </div>
     <div class="screen-content">
-      <div class="progress-dots">
-        <div class="dot active"></div>
-        <div class="dot"></div>
+      <div class="step-track">
+        <div class="step-tick done"></div>
+        <div class="step-tick active"></div>
+        <div class="step-tick"></div>
+      </div>
+      <div class="step-labels">
+        <span class="done">Welcome</span>
+        <span class="active">Your vehicle</span>
+        <span>Ready</span>
       </div>
 
       <div class="welcome-block">
-        <div class="welcome-icon">🏍</div>
+        <div class="welcome-icon">
+          <svg width="32" height="32" viewBox="0 0 80 48" fill="none" aria-hidden="true"><circle cx="16" cy="36" r="9" stroke="currentColor" stroke-width="2"/><circle cx="62" cy="36" r="9" stroke="currentColor" stroke-width="2"/><path d="M16 36 L30 19 L46 19 L62 36" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 19 L37 36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M46 19 L41 11 L52 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 13 L33 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
         <div class="welcome-title">Add your first vehicle</div>
         <div class="welcome-body">Tell us a bit about your bike to start tracking its service history.</div>
       </div>
