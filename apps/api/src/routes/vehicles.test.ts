@@ -38,12 +38,13 @@ vi.mock('../lib/upload', () => ({
   },
 }));
 
-const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' | 'setVehiclePhoto' | 'getDetail' | 'updateVehicle'> = {
+const mockVehicleService: Pick<VehicleService, 'createVehicle' | 'listVehicles' | 'setVehiclePhoto' | 'getDetail' | 'updateVehicle' | 'deleteVehicle'> = {
   createVehicle: vi.fn(),
   listVehicles: vi.fn(),
   setVehiclePhoto: vi.fn(),
   getDetail: vi.fn(),
   updateVehicle: vi.fn(),
+  deleteVehicle: vi.fn(),
 };
 
 function buildApp() {
@@ -543,5 +544,80 @@ describe('PATCH /vehicles/:id', () => {
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ error: 'Vehicle not found' });
+  });
+});
+
+describe('DELETE /vehicles/:id', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 401 when no authorization header is present', async () => {
+    const res = await supertest(buildApp()).delete('/vehicles/vehicle-1');
+
+    expect(res.status).toBe(401);
+    expect(mockVehicleService.deleteVehicle).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when the authorization header is invalid', async () => {
+    const res = await supertest(buildApp())
+      .delete('/vehicles/vehicle-1')
+      .set('Authorization', 'Bearer not-a-real-token');
+
+    expect(res.status).toBe(401);
+    expect(mockVehicleService.deleteVehicle).not.toHaveBeenCalled();
+  });
+
+  it('returns 204 on success', async () => {
+    (mockVehicleService.deleteVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const res = await supertest(buildApp())
+      .delete('/vehicles/vehicle-1')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(204);
+  });
+
+  it('calls deleteVehicle with vehicleId from params and accountId from the token', async () => {
+    (mockVehicleService.deleteVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    await supertest(buildApp()).delete('/vehicles/vehicle-1').set('Authorization', authHeader);
+
+    expect(mockVehicleService.deleteVehicle).toHaveBeenCalledOnce();
+    expect(mockVehicleService.deleteVehicle).toHaveBeenCalledWith('vehicle-1', 'account-1');
+  });
+
+  it('returns 403 when the service throws a 403 AppError', async () => {
+    (mockVehicleService.deleteVehicle as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(403, 'Forbidden'),
+    );
+
+    const res = await supertest(buildApp())
+      .delete('/vehicles/vehicle-1')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(403);
+    expect(res.body).toMatchObject({ error: 'Forbidden' });
+  });
+
+  it('returns 404 when the service throws a 404 AppError', async () => {
+    (mockVehicleService.deleteVehicle as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new AppError(404, 'Vehicle not found'),
+    );
+
+    const res = await supertest(buildApp())
+      .delete('/vehicles/vehicle-1')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ error: 'Vehicle not found' });
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockVehicleService.deleteVehicle as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp())
+      .delete('/vehicles/vehicle-1')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(500);
   });
 });
