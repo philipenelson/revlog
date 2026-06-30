@@ -162,6 +162,26 @@ export function VehicleGlyphIcon() {
   );
 }
 
+export function ShareIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="11" cy="3" r="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="3" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="11" cy="11" r="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M4.3 6.3L9.7 3.7M4.3 7.7L9.7 10.3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function CopyIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M10 4V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function DashedVehicleGlyphIcon() {
   return (
     <svg viewBox="0 0 80 48" fill="none" aria-hidden="true">

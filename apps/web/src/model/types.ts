@@ -87,6 +87,51 @@ export interface InsuranceInput {
   notes: string | null;
 }
 
+/* ── Mechanic Printout ──────────────────────────────────────────── */
+
+export interface VehicleReportToken {
+  shareToken: string | null;
+  shareUrl: string | null;
+}
+
+export interface PrintoutLogItem {
+  categoryId: string;
+  description: string;
+  quantity: string | null;
+  unitCost: string | null;
+}
+
+export interface PrintoutLogEntry {
+  id: string;
+  typeId: string;
+  title: string;
+  date: string;
+  mileage: number | null;
+  notes: string | null;
+  items: PrintoutLogItem[];
+}
+
+export interface MechanicPrintoutVehicle {
+  nickname: string | null;
+  make: string;
+  model: string;
+  year: number;
+  mileage: number;
+  photoUrl: string | null;
+}
+
+export interface MechanicPrintoutStats {
+  logEntryCount: number;
+  lastLoggedAt: string | null;
+  totalSpent: string;
+}
+
+export interface MechanicPrintout {
+  vehicle: MechanicPrintoutVehicle;
+  stats: MechanicPrintoutStats;
+  logEntries: PrintoutLogEntry[];
+}
+
 /* ── Log entries ────────────────────────────────────────────────── */
 
 export interface LogEntrySummary {

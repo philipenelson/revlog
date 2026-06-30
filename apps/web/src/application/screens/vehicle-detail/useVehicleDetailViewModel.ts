@@ -28,6 +28,10 @@ export interface VehicleDetailViewModel {
   openInsurance: (editMode: boolean) => void;
   closeInsurance: () => void;
   handleInsuranceSave: (input: InsuranceInput) => Promise<void>;
+  shareReportOpen: boolean;
+  openShareReport: () => void;
+  closeShareReport: () => void;
+  retry: () => void;
 }
 
 export function useVehicleDetailViewModel(): VehicleDetailViewModel {
@@ -40,6 +44,8 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [insuranceOpen, setInsuranceOpen] = useState(false);
   const [insuranceEditMode, setInsuranceEditMode] = useState(false);
+  const [shareReportOpen, setShareReportOpen] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     getVehicle(vehicleId)
@@ -56,7 +62,7 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
         }
       });
 
-  }, [vehicleId, router]);
+  }, [vehicleId, router, retryCount]);
 
   function openInsurance(editMode: boolean) {
     setInsuranceEditMode(editMode);
@@ -88,5 +94,12 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
     openInsurance,
     closeInsurance: () => setInsuranceOpen(false),
     handleInsuranceSave,
+    shareReportOpen,
+    openShareReport: () => setShareReportOpen(true),
+    closeShareReport: () => setShareReportOpen(false),
+    retry: () => {
+      setLoadState("loading");
+      setRetryCount((c) => c + 1);
+    },
   };
 }

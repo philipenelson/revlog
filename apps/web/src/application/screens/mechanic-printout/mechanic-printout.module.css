@@ -1,0 +1,339 @@
+/* ── Screen layout ──────────────────────────────────────────────── */
+.scene {
+  min-height: 100dvh;
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+.screenBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--surface-base);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.wordmark {
+  font-family: var(--font-outfit);
+  font-size: 17px;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+.wordmarkLight { font-weight: 300; color: var(--text-primary); }
+.wordmarkBold  { font-weight: 700; color: var(--accent); }
+
+.btnPrint {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent-muted);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  color: var(--accent-light);
+  font-family: var(--font-dm-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.btnPrint:hover { background: var(--accent); color: var(--accent-contrast); }
+
+/* ── Document wrapper ───────────────────────────────────────────── */
+.document {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 32px 80px;
+}
+
+/* ── Document header ────────────────────────────────────────────── */
+.docHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border-default);
+}
+
+.docLogo {
+  font-family: var(--font-outfit);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.docLogoLight { font-weight: 300; color: var(--text-primary); }
+.docLogoBold  { font-weight: 700; color: var(--accent); }
+
+.docMetaRight { text-align: right; }
+
+.docReportLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.docGenDate {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* ── Vehicle identity ───────────────────────────────────────────── */
+.vehicleIdentity {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-muted);
+}
+
+.vehiclePhoto {
+  width: 120px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.vehicleGlyph {
+  width: 80px;
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-muted);
+  color: var(--border-strong);
+}
+.vehicleGlyph svg { width: 60px; }
+
+.vehicleInfoMain { flex: 1; min-width: 0; }
+
+.vehicleDisplayName {
+  font-family: var(--font-outfit);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.vehicleMeta {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.statsRow { display: flex; gap: 24px; flex-wrap: wrap; }
+
+.vstat {}
+.vstatVal {
+  font-family: var(--font-geist-mono);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.vstatLbl {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+}
+
+/* ── Service history section ────────────────────────────────────── */
+.sectionTitle {
+  font-family: var(--font-outfit);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-muted);
+  color: var(--text-tertiary);
+}
+
+/* ── Log entry ──────────────────────────────────────────────────── */
+.entry {
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-radius: var(--radius-md);
+  break-inside: avoid;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-muted);
+}
+
+.entryHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.entryTypeLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.entryTypeBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.typeMaintenance { background: var(--type-maintenance-bg);  color: var(--type-maintenance-color); }
+.typeRepair       { background: var(--type-repair-bg);       color: var(--type-repair-color); }
+.typeModification { background: var(--type-modification-bg); color: var(--type-modification-color); }
+.typeInspection   { background: var(--type-inspection-bg);   color: var(--type-inspection-color); }
+.typeIncident     { background: var(--type-incident-bg);     color: var(--type-incident-color); }
+.typeEvent        { background: var(--type-event-bg);        color: var(--type-event-color); }
+.typeOther        { background: var(--type-other-bg);        color: var(--type-other-color); }
+
+.entryDate    { font-size: 12px; color: var(--text-tertiary); }
+.entryMileage { font-size: 12px; font-family: var(--font-geist-mono); color: var(--text-tertiary); }
+
+.entryTitle {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+/* ── Items table ────────────────────────────────────────────────── */
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-bottom: 10px;
+}
+
+.itemsTable th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px 8px 0;
+  border-bottom: 1px solid var(--border-muted);
+  color: var(--text-tertiary);
+}
+
+.itemsTable td {
+  padding: 6px 8px 6px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-muted);
+  color: var(--text-secondary);
+}
+
+.numCol { text-align: right; font-family: var(--font-geist-mono); font-size: 12px; color: var(--text-primary); }
+.itemColWide { width: 50%; }
+
+.entryTotal {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.entryNotes {
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-muted);
+  color: var(--text-secondary);
+}
+
+.notesLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 3px;
+  color: var(--text-tertiary);
+}
+
+/* ── Document footer ────────────────────────────────────────────── */
+.docFooter {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-muted);
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ── State blocks ───────────────────────────────────────────────── */
+.stateBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 20px;
+  gap: 12px;
+}
+
+.stateIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-disabled);
+  margin-bottom: 8px;
+}
+
+.stateTitle {
+  font-family: var(--font-outfit);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.stateBody {
+  font-size: 14px;
+  max-width: 340px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ── Print overrides ────────────────────────────────────────────── */
+@media print {
+  .screenBar { display: none !important; }
+  .document { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+  .entry { break-inside: avoid; }
+  .scene { background: white !important; color: black !important; }
+}
