@@ -1,0 +1,51 @@
+/* ── Banner ────────────────────────────────────────────────────── */
+.banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border-default);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.learnMore {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.learnMore:hover {
+  text-decoration: underline;
+}
+
+.dismissBtn {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-dm-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dismissBtn:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
+}
