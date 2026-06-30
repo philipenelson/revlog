@@ -10,6 +10,7 @@ export interface IVehicleReportTokenRepository {
   deleteByVehicleId(vehicleId: string): Promise<boolean>;
   findByToken(token: string): Promise<DomainVehicleReportToken | null>;
   findByVehicleId(vehicleId: string): Promise<DomainVehicleReportToken | null>;
+  findPrintoutByToken(token: string): Promise<MechanicPrintout | null>;
 }
 
 export interface PrintoutLogItem {
