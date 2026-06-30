@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, type UseFormRegister, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -42,9 +42,22 @@ export interface LoginViewModel {
   };
 }
 
+function safeNextPath(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw, "http://localhost");
+    if (url.hostname !== "localhost") return null;
+    return url.pathname + url.search;
+  } catch {
+    return null;
+  }
+}
+
 export function useLoginViewModel(): LoginViewModel {
   const [tab, setTab] = useState<Tab>("login");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
   const { session, isRestoring, setSession } = useAuth();
 
   // UC-AUTH-5 — an already-authenticated visitor (silent refresh restored a
@@ -53,8 +66,8 @@ export function useLoginViewModel(): LoginViewModel {
   // first, or every visitor would flash through the form before being routed away.
   useEffect(() => {
     if (isRestoring || !session) return;
-    router.replace(routeForAccountStatus(session.account.status));
-  }, [session, isRestoring, router]);
+    router.replace(nextPath ?? routeForAccountStatus(session.account.status));
+  }, [session, isRestoring, router, nextPath]);
 
   const [loginError, setLoginError] = useState<string | null>(null);
   const {
@@ -81,7 +94,7 @@ export function useLoginViewModel(): LoginViewModel {
     try {
       const session = await authService.login(data);
       setSession(session);
-      router.push(routeForAccountStatus(session.account.status));
+      router.push(nextPath ?? routeForAccountStatus(session.account.status));
     } catch (err) {
       if (err instanceof ApiError && err.status < 500) {
         setLoginError(SIGN_IN_USER_ERROR);
