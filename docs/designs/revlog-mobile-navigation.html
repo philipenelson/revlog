@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Navigation Structure</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+
+  .device {
+    width: 390px;
+    background: #0a0a0a;
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #2a2a2a;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .label {
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .nav-header {
+    background: #111;
+    border-bottom: 1px solid #1f1f1f;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .wordmark { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .header-right { display: flex; gap: 14px; align-items: center; }
+  .sync-icon { color: #60a5fa; font-size: 16px; }
+  .gear-icon { color: #9ca3af; font-size: 18px; }
+  .back-btn { color: #3b82f6; font-size: 15px; }
+  .nav-title { font-size: 17px; font-weight: 600; color: #fff; }
+
+  .screen-body {
+    height: 700px;
+    background: #0f0f0f;
+  }
+
+  /* Garage */
+  .vehicle-card {
+    margin: 16px 16px 0;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .vc-photo {
+    height: 100px;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    display: flex; align-items: center; justify-content: center;
+    color: #334155; font-size: 28px;
+  }
+  .vc-info {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .vc-name { font-size: 15px; font-weight: 700; color: #f9fafb; }
+  .vc-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .vc-badge {
+    background: #1d4ed8; color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .fab {
+    position: absolute; bottom: 20px; right: 20px;
+    width: 52px; height: 52px;
+    background: #3b82f6; border-radius: 26px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 22px;
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+  }
+  .rel { position: relative; height: 700px; background: #0f0f0f; }
+
+  /* Vehicle Detail */
+  .vd-hero {
+    height: 160px;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    display: flex; align-items: center; justify-content: center;
+    color: #334155; font-size: 48px;
+  }
+  .vd-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #1f1f1f;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .vd-title { font-size: 22px; font-weight: 800; color: #f9fafb; }
+  .vd-sub { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .vd-actions { display: flex; gap: 8px; }
+  .vd-action-btn {
+    background: #18181b; border: 1px solid #27272a;
+    border-radius: 8px; padding: 6px 12px;
+    font-size: 12px; font-weight: 600; color: #9ca3af;
+  }
+  .log-row {
+    padding: 14px 20px; border-bottom: 1px solid #18181b;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .log-title { font-size: 14px; font-weight: 600; color: #f9fafb; }
+  .log-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .log-chevron { color: #4b5563; font-size: 16px; }
+
+  /* Settings */
+  .settings-section-label {
+    font-size: 11px; font-weight: 600; color: #4b5563;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 20px 20px 8px;
+  }
+  .settings-group {
+    background: #18181b;
+    border-top: 1px solid #27272a;
+    border-bottom: 1px solid #27272a;
+  }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid #27272a;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .sr-label { font-size: 16px; color: #f9fafb; }
+  .sr-value { font-size: 14px; color: #6b7280; }
+  .sr-chevron { color: #4b5563; font-size: 16px; }
+  .logout { margin: 24px 20px 0; background: #1c0a0a; border: 1px solid #7f1d1d; border-radius: 12px; padding: 14px; text-align: center; color: #ef4444; font-size: 16px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- State 1: Garage root -->
+<div>
+  <div class="label">Garage (root)</div>
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-right">
+        <span class="sync-icon">↻</span>
+        <span class="gear-icon">⚙</span>
+      </div>
+    </div>
+    <div class="rel">
+      <div style="height:700px;background:#0f0f0f;">
+        <div class="vehicle-card">
+          <div class="vc-photo">🏍</div>
+          <div class="vc-info">
+            <div><div class="vc-name">Blackbird</div><div class="vc-meta">Honda CB650R 2019 · 12,400 km</div></div>
+            <div class="vc-badge">14 entries</div>
+          </div>
+        </div>
+        <div class="vehicle-card" style="margin-top:10px;">
+          <div class="vc-photo" style="background:linear-gradient(135deg,#1a2e1a,#0a1a0a);color:#1f3d1f;">🏍</div>
+          <div class="vc-info">
+            <div><div class="vc-name">Duke</div><div class="vc-meta">KTM 390 Duke 2021 · 8,200 km</div></div>
+            <div class="vc-badge">7 entries</div>
+          </div>
+        </div>
+      </div>
+      <div class="fab">+</div>
+    </div>
+  </div>
+</div>
+
+<!-- State 2: Vehicle Detail (drill-down) -->
+<div>
+  <div class="label">Vehicle Detail (stack push)</div>
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="back-btn">‹ Garage</div>
+      <div class="nav-title">Blackbird</div>
+      <div class="header-right">
+        <span class="gear-icon">⚙</span>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="vd-hero">🏍</div>
+      <div class="vd-header">
+        <div>
+          <div class="vd-title">Blackbird</div>
+          <div class="vd-sub">2019 Honda CB650R · 12,400 km</div>
+        </div>
+        <div class="vd-actions">
+          <div class="vd-action-btn">Edit</div>
+          <div class="vd-action-btn">+ Log</div>
+          <div class="vd-action-btn">Share</div>
+        </div>
+      </div>
+      <div class="log-row">
+        <div><div class="log-title">Oil & filter change</div><div class="log-meta">Jun 28 · 12,400 km · Maintenance</div></div>
+        <div class="log-chevron">›</div>
+      </div>
+      <div class="log-row">
+        <div><div class="log-title">Front brake pads</div><div class="log-meta">May 14 · 11,200 km · Repair</div></div>
+        <div class="log-chevron">›</div>
+      </div>
+      <div class="log-row">
+        <div><div class="log-title">Annual inspection</div><div class="log-meta">Jan 10 · 9,800 km · Inspection</div></div>
+        <div class="log-chevron">›</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- State 3: Settings (stack push from gear) -->
+<div>
+  <div class="label">Settings (gear → stack push)</div>
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="back-btn">‹ Garage</div>
+      <div class="nav-title">Settings</div>
+      <div style="width:40px;"></div>
+    </div>
+    <div class="screen-body">
+      <div class="settings-section-label">Account</div>
+      <div class="settings-group">
+        <div class="settings-row"><div class="sr-label">Philip Russo</div><div class="sr-value">Display name</div></div>
+        <div class="settings-row"><div class="sr-label">p@example.com</div><div class="sr-value">Email</div></div>
+      </div>
+      <div class="settings-section-label">Legal</div>
+      <div class="settings-group">
+        <div class="settings-row"><div class="sr-label">Terms of Service</div><div class="sr-chevron">›</div></div>
+        <div class="settings-row"><div class="sr-label">Privacy Policy</div><div class="sr-chevron">›</div></div>
+        <div class="settings-row"><div class="sr-label">Cookie Policy</div><div class="sr-chevron">›</div></div>
+      </div>
+      <div class="settings-section-label">Support</div>
+      <div class="settings-group">
+        <div class="settings-row"><div class="sr-label">revlog.dev</div><div class="sr-chevron">›</div></div>
+      </div>
+      <div class="logout">Log out</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Garage Screen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+
+  .device {
+    width: 390px;
+    background: #0a0a0a;
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #2a2a2a;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .label {
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    font-family: -apple-system, sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .status-bar .time { font-weight: 700; }
+  .status-bar .icons { display: flex; gap: 6px; align-items: center; }
+
+  .nav-header {
+    background: #111;
+    border-bottom: 1px solid #1f1f1f;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .wordmark {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .header-icons { display: flex; gap: 16px; align-items: center; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    color: #9ca3af;
+    font-size: 18px;
+  }
+  .offline-dot {
+    width: 8px; height: 8px;
+    background: #f59e0b;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+
+  .screen-content {
+    height: 700px;
+    overflow: hidden;
+    background: #0f0f0f;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 20px 20px 8px;
+  }
+
+  .vehicle-card {
+    margin: 0 16px 12px;
+    background: #18181b;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #27272a;
+  }
+  .vehicle-photo {
+    height: 120px;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    font-size: 32px;
+  }
+  .vehicle-info {
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .vehicle-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f9fafb;
+    margin-bottom: 2px;
+  }
+  .vehicle-meta {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .vehicle-badge {
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .vehicle-badge.pending {
+    background: #92400e;
+    color: #fbbf24;
+  }
+
+  .fab {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 56px; height: 56px;
+    background: #3b82f6;
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    box-shadow: 0 8px 24px rgba(59,130,246,0.4);
+    font-weight: 300;
+  }
+  .screen-wrap { position: relative; }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 500px;
+    padding: 40px;
+    text-align: center;
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; filter: grayscale(1); opacity: 0.3; }
+  .empty-title { font-size: 18px; font-weight: 700; color: #f9fafb; margin-bottom: 8px; }
+  .empty-body { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.5; }
+  .empty-btn {
+    background: #3b82f6;
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .offline-banner {
+    background: #1c1917;
+    border-bottom: 1px solid #292524;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #a8a29e;
+  }
+  .offline-icon { color: #f59e0b; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="label">Garage — with vehicles</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <span>●●●</span>
+        <span>WiFi</span>
+        <span>⬜</span>
+      </div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-icons">
+        <!-- offline indicator hidden — online + synced -->
+        <div class="icon-btn">⚙</div>
+      </div>
+    </div>
+    <div class="screen-wrap">
+      <div class="screen-content">
+        <div class="section-title">My Garage · 3 vehicles</div>
+
+        <div class="vehicle-card">
+          <div class="vehicle-photo">🏍</div>
+          <div class="vehicle-info">
+            <div>
+              <div class="vehicle-name">Blackbird</div>
+              <div class="vehicle-meta">2019 Honda CB650R · Last entry Jun 28</div>
+            </div>
+            <div class="vehicle-badge">14 entries</div>
+          </div>
+        </div>
+
+        <div class="vehicle-card">
+          <div class="vehicle-photo" style="background: linear-gradient(135deg, #1a2e1a 0%, #0a1a0a 100%); color: #1f3d1f;">🏍</div>
+          <div class="vehicle-info">
+            <div>
+              <div class="vehicle-name">Duke</div>
+              <div class="vehicle-meta">2021 KTM 390 Duke · Last entry May 14</div>
+            </div>
+            <div class="vehicle-badge pending">Transfer pending</div>
+          </div>
+        </div>
+
+        <div class="vehicle-card">
+          <div class="vehicle-photo" style="background: linear-gradient(135deg, #2d1b00 0%, #1a0f00 100%); color: #3d2500;">🏍</div>
+          <div class="vehicle-info">
+            <div>
+              <div class="vehicle-name">Project Bike</div>
+              <div class="vehicle-meta">1998 Yamaha R1 · No entries yet</div>
+            </div>
+            <div class="vehicle-badge" style="background: #27272a; color: #71717a;">0 entries</div>
+          </div>
+        </div>
+      </div>
+      <div class="fab">+</div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="label">Garage — offline + pending sync</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons">
+        <span style="color:#6b7280;">No Signal</span>
+        <span>⬜</span>
+      </div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-icons">
+        <div class="offline-dot"></div>
+        <div class="icon-btn">⚙</div>
+      </div>
+    </div>
+    <div class="offline-banner">
+      <span class="offline-icon">⚠</span>
+      <span>Working offline · 2 changes pending sync</span>
+    </div>
+    <div class="screen-wrap">
+      <div class="screen-content">
+        <div class="section-title">My Garage · 3 vehicles</div>
+        <div class="vehicle-card">
+          <div class="vehicle-photo">🏍</div>
+          <div class="vehicle-info">
+            <div>
+              <div class="vehicle-name">Blackbird</div>
+              <div class="vehicle-meta">2019 Honda CB650R · Last entry Jun 28</div>
+            </div>
+            <div class="vehicle-badge">14 entries</div>
+          </div>
+        </div>
+        <div class="vehicle-card">
+          <div class="vehicle-photo" style="background: linear-gradient(135deg, #1a2e1a 0%, #0a1a0a 100%); color: #1f3d1f;">🏍</div>
+          <div class="vehicle-info">
+            <div>
+              <div class="vehicle-name">Duke</div>
+              <div class="vehicle-meta">2021 KTM 390 Duke · Last entry May 14</div>
+            </div>
+            <div class="vehicle-badge">7 entries</div>
+          </div>
+        </div>
+      </div>
+      <div class="fab">+</div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="label">Garage — empty state</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-icons"><div class="icon-btn">⚙</div></div>
+    </div>
+    <div class="screen-content">
+      <div class="empty-state">
+        <div class="empty-icon">🏠</div>
+        <div class="empty-title">Your garage is empty</div>
+        <div class="empty-body">Add your first vehicle to start tracking its service history.</div>
+        <div class="empty-btn">Add your first vehicle</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

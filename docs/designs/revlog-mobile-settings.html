@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Settings Screen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; }
+
+  .device {
+    width: 390px;
+    background: #0a0a0a;
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #2a2a2a;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .nav-header {
+    background: #111;
+    border-bottom: 1px solid #1f1f1f;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .nav-back { color: #3b82f6; font-size: 15px; }
+  .nav-title { font-size: 17px; font-weight: 600; color: #fff; }
+  .nav-spacer { width: 40px; }
+
+  .screen-content {
+    height: 700px;
+    background: #0f0f0f;
+    padding: 24px 0;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0 20px;
+    margin-bottom: 8px;
+    margin-top: 24px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .list-group {
+    background: #18181b;
+    border-top: 1px solid #27272a;
+    border-bottom: 1px solid #27272a;
+    margin-bottom: 4px;
+  }
+  .list-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid #27272a;
+  }
+  .list-row:last-child { border-bottom: none; }
+  .row-label { font-size: 16px; color: #f9fafb; }
+  .row-value { font-size: 16px; color: #6b7280; }
+  .row-chevron { color: #4b5563; font-size: 16px; }
+  .row-left { display: flex; flex-direction: column; gap: 2px; }
+  .row-sublabel { font-size: 12px; color: #6b7280; }
+
+  .logout-btn {
+    margin: 32px 20px 0;
+    background: #1c0a0a;
+    border: 1px solid #7f1d1d;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    color: #ef4444;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .app-version {
+    text-align: center;
+    color: #374151;
+    font-size: 12px;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="status-bar">
+    <span>9:41</span>
+    <div style="display:flex;gap:6px;"><span>●●●</span><span>WiFi</span><span>⬜</span></div>
+  </div>
+  <div class="nav-header">
+    <div class="nav-back">‹ Garage</div>
+    <div class="nav-title">Settings</div>
+    <div class="nav-spacer"></div>
+  </div>
+  <div class="screen-content">
+
+    <div class="section-label">Account</div>
+    <div class="list-group">
+      <div class="list-row">
+        <div class="row-left">
+          <div class="row-label">Philip Russo</div>
+          <div class="row-sublabel">Display name</div>
+        </div>
+        <div class="row-value"></div>
+      </div>
+      <div class="list-row">
+        <div class="row-left">
+          <div class="row-label">p@example.com</div>
+          <div class="row-sublabel">Email</div>
+        </div>
+        <div class="row-value"></div>
+      </div>
+    </div>
+
+    <div class="section-label">Legal</div>
+    <div class="list-group">
+      <div class="list-row">
+        <div class="row-label">Terms of Service</div>
+        <div class="row-chevron">›</div>
+      </div>
+      <div class="list-row">
+        <div class="row-label">Privacy Policy</div>
+        <div class="row-chevron">›</div>
+      </div>
+      <div class="list-row">
+        <div class="row-label">Cookie Policy</div>
+        <div class="row-chevron">›</div>
+      </div>
+    </div>
+
+    <div class="section-label">Support</div>
+    <div class="list-group">
+      <div class="list-row">
+        <div class="row-label">revlog.dev</div>
+        <div class="row-chevron">›</div>
+      </div>
+    </div>
+
+    <div class="logout-btn">Log out</div>
+
+    <div class="app-version">Revlog 1.0.0 (dev.revlog)</div>
+  </div>
+</div>
+
+</body>
+</html>

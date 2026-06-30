@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Offline Sync Indicator States</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a1a; display: flex; gap: 32px; justify-content: center; align-items: flex-start; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; flex-wrap: wrap; }
+
+  .device-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .label {
+    color: #6b7280;
+    font-size: 11px;
+    text-align: center;
+    font-family: -apple-system, sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .device {
+    width: 280px;
+    background: #0a0a0a;
+    border-radius: 40px;
+    overflow: hidden;
+    border: 6px solid #2a2a2a;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  }
+  .status-bar {
+    background: #0a0a0a;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .nav-header {
+    background: #111;
+    border-bottom: 1px solid #1f1f1f;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+  }
+  .wordmark { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .icon-btn { color: #9ca3af; font-size: 16px; }
+
+  .indicator {
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .indicator.hidden { opacity: 0; }
+  .indicator.offline { color: #f59e0b; }
+  .indicator.pending { color: #60a5fa; }
+  .indicator.syncing { color: #60a5fa; animation: spin 1s linear infinite; }
+  .indicator.error { color: #ef4444; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .screen-body {
+    background: #0f0f0f;
+    height: 240px;
+    padding: 16px;
+  }
+
+  .vehicle-card-mini {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .vc-name { font-size: 14px; color: #f9fafb; font-weight: 600; }
+  .vc-meta { font-size: 11px; color: #6b7280; margin-top: 1px; }
+  .vc-entries { font-size: 11px; color: #6b7280; }
+
+  .pending-tag {
+    font-size: 10px;
+    background: #1d3a5f;
+    color: #60a5fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .failed-tag {
+    font-size: 10px;
+    background: #3f1515;
+    color: #ef4444;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .state-desc {
+    background: #18181b;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #9ca3af;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+  .state-desc strong { color: #d1d5db; }
+</style>
+</head>
+<body>
+
+<!-- State 1: Online + synced -->
+<div class="device-wrap">
+  <div class="label">Online · Synced</div>
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div style="display:flex;gap:4px;"><span>●●●</span><span>WiFi</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-right">
+        <div class="indicator hidden">●</div>
+        <div class="icon-btn">⚙</div>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Blackbird</div>
+          <div class="vc-meta">Honda CB650R 2019</div>
+        </div>
+        <div class="vc-entries">14 entries</div>
+      </div>
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Duke</div>
+          <div class="vc-meta">KTM 390 Duke 2021</div>
+        </div>
+        <div class="vc-entries">7 entries</div>
+      </div>
+      <div class="state-desc">No indicator shown. Device is online, outbox is empty. All changes are confirmed by the server.</div>
+    </div>
+  </div>
+</div>
+
+<!-- State 2: Offline -->
+<div class="device-wrap">
+  <div class="label">Offline</div>
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div style="display:flex;gap:4px;color:#6b7280;"><span>No Signal</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-right">
+        <div class="indicator offline">⊗</div>
+        <div class="icon-btn">⚙</div>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Blackbird</div>
+          <div class="vc-meta">Honda CB650R 2019</div>
+        </div>
+        <div class="vc-entries">14 entries</div>
+      </div>
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Duke</div>
+          <div class="vc-meta">KTM 390 Duke 2021</div>
+        </div>
+        <div class="vc-entries">7 entries</div>
+      </div>
+      <div class="state-desc"><strong>⊗ amber icon</strong> — device has no connectivity. Reads still work from local SQLite. Writes are queued in the outbox.</div>
+    </div>
+  </div>
+</div>
+
+<!-- State 3: Online, pending outbox -->
+<div class="device-wrap">
+  <div class="label">Online · Pending sync</div>
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div style="display:flex;gap:4px;"><span>●●●</span><span>WiFi</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-right">
+        <div class="indicator syncing">↻</div>
+        <div class="icon-btn">⚙</div>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Blackbird</div>
+          <div class="vc-meta">Honda CB650R 2019</div>
+        </div>
+        <div class="pending-tag">Syncing…</div>
+      </div>
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Duke</div>
+          <div class="vc-meta">KTM 390 Duke 2021</div>
+        </div>
+        <div class="vc-entries">7 entries</div>
+      </div>
+      <div class="state-desc"><strong>↻ blue spinner</strong> — device is online, SyncService is flushing the outbox. Local changes are being confirmed by the server.</div>
+    </div>
+  </div>
+</div>
+
+<!-- State 4: Sync failed -->
+<div class="device-wrap">
+  <div class="label">Sync failed</div>
+  <div class="device">
+    <div class="status-bar">
+      <span>9:41</span>
+      <div style="display:flex;gap:4px;"><span>●●●</span><span>WiFi</span></div>
+    </div>
+    <div class="nav-header">
+      <div class="wordmark">Revlog</div>
+      <div class="header-right">
+        <div class="indicator error">⚠</div>
+        <div class="icon-btn">⚙</div>
+      </div>
+    </div>
+    <div class="screen-body">
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Blackbird</div>
+          <div class="vc-meta">Honda CB650R 2019</div>
+        </div>
+        <div class="failed-tag">Sync failed</div>
+      </div>
+      <div class="vehicle-card-mini">
+        <div>
+          <div class="vc-name">Duke</div>
+          <div class="vc-meta">KTM 390 Duke 2021</div>
+        </div>
+        <div class="vc-entries">7 entries</div>
+      </div>
+      <div class="state-desc"><strong>⚠ red icon</strong> — one or more outbox entries returned a non-retryable error (4xx). Affected entries are marked <em>failed</em>. Pull-to-refresh retries. V2 adds user-facing resolution.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
