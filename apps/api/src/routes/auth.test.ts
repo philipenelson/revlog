@@ -149,6 +149,24 @@ describe('GET /auth/verify-email', () => {
     expect(refreshCookie).toMatch(/SameSite=Strict/i);
   });
 
+  it('does not include refreshToken in the response body for web (no X-Client-Platform header)', async () => {
+    (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
+
+    const res = await supertest(buildApp()).get('/auth/verify-email?token=valid-token');
+
+    expect(res.body).not.toHaveProperty('refreshToken');
+  });
+
+  it('includes refreshToken in the response body when X-Client-Platform: mobile is sent (ADR 0025)', async () => {
+    (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
+
+    const res = await supertest(buildApp())
+      .get('/auth/verify-email?token=valid-token')
+      .set('X-Client-Platform', 'mobile');
+
+    expect(res.body).toMatchObject({ refreshToken: verifyEmailResult.refreshToken });
+  });
+
   it('returns 400 and does not call service when token param is missing', async () => {
     const res = await supertest(buildApp()).get('/auth/verify-email');
 
@@ -222,6 +240,25 @@ describe('POST /auth/login', () => {
     expect(refreshCookie).toBeDefined();
     expect(refreshCookie).toMatch(/HttpOnly/i);
     expect(refreshCookie).toMatch(/SameSite=Strict/i);
+  });
+
+  it('does not include refreshToken in the response body for web (no X-Client-Platform header)', async () => {
+    (mockAuthService.login as ReturnType<typeof vi.fn>).mockResolvedValue(loginResult);
+
+    const res = await supertest(buildApp()).post('/auth/login').send(validLoginBody);
+
+    expect(res.body).not.toHaveProperty('refreshToken');
+  });
+
+  it('includes refreshToken in the response body when X-Client-Platform: mobile is sent (ADR 0025)', async () => {
+    (mockAuthService.login as ReturnType<typeof vi.fn>).mockResolvedValue(loginResult);
+
+    const res = await supertest(buildApp())
+      .post('/auth/login')
+      .set('X-Client-Platform', 'mobile')
+      .send(validLoginBody);
+
+    expect(res.body).toMatchObject({ refreshToken: loginResult.refreshToken });
   });
 
   it('returns 400 and does not call the service when body fails schema validation', async () => {
@@ -300,6 +337,27 @@ describe('POST /auth/refresh', () => {
     expect(refreshCookie).toContain(refreshResult.refreshToken);
     expect(refreshCookie).toMatch(/HttpOnly/i);
     expect(refreshCookie).toMatch(/SameSite=Strict/i);
+  });
+
+  it('does not include refreshToken in the response body for web (no X-Client-Platform header)', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResult);
+
+    const res = await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('Cookie', ['refreshToken=valid-raw-token']);
+
+    expect(res.body).not.toHaveProperty('refreshToken');
+  });
+
+  it('includes refreshToken in the response body when X-Client-Platform: mobile is sent (ADR 0025)', async () => {
+    (mockAuthService.refresh as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResult);
+
+    const res = await supertest(buildApp())
+      .post('/auth/refresh')
+      .set('X-Client-Platform', 'mobile')
+      .set('Refresh-Token', 'raw-header-value');
+
+    expect(res.body).toMatchObject({ refreshToken: refreshResult.refreshToken });
   });
 
   it('returns 401 and does not call the service when no refreshToken cookie or header is present', async () => {

@@ -10,6 +10,30 @@ const REFRESH_COOKIE_OPTIONS = {
   path: '/',
 };
 
+// Mobile has no cookie jar (ADR 0025), so it identifies itself with this
+// header and receives the refresh token directly in the response body
+// instead of (only) the httpOnly cookie. Web never sends this header, so
+// its responses are unchanged.
+const isMobileClient = (req: Request): boolean => req.header('x-client-platform') === 'mobile';
+
+interface SessionResult {
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken: string;
+  user: unknown;
+  account: unknown;
+}
+
+function sessionResponseBody(result: SessionResult, req: Request) {
+  return {
+    accessToken: result.accessToken,
+    accessTokenExpiresAt: result.accessTokenExpiresAt,
+    user: result.user,
+    account: result.account,
+    ...(isMobileClient(req) ? { refreshToken: result.refreshToken } : {}),
+  };
+}
+
 export function createAuthRouter(authService: AuthService): ExpressRouter {
   const router = Router();
 
@@ -36,7 +60,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     try {
       const result = await authService.login(parsed.data);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-      res.status(200).json({ accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, user: result.user, account: result.account });
+      res.status(200).json(sessionResponseBody(result, req));
     } catch (err) {
       next(err);
     }
@@ -51,7 +75,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     try {
       const result = await authService.verifyEmail(token);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-      res.status(200).json({ accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, user: result.user, account: result.account });
+      res.status(200).json(sessionResponseBody(result, req));
     } catch (err) {
       next(err);
     }
@@ -69,7 +93,7 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     try {
       const result = await authService.refresh(token);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
-      res.status(200).json({ accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, user: result.user, account: result.account });
+      res.status(200).json(sessionResponseBody(result, req));
     } catch (err) {
       next(err);
     }
