@@ -8,6 +8,12 @@ export interface Session {
   accessTokenExpiresAt: string;
   user: { id: string; accountId: string; role: string };
   account: { id: string; status: AccountStatus };
+  /**
+   * Present only when the request sent `X-Client-Platform: mobile` (ADR 0025).
+   * Web relies on the httpOnly refreshToken cookie and never reads this field.
+   * Mobile's AuthProvider reads it explicitly and persists it via secureStorage.
+   */
+  refreshToken?: string;
 }
 
 /* ── Vehicles ───────────────────────────────────────────────────── */
