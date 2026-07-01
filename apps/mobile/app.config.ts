@@ -13,7 +13,6 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   scheme: 'revlog',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'dev.revlog',
@@ -23,6 +22,9 @@ const config: ExpoConfig = {
       backgroundColor: colors.neutral[800],
     },
     package: 'dev.revlog',
+    // Expo 57 default template disables this to avoid predictive-back-gesture
+    // glitches with react-native-screens' native stack navigator.
+    predictiveBackGestureEnabled: false,
   },
   plugins: [
     'expo-router',
@@ -32,9 +34,15 @@ const config: ExpoConfig = {
       {
         backgroundColor: colors.neutral[800],
         resizeMode: 'contain',
+        // expo-splash-screen@57.0.1's Android plugin unconditionally
+        // references @drawable/splashscreen_logo in styles.xml even when no
+        // image is configured (only the image-copy step is gated on `image`
+        // being set, the styles.xml reference isn't) -- a 1x1 transparent
+        // placeholder keeps the resource link valid without adding a visible
+        // logo, matching the color-only splash we had before this SDK bump.
+        image: './assets/splash-icon.png',
       },
     ],
-    './plugins/withFmtCxx17Fix',
   ],
 };
 
