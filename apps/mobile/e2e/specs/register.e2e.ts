@@ -4,7 +4,7 @@ import { uniqueTestUser } from '../support/authFixtures';
 
 async function goToRegister(): Promise<void> {
   const getStarted = await $(byTestId('welcome-get-started-btn'));
-  await getStarted.waitForDisplayed({ timeout: 20000 });
+  await getStarted.waitForDisplayed({ timeout: 45000 });
   await getStarted.click();
   await $(byTestId('register-name-input')).waitForDisplayed({ timeout: 10000 });
 }

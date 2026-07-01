@@ -15,28 +15,12 @@ interface Session {
   refreshToken: string;
 }
 
-// In-memory only — read once at cold start (restoreSession) or set directly
-// by AuthProvider after login/register-verify/refresh, never re-read from
-// secureStorage per request (ADR 0025).
+// In-memory only — set directly by AuthProvider after login/register-verify/
+// refresh, never re-read from secureStorage per request (ADR 0025). Not
+// hydrated from secureStorage on cold start: every app restart clears
+// secureStorage before this module's consumers can read it (see AuthProvider
+// and ADR 0025's "no session restore across a full app restart" update).
 let session: Session | null = null;
-
-/**
- * Hydrates in-memory session state from expo-secure-store on cold start.
- * Call once, before the app makes its first authenticated request. Returns
- * whether a stored session was found.
- */
-export async function restoreSession(): Promise<boolean> {
-  const [accessToken, refreshToken] = await Promise.all([
-    secureStorage.getAccessToken(),
-    secureStorage.getRefreshToken(),
-  ]);
-  if (!accessToken || !refreshToken) return false;
-  // The access token's expiry isn't persisted alongside it (ADR 0025), so a
-  // restored token is treated as due for refresh — the first request after
-  // every cold start revalidates it rather than risking a stale token.
-  session = { accessToken, accessTokenExpiresAt: new Date(0).toISOString(), refreshToken };
-  return true;
-}
 
 export async function setSessionTokens(
   accessToken: string,

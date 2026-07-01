@@ -14,7 +14,7 @@ Key differences from web:
 
 - Tokens are stored in `expo-secure-store` (iOS Keychain / Android Keystore) rather than httpOnly cookies. See ADR 0025.
 - The `TokenHttpClient` injects `Authorization: Bearer <accessToken>` on every authenticated request and `Refresh-Token: <refreshToken>` on `POST /auth/refresh` calls.
-- Silent token refresh is triggered both pre-request (same as web) and on app foreground (`AppState` change from `background` to `active`).
+- Silent token refresh is triggered both pre-request (same as web) and on app foreground (`AppState` change from `background` to `active`) — but only within a still-running app session. There is no session restore across a full app restart: see UC-MOB-AUTH-7.
 - Forgot password: the Owner enters their email on mobile and receives a reset link by email. The reset form is completed in the browser — the mobile app does not handle the reset URL in V1.
 
 Design files: [`revlog-mobile-auth.html`](../../designs/mobile/revlog-mobile-auth.html) (login, register) · [`revlog-mobile-verify-email.html`](../../designs/mobile/revlog-mobile-verify-email.html) · [`revlog-mobile-forgot-password.html`](../../designs/mobile/revlog-mobile-forgot-password.html)
@@ -101,6 +101,22 @@ The verification link opens in the browser (same as web — `GET /verify-email?t
 
 ---
 
+### UC-MOB-AUTH-7 — App restart always requires sign-in
+
+**Actor:** System
+**Precondition:** App process has been fully terminated (user swipe-kill, OS memory eviction, device reboot) and is now cold-starting.
+**Milestones:** [V1](../../milestones/v1.md)
+
+There is no reliable "app is about to be terminated" hook on either platform — a killed app's JS runtime is gone, whether the user swiped it away or the OS evicted it for memory. The only implementable point is on the next cold start, before that start is treated as "signed in."
+
+1. `AuthProvider` mounts and clears any `accessToken`/`refreshToken` present in `expo-secure-store`, regardless of whether they were still valid.
+2. `RootRedirect` sees no session and redirects to Welcome.
+3. Owner must sign in again, every time the app is cold-started.
+
+This does not affect backgrounding without a kill (home button, app switcher) — the app process and its in-memory session survive that, and UC-MOB-AUTH-5's foreground refresh applies as normal. It is only a full process restart that clears the session.
+
+---
+
 ## Acceptance Criteria
 
 - [ ] Login stores tokens in expo-secure-store and navigates to Garage on success
@@ -111,8 +127,7 @@ The verification link opens in the browser (same as web — `GET /verify-email?t
 - [ ] Silent refresh fires on app foreground when access token is within 60 seconds of expiry
 - [ ] Silent refresh failure navigates to login and clears secure store
 - [ ] Logout clears secure store, calls `POST /auth/logout`, and navigates to login
-- [ ] Cold app start with valid stored tokens restores session without login screen
-- [ ] Cold app start with expired refresh token routes to login screen
+- [ ] Cold app start always clears any stored session and shows the login screen, even if the stored tokens were still valid
 
 ---
 
@@ -124,6 +139,7 @@ The verification link opens in the browser (same as web — `GET /verify-email?t
 | Forgot password reset form | Browser-based | Mobile does not handle reset URL in V1; deep linking is V2 |
 | Foreground refresh trigger | AppState `active` event | Access tokens can expire while app is suspended; pre-request check alone is insufficient |
 | Logout clears local DB? | No — data remains | Re-populating on next login is slower; local data is per-account and encrypted |
+| Session persistence across app restarts | None — `AuthProvider` clears `expo-secure-store` on every cold start | Simpler and more secure default; no reliable "about to be killed" hook exists on either platform, so cold start is the only implementable clear point (see UC-MOB-AUTH-7). An opt-in "remember me" that would restore a session is deferred to V2 |
 
 ---
 
@@ -132,5 +148,5 @@ The verification link opens in the browser (same as web — `GET /verify-email?t
 - Deep linking for email verification → opens browser in V1; V2 routes directly into app
 - Deep linking for password reset → opens browser in V1; V2 routes directly into app
 - OAuth sign-in → V2
-- "Remember me" persistent session → V2 (web spec already defers this)
+- "Remember me" persistent session across app restarts → V2. V1's default is the opposite of "remember" — every cold start clears the session (UC-MOB-AUTH-7); V2 would add an opt-in toggle that restores it
 - Biometric unlock → V2

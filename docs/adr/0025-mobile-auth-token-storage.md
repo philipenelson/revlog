@@ -62,6 +62,12 @@ The mobile `TokenHttpClient` checks access token expiry before each request, ide
 
 Logout clears both keys from `expo-secure-store` and clears the in-memory token state. The next app launch finds no stored tokens and routes to the login screen.
 
+### Update (2026-07-02): no session restore across a full app restart
+
+V1 originally restored a session on cold start if valid tokens were found in `expo-secure-store` (mirroring web's silent cookie-based restore). That's reversed: `AuthProvider` now clears `expo-secure-store` unconditionally on every mount, so every cold start — not just an explicit logout — requires signing in again. See [`docs/specs/mobile-app/auth.md`](../specs/mobile-app/auth.md), UC-MOB-AUTH-7, for the full rationale (there is no reliable "about to be killed" hook on either platform, so cold start is the only point this can be implemented at) and its "Decisions" table.
+
+This does not change anything else in this ADR: tokens are still written to `expo-secure-store` during an active session, the Keychain/Keystore is still the storage mechanism, and the foreground-refresh behavior below still applies to a session that's still alive in memory (i.e. backgrounded, not killed). A "remember me" opt-in that restores a session across restarts is deferred to V2.
+
 ## Status
 
 accepted
@@ -71,5 +77,5 @@ accepted
 - Auth tokens are protected by the OS Keychain / Keystore — inaccessible to other apps and not readable from the file system.
 - Both API changes (Refresh-Token header fallback, X-Client-Platform-gated refreshToken in the body) are backwards-compatible; no existing web client behaviour changes.
 - The refresh token is now present in the JSON body of three mobile responses. This is an accepted, standard tradeoff: web's httpOnly cookie exists specifically to defend against XSS reading the token via JS; a native mobile app doesn't have that vulnerability class, so it can safely receive the token directly and rely on Keychain/Keystore instead.
-- Cold app starts incur one Keychain read to restore the access token; subsequent requests use the in-memory copy. Rapid successive reads within ~3s are served from `secureStorage`'s cache rather than hitting the Keychain/Keystore again.
+- Cold app starts incur one Keychain write to clear any stored tokens (see "Update" above) rather than a read-to-restore; within an active session, requests use the in-memory copy and rapid successive reads within ~3s are served from `secureStorage`'s cache rather than hitting the Keychain/Keystore again.
 - Forgot-password flows that require the user to click a link in their email open in the browser; the mobile app does not need to handle the reset URL in V1 (deep linking is V2).

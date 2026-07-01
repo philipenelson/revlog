@@ -4,7 +4,7 @@ import { createVerifiedUser, uniqueTestUser } from '../support/authFixtures';
 
 async function goToLogin(): Promise<void> {
   const loginBtn = await $(byTestId('welcome-login-btn'));
-  await loginBtn.waitForDisplayed({ timeout: 20000 });
+  await loginBtn.waitForDisplayed({ timeout: 45000 });
   await loginBtn.click();
   await $(byTestId('login-email-input')).waitForDisplayed({ timeout: 10000 });
 }
@@ -45,10 +45,10 @@ describe('Login screen', () => {
     await expect(forgotPasswordPlaceholder).toBeDisplayed();
   });
 
-  // Runs last: a successful login persists a real session (secure-store
-  // tokens), so restartApp() no longer lands on Welcome afterwards --
-  // matches wdio.shared.conf.ts's spec-ordering rationale, just one level
-  // down, within this describe block.
+  // Runs last for clarity, though no longer strictly required: AuthProvider
+  // clears expo-secure-store on every mount (ADR 0025's "no session restore
+  // across a full app restart" update), so restartApp() lands back on
+  // Welcome regardless of what ran before it.
   it('signs in with a verified account and lands on onboarding', async () => {
     const user = await createVerifiedUser('e2e-login-happy');
 

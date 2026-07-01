@@ -1,11 +1,6 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
-import { refreshSession, type Session } from '@maintenance-log/api-client';
-import {
-  restoreSession as restoreTokens,
-  setSessionTokens,
-  clearSessionTokens,
-  tokenHttpClient,
-} from '@/infrastructure/http/TokenHttpClient';
+import type { Session } from '@maintenance-log/api-client';
+import { setSessionTokens, clearSessionTokens } from '@/infrastructure/http/TokenHttpClient';
 
 interface AuthContextValue {
   session: Session | null;
@@ -29,31 +24,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSessionState] = useState<Session | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
 
-  // Cold start: expo-secure-store has no session object, only tokens (ADR
-  // 0025). Hydrate TokenHttpClient's in-memory tokens, then call
-  // POST /auth/refresh (Refresh-Token header) for a fresh session — the
-  // same silent-restore shape as web's cookie-based restore on mount.
+  // No session restore across a full app restart (ADR 0025 update,
+  // 2026-07-02 — see docs/specs/mobile-app/auth.md UC-MOB-AUTH-7): there is
+  // no reliable "app is about to be killed" hook on either platform, so cold
+  // start is the only point a stale session can be cleared. Every mount
+  // clears expo-secure-store unconditionally, regardless of whether the
+  // stored tokens were still valid — the Owner signs in again every launch.
+  // isRestoring just gates the first render while that clear resolves, so
+  // RootRedirect doesn't flash before it's done.
   useEffect(() => {
     let cancelled = false;
 
-    restoreTokens()
-      .then((hadStoredSession) => {
-        if (!hadStoredSession) return null;
-        return refreshSession(tokenHttpClient);
-      })
-      .then((restored) => {
-        if (cancelled || !restored) return;
-        persistSession(restored);
-        setSessionState(restored);
-      })
-      .catch(() => {
-        // No valid session to restore — consumers gate on isRestoring and
-        // fall back to their existing no-session handling once it settles.
-        void clearSessionTokens();
-      })
-      .finally(() => {
-        if (!cancelled) setIsRestoring(false);
-      });
+    clearSessionTokens().finally(() => {
+      if (!cancelled) setIsRestoring(false);
+    });
 
     return () => {
       cancelled = true;
