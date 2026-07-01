@@ -56,7 +56,9 @@ The current `create-expo-app@latest` default template made a few choices that ar
 
 ### Native projects
 
-`ios/` and `android/` are deleted and regenerated via `npx expo prebuild --clean` against the rebuilt `app.config.ts`, rather than patched. `plugins/withFmtCxx17Fix.js` (the Folly/`fmt` C++20 `consteval` workaround for newer Xcode/Clang) is re-evaluated empirically: a clean prebuild + `pod install` is attempted first without it, and it is only reinstated if the same build error reproduces against SDK 57's pinned `fmt` pod version.
+`ios/` and `android/` are deleted and regenerated via `npx expo prebuild --clean` against the rebuilt `app.config.ts`, rather than patched. `plugins/withFmtCxx17Fix.js` (the Folly/`fmt` C++20 `consteval` workaround for newer Xcode/Clang) was re-evaluated empirically: a clean prebuild + `pod install` + full `expo run:ios` build was run without it, and it built and booted successfully on Xcode 26.6 -- the fix is no longer needed against SDK 57's pinned `fmt` pod version, so `plugins/withFmtCxx17Fix.js` and its `app.config.ts` reference were removed.
+
+**Android's `expo-splash-screen@57.0.1` config plugin has a bug when no splash `image` is configured.** `withAndroidSplashImages.js` only writes the `splashscreen_logo` drawable file when an `image` is set (correctly gated), but `withAndroidSplashStyles.js`'s `addSplashScreenStyle` unconditionally adds a `windowSplashScreenAnimatedIcon` style entry pointing at `@drawable/splashscreen_logo` regardless -- so a color-only splash config (what this app had, and still wants) produces a broken resource reference and `:app:processDebugResources` fails AAPT2 linking with `resource drawable/splashscreen_logo ... not found`. Worked around by adding a 1x1 transparent PNG at `apps/mobile/assets/splash-icon.png` and referencing it as the splash `image` -- this satisfies the plugin's drawable requirement while rendering identically to the color-only splash the app had before (a transparent image over a solid background is visually a solid background). A real app icon/logo is a separate, still-open product decision -- this repo has never had one; nothing here should be read as that decision having been made.
 
 ### Supply-chain guardrail
 
@@ -74,10 +76,12 @@ accepted
 
 - The dependency table above is the new baseline; any future SDK bump should repeat the "generate a throwaway reference scaffold, diff against it" approach rather than hand-picking version numbers.
 - `experiments.reactCompiler` and `experiments.typedRoutes` remain open V2+ options — adopting either is a separate decision with its own review, not a side effect of this upgrade.
-- `withFmtCxx17Fix` may or may not still be necessary; its continued presence (or removal) is determined empirically during this change and should be visible in the commit that touches `plugins/` and `app.config.ts`.
+- `withFmtCxx17Fix` was confirmed unnecessary against SDK 57's toolchain and removed; if a future Xcode/Clang upgrade reintroduces the `fmt` `consteval` failure, the fix is recoverable from git history (it lived at `apps/mobile/plugins/withFmtCxx17Fix.js`, referenced from `app.config.ts`'s `plugins` array).
+- `apps/mobile/assets/splash-icon.png` (1x1 transparent) exists solely to work around the `expo-splash-screen@57.0.1` Android plugin bug described above -- it should be replaced (or the config plugin bug re-checked as fixed upstream) whenever the app gets a real icon/splash design, not treated as a design decision.
 
 ## V2+ items
 
 - Evaluate `experiments.reactCompiler` (React Compiler) once there's enough screen surface to meaningfully assess its effect.
 - Evaluate `experiments.typedRoutes` for compile-time-checked `router.push()` calls.
 - EAS Build pipeline (already listed as V2+ in ADR 0023) would make this class of upgrade lower-risk in the future by building both platforms in CI on every dependency bump.
+- Real app icon / splash logo design -- replaces the 1x1 transparent placeholder described above. This repo has never had one; it's a product/design decision, not an SDK-upgrade task.
