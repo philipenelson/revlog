@@ -14,7 +14,12 @@ export const config = {
       'appium:deviceName': process.env.ANDROID_AVD_NAME ?? 'Pixel_7_API_35',
       'appium:appPackage': 'dev.revlog',
       'appium:appActivity': '.MainActivity',
-      'appium:noReset': false,
+      // true: preserve app data between sessions, including the Expo dev
+      // client's cached Metro connection info -- same rationale as
+      // wdio.ios.conf.ts. false here wiped that cache on every
+      // restartApp() (terminateApp+activateApp), stranding the app on the
+      // dev client's own server-picker screen instead of our app.
+      'appium:noReset': true,
       'appium:newCommandTimeout': 240,
       'appium:autoGrantPermissions': true,
     },

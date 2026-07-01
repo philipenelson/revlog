@@ -20,6 +20,12 @@ export const config = {
       // dev client's own server-picker screen instead of our app.
       'appium:noReset': true,
       'appium:newCommandTimeout': 240,
+      // iOS 16+ shows a native "Use Strong Password?" sheet the instant a
+      // textContentType="newPassword" field gets focus. It covers the rest
+      // of the form (including the submit button) and swallows whatever
+      // WDA was mid-way through typing, corrupting the field value. This
+      // capability (iOS 16.4+ simulators only) suppresses it entirely.
+      'appium:autoFillPasswords': false,
     },
   ],
 } as Options.Testrunner;

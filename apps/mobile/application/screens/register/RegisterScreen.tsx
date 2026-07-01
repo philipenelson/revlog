@@ -105,7 +105,9 @@ export function RegisterScreen() {
             )}
           />
           {vm.errors.confirmPassword && (
-            <Text style={styles.fieldError}>{vm.errors.confirmPassword.message}</Text>
+            <Text style={styles.fieldError} testID="register-confirm-password-error">
+              {vm.errors.confirmPassword.message}
+            </Text>
           )}
         </View>
 
