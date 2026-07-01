@@ -50,3 +50,10 @@ packageExtensions:
   '@expo/cli':
     dependencies:
       metro: '*'
+  # react-native-worklets' babel plugin (pulled in transitively by
+  # babel-preset-expo) requires('@babel/traverse') without declaring it --
+  # only surfaces when babel-preset-expo runs under Jest, since Metro's own
+  # babel pipeline resolves it some other way.
+  react-native-worklets:
+    dependencies:
+      '@babel/traverse': '*'

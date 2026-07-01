@@ -5,7 +5,12 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    // Scoped the same way e2e/tsconfig.json scopes its own "types" -- without
+    // this, TS auto-includes every @types/* package in node_modules,
+    // including @types/mocha (used only by e2e/), whose ambient `describe`/
+    // `it` globals collide with @types/jest's.
+    "types": ["jest"]
   },
   "include": [
     "**/*.ts",
