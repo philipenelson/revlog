@@ -13,7 +13,6 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   scheme: 'revlog',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'dev.revlog',
@@ -23,6 +22,9 @@ const config: ExpoConfig = {
       backgroundColor: colors.neutral[800],
     },
     package: 'dev.revlog',
+    // Expo 57 default template disables this to avoid predictive-back-gesture
+    // glitches with react-native-screens' native stack navigator.
+    predictiveBackGestureEnabled: false,
   },
   plugins: [
     'expo-router',

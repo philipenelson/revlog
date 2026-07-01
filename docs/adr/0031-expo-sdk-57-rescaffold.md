@@ -4,7 +4,7 @@
 
 ADR 0023 pinned the mobile app to Expo 53 / expo-router v5 / RN 0.79.6 / React 19.0.0. An attempt to jump straight to Expo 57 / RN 0.86 / React 19.2.3 was made by hand-editing `apps/mobile/package.json` version strings in place. That attempt:
 
-- Required bypassing pnpm's `minimumReleaseAge` supply-chain guardrail for ~18 freshly-published packages via a blanket addition to `pnpm-workspace.yaml`'s `minimumReleaseAgeExclude`.
+- Triggered pnpm's `minimumReleaseAge` freshness check for ~18 packages, auto-appending them to `pnpm-workspace.yaml`'s `minimumReleaseAgeExclude` (see "Supply-chain guardrail" below for how that mechanism actually works).
 - Left the app "not booting cleanly" (see commit `6ea0284`), consistent with what was on disk: `ios/Pods` contained a mixed set of native artifacts (`hermes-ios-0.79.6-*` alongside `reactnative-core-0.86.0-*`) — a half-upgraded native project from a partial `pod install` against a 4-SDK-major version jump.
 
 That attempt was discarded (it was uncommitted, so a plain `git restore` returned the tree to `6ea0284`).
@@ -43,6 +43,8 @@ A throwaway reference project was generated with `create-expo-app@latest` and di
 
 `react-hook-form`, the WebdriverIO/Appium E2E stack, and other dependencies unrelated to the Expo SDK itself are left untouched — this is an SDK re-scaffold, not a general dependency refresh. The one exception is `appium-xcuitest-driver`, bumped to `^11.17.1` because the E2E verification gate for this change runs against the iOS 26.5 / Xcode 26.6 simulator already installed on the build machine, which the previously-pinned `^11.16.3` predates.
 
+**`@expo/metro-runtime` needed an explicit direct dependency.** `expo@57.0.1` declares it as a bare `"*"` optional peer, and `pnpm install` deduped that peer against a stale `5.0.5` resolution already sitting in `pnpm-lock.yaml` from the old `expo-router ~5.1.11` era — instead of the `^57.0.2` that `expo-router@57.0.2` and `@expo/router-server@57.0.1` actually require (`pnpm peers check` flagged this as an unmet peer). A `pnpm-workspace.yaml` `overrides` entry did not change the resolution; adding `"@expo/metro-runtime": "~57.0.2"` as a direct dependency of `apps/mobile/package.json` did — pnpm then resolves a single current `57.0.2` everywhere. Left as a direct dependency, not an override, since that's what actually worked.
+
 ### What's deliberately NOT adopted from the new default template
 
 The current `create-expo-app@latest` default template made a few choices that are template defaults, not SDK requirements, and are not adopted here:
@@ -58,7 +60,7 @@ The current `create-expo-app@latest` default template made a few choices that ar
 
 ### Supply-chain guardrail
 
-`pnpm-workspace.yaml`'s `minimumReleaseAgeExclude` is rebuilt to contain only the entries actually required for the versions in the table above (re-derived after `pnpm install` against the final `package.json`), not the blanket 18-entry list from the abandoned attempt. Bypassing the release-age guardrail is a deliberate, per-package trade-off and each entry should be justifiable on its own, not copy-pasted wholesale.
+pnpm's `minimumReleaseAge` check is non-blocking by default: on `pnpm install`, it auto-appends any too-fresh transitive package to `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` and proceeds (only `minimumReleaseAgeStrict: true` would turn this into a gating prompt). Running `pnpm install` for real against the version table above reproduced the same 18-entry list the abandoned attempt had hand-copied — confirming those entries are genuinely required for this dependency set, not an arbitrary bypass. The list is left as pnpm generated it rather than hand-edited.
 
 ### Process
 
