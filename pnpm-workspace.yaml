@@ -5,12 +5,29 @@ packages:
 
 allowBuilds:
   '@prisma/engines': true
+  appium: true
+  appium-ios-tuntap: true
   bcrypt: true
   cypress: true
+  edgedriver: false
   esbuild: true
+  geckodriver: false
   prisma: true
   sharp: true
   unrs-resolver: true
 
 minimumReleaseAgeExclude:
   - react-hook-form@7.78.0
+
+# Expo's own tooling deep-imports into metro's internals without declaring
+# metro (or metro-cache) as a dependency -- works under npm/yarn's flat
+# node_modules by accident, breaks under pnpm's strict linking. This is
+# pnpm's sanctioned mechanism for patching a third-party package's own
+# dependency list.
+packageExtensions:
+  '@expo/metro-config':
+    dependencies:
+      metro-cache: '*'
+  '@expo/cli':
+    dependencies:
+      metro: '*'

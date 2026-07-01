@@ -16,10 +16,10 @@ export function WelcomeScreen() {
       </View>
 
       <View style={styles.actions}>
-        <Pressable style={styles.primaryButton} onPress={onGetStarted}>
+        <Pressable style={styles.primaryButton} onPress={onGetStarted} testID="welcome-get-started-btn">
           <Text style={styles.primaryButtonLabel}>Get Started</Text>
         </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={onLogIn}>
+        <Pressable style={styles.secondaryButton} onPress={onLogIn} testID="welcome-login-btn">
           <Text style={styles.secondaryButtonLabel}>Log in</Text>
         </Pressable>
       </View>

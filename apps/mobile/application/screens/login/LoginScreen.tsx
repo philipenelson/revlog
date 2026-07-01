@@ -80,12 +80,12 @@ export function LoginScreen() {
           <Text style={styles.primaryButtonLabel}>{vm.isSubmitting ? 'Signing in…' : 'Sign in'}</Text>
         </Pressable>
 
-        <Pressable style={styles.linkRow} onPress={vm.onForgotPassword}>
+        <Pressable style={styles.linkRow} onPress={vm.onForgotPassword} testID="login-forgot-password-link">
           <Text style={styles.linkAction}>Forgot password?</Text>
         </Pressable>
       </View>
 
-      <Pressable style={styles.footerLinkRow} onPress={vm.onRegister}>
+      <Pressable style={styles.footerLinkRow} onPress={vm.onRegister} testID="login-register-link">
         <Text style={styles.linkText}>Don&apos;t have an account? </Text>
         <Text style={styles.linkAction}>Register</Text>
       </Pressable>

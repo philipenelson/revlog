@@ -9,6 +9,11 @@ dist
 .expo
 out
 
+# Expo managed workflow (ADR 0023) -- native projects are regenerated via
+# `expo prebuild`, never hand-edited or committed.
+apps/mobile/ios
+apps/mobile/android
+
 # Turbo
 .turbo
 

@@ -34,6 +34,7 @@ const config: ExpoConfig = {
         resizeMode: 'contain',
       },
     ],
+    './plugins/withFmtCxx17Fix',
   ],
 };
 

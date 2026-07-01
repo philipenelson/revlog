@@ -9,7 +9,9 @@
     "ios": "expo run:ios",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
-    "clean": "rm -rf .expo"
+    "clean": "rm -rf .expo",
+    "e2e:ios": "wdio run ./e2e/wdio.ios.conf.ts",
+    "e2e:android": "wdio run ./e2e/wdio.android.conf.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -17,18 +19,35 @@
     "@maintenance-log/domain": "workspace:*",
     "@maintenance-log/ui-tokens": "workspace:*",
     "expo": "~53.0.0",
-    "expo-router": "~4.0.0",
-    "expo-secure-store": "~14.0.0",
+    "expo-linking": "~7.1.7",
+    "expo-router": "~5.1.11",
+    "expo-secure-store": "~14.2.4",
     "expo-splash-screen": "^0.30.10",
     "expo-status-bar": "~2.2.0",
     "react": "19.0.0",
     "react-hook-form": "^7.78.0",
-    "react-native": "0.79.0"
+    "react-native": "0.79.6",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
     "@maintenance-log/typescript-config": "workspace:*",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^26.0.1",
     "@types/react": "~19.0.0",
+    "@wdio/appium-service": "^9.29.1",
+    "@wdio/cli": "^9.29.1",
+    "@wdio/globals": "^9.29.1",
+    "@wdio/local-runner": "^9.29.1",
+    "@wdio/mocha-framework": "^9.29.1",
+    "@wdio/spec-reporter": "^9.29.1",
+    "@wdio/types": "^9.29.1",
+    "appium": "^3.5.2",
+    "appium-uiautomator2-driver": "^8.0.0",
+    "appium-xcuitest-driver": "^11.16.3",
+    "expect-webdriverio": "^5.7.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
 }

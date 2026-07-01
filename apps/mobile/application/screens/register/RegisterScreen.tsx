@@ -125,7 +125,7 @@ export function RegisterScreen() {
         </Pressable>
       </View>
 
-      <Pressable style={styles.footerLinkRow} onPress={vm.onSignIn}>
+      <Pressable style={styles.footerLinkRow} onPress={vm.onSignIn} testID="register-sign-in-link">
         <Text style={styles.linkText}>Already have an account? </Text>
         <Text style={styles.linkAction}>Sign in</Text>
       </Pressable>

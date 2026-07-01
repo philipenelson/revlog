@@ -9,8 +9,9 @@ type ScreenPlaceholderProps = {
 // <Screen>.tsx file stays in place so viewmodels/real markup can be filled
 // in without touching the route shell — see docs/specs/mobile-app/.
 export function ScreenPlaceholder({ title }: ScreenPlaceholderProps) {
+  const testID = `placeholder-${title.toLowerCase().replace(/\s+/g, '-')}`;
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={testID}>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>Not implemented yet</Text>
     </View>
