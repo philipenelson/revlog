@@ -1,7 +1,9 @@
 import * as SecureStore from 'expo-secure-store';
+import * as Crypto from 'expo-crypto';
 
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
+const DB_ENCRYPTION_KEY_KEY = 'dbEncryptionKey';
 
 // expo-secure-store reads hit the OS Keychain/Keystore, which is slow enough
 // to matter when several calls land back-to-back (a login-heavy flow makes
@@ -58,11 +60,25 @@ async function remove(key: string): Promise<void> {
   cacheClear(key);
 }
 
+// Not touched by clear() — the local SQLite database (ADR 0026) must stay
+// readable across the unconditional token clear every app restart performs
+// (see AuthProvider), otherwise offline-first reads would break on cold
+// start. A per-install key generated once and kept for the life of the
+// install, same as the database file itself.
+async function getOrCreateDbKey(): Promise<string> {
+  const existing = await read(DB_ENCRYPTION_KEY_KEY);
+  if (existing) return existing;
+  const key = Crypto.randomUUID();
+  await write(DB_ENCRYPTION_KEY_KEY, key);
+  return key;
+}
+
 export const secureStorage = {
   getAccessToken: (): Promise<string | null> => read(ACCESS_TOKEN_KEY),
   setAccessToken: (token: string): Promise<void> => write(ACCESS_TOKEN_KEY, token),
   getRefreshToken: (): Promise<string | null> => read(REFRESH_TOKEN_KEY),
   setRefreshToken: (token: string): Promise<void> => write(REFRESH_TOKEN_KEY, token),
+  getOrCreateDbKey,
   clear: async (): Promise<void> => {
     await Promise.all([remove(ACCESS_TOKEN_KEY), remove(REFRESH_TOKEN_KEY)]);
   },
