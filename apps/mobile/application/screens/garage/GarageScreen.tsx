@@ -96,6 +96,11 @@ export function GarageScreen() {
     useGarageViewModel();
 
   const sectionTitle = `My Garage · ${vehicles.length} ${vehicles.length === 1 ? 'vehicle' : 'vehicles'}`;
+  // Per ADR 0027: offline OR (online but unsynced changes queued) both
+  // signal the same thing to the Owner -- their data may not match the
+  // server yet.
+  const showOfflineIndicator = isOffline || pendingCount > 0;
+  const changesLabel = `${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'} pending sync`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -107,15 +112,14 @@ export function GarageScreen() {
             <Text style={styles.wordmarkLog}>log</Text>
           </View>
         </View>
-        {isOffline ? <OfflineIndicator /> : null}
+        {showOfflineIndicator ? <OfflineIndicator /> : null}
       </View>
 
-      {isOffline ? (
+      {showOfflineIndicator ? (
         <View style={styles.offlineBanner} testID="garage-offline-banner">
           <OfflineIndicator size={13} />
           <Text style={styles.offlineBannerLabel}>
-            Working offline
-            {pendingCount > 0 ? ` · ${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'} pending sync` : ''}
+            {isOffline ? `Working offline${pendingCount > 0 ? ` · ${changesLabel}` : ''}` : changesLabel}
           </Text>
         </View>
       ) : null}
