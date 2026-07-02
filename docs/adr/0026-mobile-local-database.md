@@ -55,6 +55,14 @@ The database file is opened with a `key` derived from a per-install secret store
 
 Drizzle handles schema definition and migration. Migrations run on app startup before any repository is accessed.
 
+### Update (2026-07-02): port renamed `Store<T>`, not SQL-shaped, no cross-collection transaction
+
+Gap found during the mobile Garage screen's implementation: this ADR named the port `LocalDatabase` with raw-SQL-shaped methods (`execute(sql, params)`, `query(sql, params)`, `transaction(fn)`, per `offline-sync.md`'s companion spec). Both the name and the shape promise more than the port needs to: "local" is a fact about the *adapter* (`SQLiteLocalDatabase`), not the capability the port offers, and "execute this SQL string" presupposes a SQL backend specifically — no in-memory, file, or non-SQL adapter could implement it without embedding or parsing SQL.
+
+**Decision:** the port is `Store<T extends { id: string }>` (file: `infrastructure/database/Store.ts`, not `LocalDatabase.ts`): `getAll(options?: { where?: Partial<T>; orderBy?: { field: keyof T; direction: 'asc' | 'desc' } })`, `save(record)`, `remove(id)`, `replaceAll(records)`. Filter/sort criteria are generic, adapter-interpreted values, not literal SQL — `SQLiteStore` (renamed from `SQLiteLocalDatabase`, since "SQLite" already implies local/embedded, making "Local" redundant there too) turns them into a real Drizzle query; a hypothetical non-SQL adapter would filter/sort in code instead. `Store<T>` is instantiated once per entity/collection at construction time (`createSQLiteStore<VehicleSummary>(db, vehiclesTable)`), not a single shared instance taking a collection-name string per call — the string+generic-type pair would have no compiler-enforced correspondence. There is no generic `transaction(fn)` method on the port at all — see ADR 0027's own update (2026-07-02) for why a cross-collection combinator isn't the right tool here, and how the one real atomicity need this pattern has is met instead.
+
+This doesn't change the underlying technology decision (expo-sqlite + Drizzle + SQLCipher), the repository layer above the port, the encryption approach, or the op-sqlite swap story below — only the port's name and method shape.
+
 ## Status
 
 accepted
