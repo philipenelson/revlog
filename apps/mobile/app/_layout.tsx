@@ -6,7 +6,12 @@ export default function RootLayout() {
   return (
     <SplashController>
       <AuthProvider>
-        <Stack />
+        <Stack screenOptions={{
+          headerTransparent: true,
+          title: '',
+          headerBackButtonDisplayMode: 'minimal'
+        }}>
+        </Stack>
       </AuthProvider>
     </SplashController>
   );
