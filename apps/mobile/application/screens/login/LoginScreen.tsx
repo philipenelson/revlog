@@ -1,6 +1,7 @@
 import { Text, View, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Controller } from 'react-hook-form';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
+import { RevlogMark } from '@/application/components/RevlogMark';
 import { useLoginViewModel } from './useLoginViewModel';
 
 export function LoginScreen() {
@@ -9,10 +10,11 @@ export function LoginScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.logoWrap}>
-        <Text style={styles.wordmark}>
+        <RevlogMark size={40} />
+        <View style={styles.wordmark}>
           <Text style={styles.wordmarkRev}>Rev</Text>
           <Text style={styles.wordmarkLog}>log</Text>
-        </Text>
+        </View>
         <Text style={styles.tagline}>Service history that stays with you</Text>
       </View>
 
@@ -105,17 +107,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing[10],
   },
+  // Sibling Texts in a row, not nested spans -- see WelcomeScreen's
+  // wordmark comment / ADR 0032 (Android truncates trailing characters
+  // when a single Text tree mixes custom font families across spans).
   wordmark: {
-    fontFamily: fontFamily.display,
-    fontSize: fontSize.xl,
+    flexDirection: 'row',
+    marginTop: spacing[3],
   },
   wordmarkRev: {
+    fontFamily: fontFamily.display,
+    fontSize: fontSize.xl,
     color: colors.neutral[50],
-    fontWeight: fontWeight.normal,
   },
   wordmarkLog: {
+    fontFamily: fontFamily.displayBold,
+    fontSize: fontSize.xl,
     color: colors.teal[500],
-    fontWeight: fontWeight.bold,
   },
   tagline: {
     marginTop: spacing[2],

@@ -10,7 +10,7 @@
 
 The Welcome screen is the first screen an unauthenticated user with no stored session sees on app launch. It introduces the Revlog brand and offers two entry points into the auth flow: creating an account and signing in. See [ADR 0030](../../adr/0030-mobile-welcome-screen.md).
 
-Design files: none yet. V1 ships with a placeholder UI styled directly from the tokens used in [`revlog-mobile-auth.html`](../../designs/mobile/revlog-mobile-auth.html) (same dark surface, wordmark treatment) so Welcome and the screen it leads into feel continuous. A dedicated `revlog-mobile-welcome.html` preview can follow before this screen ships, matching the convention used by every other screen in this folder.
+Design files: [`revlog-mobile-welcome.html`](../../designs/mobile/revlog-mobile-welcome.html), same visual system as [`revlog-mobile-auth.html`](../../designs/mobile/revlog-mobile-auth.html) (dark surface, logo mark, wordmark treatment) so Welcome and the screen it leads into feel continuous. See [ADR 0032](../../adr/0032-mobile-logo-mark-and-display-font.md) for the logo mark and Outfit display font.
 
 ---
 
@@ -54,7 +54,7 @@ Design files: none yet. V1 ships with a placeholder UI styled directly from the 
 |---|---|---|
 | Position in flow | Between index redirect and auth stack | Gives unauthenticated users a branded entry point before the credentials form — [ADR 0030](../../adr/0030-mobile-welcome-screen.md) |
 | CTAs | `Get Started` (register) + `Log in` | Matches the two entry use cases (UC-MOB-AUTH-1, UC-MOB-AUTH-2) without duplicating the combined login/register screen's own toggle |
-| Visual style | Reuse auth screen's dark surface + wordmark tokens | Visual continuity from native splash → Welcome → Auth; avoids inventing a new palette before a real design pass |
+| Visual style | Reuse auth screen's dark surface + wordmark tokens + logo mark | Visual continuity from native splash → Welcome → Auth; avoids inventing a new palette before a real design pass — see [ADR 0032](../../adr/0032-mobile-logo-mark-and-display-font.md) |
 
 ---
 
@@ -62,4 +62,3 @@ Design files: none yet. V1 ships with a placeholder UI styled directly from the 
 
 - Feature-highlight carousel → V2
 - Skip-Welcome-if-previously-seen heuristic → V2
-- Dedicated `revlog-mobile-welcome.html` design preview → follow-up, before this screen ships pixel-perfect

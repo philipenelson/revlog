@@ -17,7 +17,7 @@ Key differences from web:
 - Silent token refresh is triggered both pre-request (same as web) and on app foreground (`AppState` change from `background` to `active`) — but only within a still-running app session. There is no session restore across a full app restart: see UC-MOB-AUTH-7.
 - Forgot password: the Owner enters their email on mobile and receives a reset link by email. The reset form is completed in the browser — the mobile app does not handle the reset URL in V1.
 
-Design files: [`revlog-mobile-auth.html`](../../designs/mobile/revlog-mobile-auth.html) (login, register) · [`revlog-mobile-verify-email.html`](../../designs/mobile/revlog-mobile-verify-email.html) · [`revlog-mobile-forgot-password.html`](../../designs/mobile/revlog-mobile-forgot-password.html)
+Design files: [`revlog-mobile-auth.html`](../../designs/mobile/revlog-mobile-auth.html) (login, register) · [`revlog-mobile-verify-email.html`](../../designs/mobile/revlog-mobile-verify-email.html) · [`revlog-mobile-forgot-password.html`](../../designs/mobile/revlog-mobile-forgot-password.html). The logo mark and Outfit display font shown in that design weren't implemented until [ADR 0032](../../adr/0032-mobile-logo-mark-and-display-font.md).
 
 ---
 

@@ -1,5 +1,6 @@
 import { Text, View, Pressable, StyleSheet } from 'react-native';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
+import { RevlogMark } from '@/application/components/RevlogMark';
 import { useWelcomeViewModel } from './useWelcomeViewModel';
 
 export function WelcomeScreen() {
@@ -8,10 +9,11 @@ export function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.logoWrap}>
-        <Text style={styles.wordmark}>
+        <RevlogMark size={56} />
+        <View style={styles.wordmark}>
           <Text style={styles.wordmarkRev}>Rev</Text>
           <Text style={styles.wordmarkLog}>log</Text>
-        </Text>
+        </View>
         <Text style={styles.tagline}>Your vehicle's service history, always with you.</Text>
       </View>
 
@@ -41,17 +43,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing[24],
   },
+  // A row of two sibling Texts, not one Text with nested spans: Android
+  // miscalculates text measurement (silently truncating trailing
+  // characters) when a single Text tree mixes multiple custom font
+  // families across nested spans -- iOS renders the nested form fine, so
+  // this only shows up on Android. See ADR 0032.
   wordmark: {
-    fontFamily: fontFamily.display,
-    fontSize: fontSize['3xl'],
+    flexDirection: 'row',
+    marginTop: spacing[4],
   },
   wordmarkRev: {
+    fontFamily: fontFamily.display,
+    fontSize: fontSize['3xl'],
     color: colors.neutral[50],
-    fontWeight: fontWeight.normal,
   },
   wordmarkLog: {
+    fontFamily: fontFamily.displayBold,
+    fontSize: fontSize['3xl'],
     color: colors.teal[500],
-    fontWeight: fontWeight.bold,
   },
   tagline: {
     marginTop: spacing[3],

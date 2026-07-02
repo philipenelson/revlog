@@ -15,12 +15,14 @@
     "e2e:android": "wdio run ./e2e/wdio.android.conf.ts"
   },
   "dependencies": {
+    "@expo-google-fonts/outfit": "^0.4.3",
     "@expo/metro-runtime": "~57.0.2",
     "@hookform/resolvers": "^5.4.0",
     "@maintenance-log/api-client": "workspace:*",
     "@maintenance-log/domain": "workspace:*",
     "@maintenance-log/ui-tokens": "workspace:*",
     "expo": "~57.0.1",
+    "expo-font": "~57.0.0",
     "expo-linking": "~57.0.1",
     "expo-router": "~57.0.2",
     "expo-secure-store": "~57.0.0",
@@ -31,7 +33,8 @@
     "react-hook-form": "^7.78.0",
     "react-native": "0.86.0",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "4.25.2"
+    "react-native-screens": "4.25.2",
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",

@@ -1,137 +1,141 @@
-import { Text, View, TextInput, Pressable, StyleSheet } from 'react-native';
+import { Text, View, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { Controller } from 'react-hook-form';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
+import { RevlogMark } from '@/application/components/RevlogMark';
 import { useRegisterViewModel } from './useRegisterViewModel';
 
 export function RegisterScreen() {
   const vm = useRegisterViewModel();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logoWrap}>
-        <Text style={styles.title}>Create your account</Text>
-        <Text style={styles.tagline}>Start tracking your vehicle&apos;s history</Text>
-      </View>
-
-      <View style={styles.form}>
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Name</Text>
-          <Controller
-            control={vm.control}
-            name="fullName"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[styles.input, vm.errors.fullName && styles.inputError]}
-                placeholder="Full name"
-                placeholderTextColor={colors.neutral[400]}
-                autoComplete="name"
-                textContentType="name"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                testID="register-name-input"
-              />
-            )}
-          />
-          {vm.errors.fullName && <Text style={styles.fieldError}>{vm.errors.fullName.message}</Text>}
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.logoWrap}>
+          <RevlogMark size={40} />
+          <Text style={styles.title}>Create your account</Text>
+          <Text style={styles.tagline}>Start tracking your vehicle&apos;s history</Text>
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Email</Text>
-          <Controller
-            control={vm.control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[styles.input, vm.errors.email && styles.inputError]}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.neutral[400]}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                testID="register-email-input"
-              />
-            )}
-          />
-          {vm.errors.email && <Text style={styles.fieldError}>{vm.errors.email.message}</Text>}
-        </View>
+        <View style={styles.form}>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Name</Text>
+            <Controller
+              control={vm.control}
+              name="fullName"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, vm.errors.fullName && styles.inputError]}
+                  placeholder="Full name"
+                  placeholderTextColor={colors.neutral[400]}
+                  autoComplete="name"
+                  textContentType="name"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  testID="register-name-input"
+                />
+              )}
+            />
+            {vm.errors.fullName && <Text style={styles.fieldError}>{vm.errors.fullName.message}</Text>}
+          </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Password</Text>
-          <Controller
-            control={vm.control}
-            name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[styles.input, vm.errors.password && styles.inputError]}
-                placeholder="At least 8 characters"
-                placeholderTextColor={colors.neutral[400]}
-                secureTextEntry
-                autoComplete="password-new"
-                textContentType="newPassword"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                testID="register-password-input"
-              />
-            )}
-          />
-          {vm.errors.password && <Text style={styles.fieldError}>{vm.errors.password.message}</Text>}
-        </View>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Email</Text>
+            <Controller
+              control={vm.control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, vm.errors.email && styles.inputError]}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.neutral[400]}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  testID="register-email-input"
+                />
+              )}
+            />
+            {vm.errors.email && <Text style={styles.fieldError}>{vm.errors.email.message}</Text>}
+          </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>Confirm password</Text>
-          <Controller
-            control={vm.control}
-            name="confirmPassword"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[styles.input, vm.errors.confirmPassword && styles.inputError]}
-                placeholder="Re-enter password"
-                placeholderTextColor={colors.neutral[400]}
-                secureTextEntry
-                autoComplete="password-new"
-                textContentType="newPassword"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                testID="register-confirm-password-input"
-              />
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Password</Text>
+            <Controller
+              control={vm.control}
+              name="password"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, vm.errors.password && styles.inputError]}
+                  placeholder="At least 8 characters"
+                  placeholderTextColor={colors.neutral[400]}
+                  secureTextEntry
+                  autoComplete="password-new"
+                  textContentType="newPassword"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  testID="register-password-input"
+                />
+              )}
+            />
+            {vm.errors.password && <Text style={styles.fieldError}>{vm.errors.password.message}</Text>}
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Confirm password</Text>
+            <Controller
+              control={vm.control}
+              name="confirmPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, vm.errors.confirmPassword && styles.inputError]}
+                  placeholder="Re-enter password"
+                  placeholderTextColor={colors.neutral[400]}
+                  secureTextEntry
+                  autoComplete="password-new"
+                  textContentType="newPassword"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  testID="register-confirm-password-input"
+                />
+              )}
+            />
+            {vm.errors.confirmPassword && (
+              <Text style={styles.fieldError} testID="register-confirm-password-error">
+                {vm.errors.confirmPassword.message}
+              </Text>
             )}
-          />
-          {vm.errors.confirmPassword && (
-            <Text style={styles.fieldError} testID="register-confirm-password-error">
-              {vm.errors.confirmPassword.message}
+          </View>
+
+          {vm.error && (
+            <Text style={styles.formError} accessibilityRole="alert" testID="register-error">
+              {vm.error}
             </Text>
           )}
+
+          <Pressable
+            style={({ pressed }) => [styles.primaryButton, (vm.isSubmitting || pressed) && styles.primaryButtonActive]}
+            onPress={vm.submit}
+            disabled={vm.isSubmitting}
+            testID="register-submit-btn"
+          >
+            <Text style={styles.primaryButtonLabel}>{vm.isSubmitting ? 'Creating account…' : 'Create account'}</Text>
+          </Pressable>
         </View>
 
-        {vm.error && (
-          <Text style={styles.formError} accessibilityRole="alert" testID="register-error">
-            {vm.error}
-          </Text>
-        )}
-
-        <Pressable
-          style={({ pressed }) => [styles.primaryButton, (vm.isSubmitting || pressed) && styles.primaryButtonActive]}
-          onPress={vm.submit}
-          disabled={vm.isSubmitting}
-          testID="register-submit-btn"
-        >
-          <Text style={styles.primaryButtonLabel}>{vm.isSubmitting ? 'Creating account…' : 'Create account'}</Text>
+        <Pressable style={styles.footerLinkRow} onPress={vm.onSignIn} testID="register-sign-in-link">
+          <Text style={styles.linkText}>Already have an account? </Text>
+          <Text style={styles.linkAction}>Sign in</Text>
         </Pressable>
-      </View>
-
-      <Pressable style={styles.footerLinkRow} onPress={vm.onSignIn} testID="register-sign-in-link">
-        <Text style={styles.linkText}>Already have an account? </Text>
-        <Text style={styles.linkAction}>Sign in</Text>
-      </Pressable>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -139,6 +143,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutral[800],
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: spacing[6],
     paddingTop: spacing[20],
     paddingBottom: spacing[10],
@@ -148,10 +155,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[8],
   },
   title: {
-    fontFamily: fontFamily.display,
+    fontFamily: fontFamily.displaySemibold,
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
     color: colors.neutral[50],
+    marginTop: spacing[3],
   },
   tagline: {
     marginTop: spacing[2],

@@ -23,8 +23,18 @@ export const lineHeight = {
   relaxed: 1.625,
 } as const;
 
+// Mobile-only values (web loads Outfit as a variable font via next/font and
+// selects weight with CSS `font-weight`; see apps/web/src/app/layout.tsx).
+// React Native doesn't honor `fontWeight` against a statically-loaded custom
+// font -- @expo-google-fonts/outfit registers each weight as its own named
+// font, so every weight actually used gets its own explicit token here
+// rather than one `display` name paired with a `fontWeight` style (see ADR
+// 0032). `sans`/`mono` stay as plain family names since nothing on mobile
+// loads or uses them yet.
 export const fontFamily = {
-  display: 'Outfit',
+  display: 'Outfit_400Regular',
+  displaySemibold: 'Outfit_600SemiBold',
+  displayBold: 'Outfit_700Bold',
   sans: 'DM Sans',
   mono: 'Geist Mono',
 } as const;

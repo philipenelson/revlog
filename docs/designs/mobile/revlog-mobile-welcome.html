@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Revlog Mobile — Welcome Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --surface-base:     #0B0D14;
+    --surface-raised:   #131620;
+    --surface-elevated: #1A1D2E;
+    --border-muted:   #1E2235;
+    --border-default: #2A2E46;
+    --text-primary:   #EDF0F8;
+    --text-secondary: #8C8FA8;
+    --text-tertiary:  #50527A;
+    --text-disabled:  #34375A;
+    --accent:       #14B8D4;
+    --accent-hover: #22CBEA;
+    --accent-light: #67E2F0;
+    --accent-muted: rgba(20, 184, 212, 0.12);
+    --radius-md: 10px;
+    --radius-lg: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #15171f; display: flex; gap: 40px; justify-content: center; align-items: flex-start; padding: 40px; font-family: 'DM Sans', system-ui, sans-serif; flex-wrap: wrap; -webkit-font-smoothing: antialiased; }
+
+  .device {
+    width: 390px;
+    background: var(--surface-base);
+    border-radius: 50px;
+    overflow: hidden;
+    border: 8px solid #1c1e26;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .label {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-bar {
+    background: var(--surface-base);
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .scene {
+    position: relative;
+    height: 756px;
+    overflow: hidden;
+    background: var(--surface-base);
+  }
+  .scene::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, var(--border-default) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.25;
+    pointer-events: none;
+  }
+  .scene::after {
+    content: '';
+    position: absolute;
+    bottom: -160px;
+    left: -120px;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(ellipse at center, rgba(20, 184, 212, 0.1) 0%, transparent 65%);
+    pointer-events: none;
+  }
+
+  .screen-content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    padding: 64px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo-wrap { display: flex; flex-direction: column; align-items: center; margin-top: 96px; }
+  .logo-wordmark { font-family: 'Outfit', sans-serif; font-size: 30px; letter-spacing: -0.025em; line-height: 1; margin-top: 16px; }
+  .logo-wordmark .rev { font-weight: 400; color: var(--text-primary); }
+  .logo-wordmark .log { font-weight: 700; color: var(--accent); }
+  .tagline { font-size: 16px; color: var(--text-secondary); margin-top: 12px; text-align: center; max-width: 280px; }
+
+  .actions { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+
+  .primary-btn {
+    background: var(--accent);
+    color: #080A10;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(20,184,212,0.22);
+  }
+  .secondary-btn {
+    background: transparent;
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="label">Welcome screen</div>
+  <div class="device">
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <div class="icons" style="display:flex;gap:6px;align-items:center;"><span>●●●</span><span>WiFi</span><span>▭</span></div>
+    </div>
+    <div class="scene">
+      <div class="screen-content">
+        <div class="logo-wrap">
+          <svg width="56" height="56" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <path d="M 11 30 A 14 14 0 1 1 25 30" stroke="#1E2235" stroke-width="3" stroke-linecap="round"/>
+            <path d="M 11 30 A 14 14 0 1 1 30.1 11" stroke="#14B8D4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="18" y1="18" x2="27.5" y2="13" stroke="#14B8D4" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
+            <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
+          </svg>
+          <div class="logo-wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
+          <div class="tagline">Your vehicle's service history, always with you.</div>
+        </div>
+
+        <div class="actions">
+          <div class="primary-btn">Get Started</div>
+          <div class="secondary-btn">Log in</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
