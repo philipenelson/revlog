@@ -1,8 +1,8 @@
 # Mobile Offline Sync Spec
 
 **Area:** Mobile / Infrastructure
-**Status:** Not started
-**Last updated:** 2026-06-30
+**Status:** Partially implemented — LocalDatabase/SQLCipher, VehicleRepository, OutboxRepository, single-collection pull, and outbox flush dispatch all built (alongside the Garage screen); LogEntryRepository, AccountRepository, multi-collection reconcile, and real outbox handlers are not
+**Last updated:** 2026-07-02
 
 ---
 
@@ -18,29 +18,32 @@ Design file: [`revlog-mobile-offline-sync.html`](../../designs/mobile/revlog-mob
 
 ## Components
 
-### LocalDatabase port
+**Corrected during implementation (2026-07-02) — see ADR 0026's and ADR 0027's dated "Update" sections for the full reasoning:** the port below is `Store<T>`, not `LocalDatabase` with raw SQL methods, and `SyncService`'s outbox dispatch below is generic (a `RetryableOutboxError` marker), not an HTTP-status-aware engine. This section reflects what was actually built.
+
+### `Store<T>` port
 
 ```ts
-// infrastructure/database/LocalDatabase.ts
-export interface LocalDatabase {
-  execute(sql: string, params?: unknown[]): Promise<void>;
-  query<T>(sql: string, params?: unknown[]): Promise<T[]>;
-  transaction(fn: (db: LocalDatabase) => Promise<void>): Promise<void>;
+// infrastructure/database/Store.ts
+export interface Store<T extends { id: string }> {
+  getAll(options?: { where?: Partial<T>; orderBy?: { field: keyof T; direction: 'asc' | 'desc' } }): Promise<T[]>;
+  save(record: T): Promise<void>;
+  remove(id: string): Promise<void>;
+  replaceAll(records: T[]): Promise<void>;
 }
 ```
 
-`SQLiteLocalDatabase` in `infrastructure/database/SQLiteLocalDatabase.ts` implements this port using expo-sqlite with the SQLCipher `key` option. The encryption key is stored in `expo-secure-store`.
+`SQLiteStore` (`infrastructure/database/SQLiteStore.ts`, factory `createSQLiteStore<T>(db, table)`) implements this port using expo-sqlite + Drizzle, one instance per entity/collection. `openDatabase.ts` opens the connection, sets the SQLCipher key (a `PRAGMA key` statement, not an open option — see ADR 0026's update), and runs migrations once; the key is generated via `expo-crypto` and stored in `expo-secure-store` (`secureStorage.getOrCreateDbKey()`, deliberately untouched by the per-restart token clear).
 
 ### Repositories
 
-Domain repositories in `domain/repositories/` provide entity-level abstractions over the `LocalDatabase` port:
+Domain repositories in `domain/repositories/` provide entity-level abstractions over `Store<T>`:
 
-- `VehicleRepository` — CRUD for Vehicles
-- `LogEntryRepository` — CRUD for Log Entries and Log Items
-- `OutboxRepository` — enqueue, list pending, mark status, delete
-- `AccountRepository` — cache account/user data
+- [x] `VehicleRepository` — `findAll()`, `reconcile()` (built)
+- [ ] `LogEntryRepository` — CRUD for Log Entries and Log Items (not built — no screen needs it yet)
+- [x] `OutboxRepository` — enqueue, list pending, mark status, delete (built, unexercised — nothing enqueues yet)
+- [ ] `AccountRepository` — cache account/user data (not built)
 
-ViewModels call repositories. Repositories call `LocalDatabase`. Nothing in `application/` touches the database or sync layer directly.
+ViewModels call repositories. Repositories call `Store<T>`. Nothing in `application/` touches the database or sync layer directly.
 
 ### Outbox table
 
@@ -64,36 +67,34 @@ Every write operation in a repository calls `OutboxRepository.enqueue()` in the 
 
 ### SyncService
 
-`infrastructure/sync/SyncService.ts` runs as a background service mounted in `SyncProvider` at the application root.
+`infrastructure/sync/SyncService.ts` — factory `createSyncService({ client, vehicleRepository, outboxRepository, handlers })`, mounted (via `SyncProvider`) at the application root.
 
-**Outbox flush (triggered on connectivity restored and on app foreground):**
+**Outbox flush (`flushOutbox()`, triggered on mount, connectivity restored, and app foreground):**
 
 1. Fetch all `pending` outbox entries ordered by `created_at`.
 2. For each entry:
    a. Mark `processing`.
-   b. Call the appropriate API endpoint via `TokenHttpClient`, including the entry `id` as the idempotency key header (`Idempotency-Key: <id>`).
-   c. On success: delete the outbox entry.
-   d. On 4xx (except 409): mark `failed`. Log the error. Continue to next entry.
-   e. On 5xx or network error: leave as `pending`. Stop flush (retry on next trigger).
+   b. Look up `handlers[entry.type]` — a registry injected by whoever mounts `SyncService`, not built into it. No handler registered: mark `failed`, log, continue. *No handlers are registered yet* (`SyncProvider` passes `{}`) — nothing enqueues outbox entries in this pass, so this is currently every entry's fate; real handlers (`CREATE_VEHICLE`, etc.) are Add Vehicle's responsibility.
+   c. Handler throws `RetryableOutboxError` (a marker class `SyncService` defines and owns): revert to `pending`, stop the whole flush — this is what happens for a 5xx/network/timeout, once a real handler classifies its own failure that way. `SyncService` itself never imports `ApiError` or inspects HTTP status codes — that classification belongs at the handler boundary, where HTTP actually happens (see ADR 0026's 2026-07-02 update for the parallel reasoning applied to `Store<T>`).
+   d. Handler throws anything else: mark `failed`, log, continue (a permanent failure, e.g. a 4xx validation error, once a real handler exists).
+   e. Handler succeeds: delete the outbox entry.
 3. On completion: trigger a pull.
 
-**Pull (triggered after outbox flush, on pull-to-refresh, and on app foreground):**
+**Pull (`pull()`, triggered after outbox flush, on pull-to-refresh, and on app foreground):** Single collection only in this pass — `GET /vehicles` reconciles the Vehicle list in local SQLite (`VehicleRepository.reconcile()`, an atomic `replaceAll`). The phased parent-then-child sequencing for when Log Entries join the pull (reconcile Vehicles to completion, then Log Entries scoped from the *freshly reconciled* Vehicle set) plus `PRAGMA foreign_keys = ON` / `ON DELETE CASCADE` for orphan cleanup is documented in ADR 0027's 2026-07-02 update, not implemented here — no `LogEntryRepository` exists yet. Idempotency-Key headers and `GET /auth/me` account-data caching also don't exist yet — no real handler calls the API yet, and no `AccountRepository` exists.
 
-1. Call `GET /vehicles` — reconcile Vehicle list in local SQLite (upsert existing, delete absent).
-2. For each Vehicle, call `GET /vehicles/:vehicleId` — reconcile Vehicle detail, Log Entries, and Log Items.
-3. Update locally cached account and user data from `GET /auth/me`.
-4. Emit update events so repositories notify viewmodels of fresh data.
-
-**Conflict resolution:** Server wins. If the pull overwrites a locally-optimistic value, the viewmodel re-renders with the server data. Failed outbox entries are visible in `OutboxRepository.listFailed()` for future surface in V2.
+**Conflict resolution:** Server wins — unchanged from the original decision. `OutboxRepository.listFailed()` doesn't exist yet (no failed-entry surfacing UI needed until real handlers produce failures); `listPending()`'s count is what's currently surfaced.
 
 ### SyncProvider
 
-`application/providers/SyncProvider.tsx` mounts `SyncService` and exposes via context:
+`application/providers/SyncProvider.tsx` mounts `SyncService` and exposes via context — a flatter shape than originally sketched, since `failedCount` has no consumer yet:
 
-- `networkState: { isConnected: boolean }`
-- `outbox: { pendingCount: number; failedCount: number }`
-- `sync: { status: 'idle' | 'syncing' | 'error'; lastSyncedAt: Date | null }`
-- `refresh(): Promise<void>` — trigger an explicit pull-to-refresh
+- `isOnline: boolean`
+- `pendingCount: number`
+- `syncStatus: 'idle' | 'syncing' | 'error'`
+- `lastSyncedAt: Date | null`
+- `refresh(): Promise<void>` — trigger an explicit pull-to-refresh (or full sync, on mount/foreground/reconnect)
+
+Only runs when `DatabaseProvider`'s repositories are ready and `AuthProvider`'s session exists — never while unauthenticated or before the local database has opened.
 
 ---
 
@@ -157,30 +158,30 @@ Every write operation in a repository calls `OutboxRepository.enqueue()` in the 
 ## Acceptance Criteria
 
 ### Encryption
-- [ ] Local SQLite database file is encrypted with SQLCipher; encryption key is stored in expo-secure-store
-- [ ] The database file cannot be read by another app or via the device file system
+- [x] Local SQLite database file is encrypted with SQLCipher; encryption key is stored in expo-secure-store — verified on-device (Step 2 smoke test: writes/reads only succeed after the `PRAGMA key` statement runs)
+- [ ] The database file cannot be read by another app or via the device file system — not independently verified (would need a raw file-system read attempt outside the app sandbox); reasonable to assume true given standard iOS sandboxing + SQLCipher, but not empirically confirmed
 
 ### Outbox
-- [ ] Every write to the local database is accompanied by an outbox entry in the same transaction
-- [ ] If the transaction fails, neither the entity write nor the outbox entry is committed
-- [ ] Outbox entries carry a UUID idempotency key
-- [ ] Duplicate outbox entries with the same idempotency key do not produce duplicate mutations on the API
+- [ ] Every write to the local database is accompanied by an outbox entry in the same transaction — not yet applicable; no local user-write flow exists yet (only `VehicleRepository.reconcile()`, a server-origin pull write, which correctly does *not* enqueue an outbox entry)
+- [ ] If the transaction fails, neither the entity write nor the outbox entry is committed — same, not yet applicable
+- [x] Outbox entries carry a UUID idempotency key — `OutboxRepository.enqueue()` uses `expo-crypto`'s `randomUUID()` as the entry `id`
+- [ ] Duplicate outbox entries with the same idempotency key do not produce duplicate mutations on the API — not yet testable; no real handler calls the API yet
 
 ### Offline reads
-- [ ] All screens read from local SQLite and render without network access
-- [ ] First launch shows a loading state until initial pull completes
+- [x] All screens read from local SQLite and render without network access — true for every screen built so far (Garage, the only one reading Vehicle data); holds by construction for future screens too, since `Store<T>`/repositories are the only sanctioned data-access path
+- [x] First launch shows a loading state until initial pull completes — `useGarageViewModel`'s `isLoading`, unit tested
 
 ### Sync
-- [ ] Outbox flush sends entries in `created_at` order
-- [ ] On 5xx or network error, flush stops; remaining entries stay `pending` for next trigger
-- [ ] On 4xx (except 409), entry is marked `failed`; flush continues
-- [ ] Pull reconcile upserts API data and removes locally-present records absent from API response
-- [ ] SyncProvider exposes `pendingCount` and `failedCount` for the offline indicator
+- [x] Outbox flush sends entries in `created_at` order — unit tested
+- [x] On a retryable failure, flush stops; remaining entries stay `pending` for next trigger — implemented via `RetryableOutboxError`, not by `SyncService` inspecting HTTP status itself; see the Components section above and ADR 0027's 2026-07-02 update. Unit tested with fake handlers
+- [x] On a permanent failure, entry is marked `failed`; flush continues — same mechanism; unit tested
+- [x] Pull reconcile upserts API data and removes locally-present records absent from API response — `VehicleRepository.reconcile()`'s `replaceAll`; unit tested and verified on-device
+- [ ] SyncProvider exposes `pendingCount` and `failedCount` for the offline indicator — only `pendingCount` exists; no `failedCount` (no UI surfaces failed entries yet)
 
 ### Offline indicator
-- [ ] Indicator appears when device is offline
-- [ ] Indicator appears when device is online but `pendingCount > 0`
-- [ ] Indicator disappears when device is online and `pendingCount === 0`
+- [x] Indicator appears when device is offline
+- [x] Indicator appears when device is online but `pendingCount > 0` — fixed during this work; the initial implementation only checked `isOffline`
+- [x] Indicator disappears when device is online and `pendingCount === 0`
 
 ---
 
@@ -192,6 +193,9 @@ Every write operation in a repository calls `OutboxRepository.enqueue()` in the 
 | Outbox pattern | See ADR 0027 | Atomic writes, no soft deletes needed, idempotency keys prevent duplicates |
 | Server wins on conflict | Overwrite local on pull | Single-user app; server is source of truth; conflicts only arise from multi-device use |
 | Pull everything on sync | Full reconcile per entity type | Data volumes are small; avoids soft deletes and watermark complexity |
+| `Store<T>` port, not `LocalDatabase` | Generic entity-store (`getAll`/`save`/`remove`/`replaceAll`), not raw SQL passthrough | See ADR 0026's 2026-07-02 update — the original port name and shape presupposed a SQL/database backend beyond what the capability itself needs to promise |
+| `SyncService` dispatch is transport-agnostic | `RetryableOutboxError`, not `ApiError`/HTTP status inspection | See ADR 0027's 2026-07-02 update — HTTP-specific classification belongs at the handler boundary (where HTTP actually happens), not in the generic flush loop |
+| Single-collection pull for now | Only `GET /vehicles` — no per-Vehicle detail, Log Entry, or account-data pull yet | No `LogEntryRepository`/`AccountRepository` exist; building the multi-collection phased-reconcile mechanism now would have no real caller. The approach for when it's needed is documented in ADR 0027's 2026-07-02 update |
 
 ---
 
@@ -202,3 +206,6 @@ Every write operation in a repository calls `OutboxRepository.enqueue()` in the 
 - Outbox retry backoff / exponential delay → V2
 - Media sync (upload local files to cloud) → V2
 - Multi-device conflict handling beyond last-write-wins → V2
+- `LogEntryRepository`, `AccountRepository`, multi-collection pull/reconcile — next mobile screen(s) that need them (Vehicle Detail, Log Entry)
+- Real outbox handlers (`CREATE_VEHICLE`, etc.) and the Idempotency-Key request header — Add Vehicle's responsibility
+- `failedCount` / failed-entry surfacing UI — no producer of `failed` entries exists yet
