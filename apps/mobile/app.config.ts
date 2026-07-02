@@ -31,6 +31,16 @@ const config: ExpoConfig = {
     'expo-secure-store',
     'expo-font',
     [
+      'expo-sqlite',
+      {
+        // Native-level compile flag (ADR 0026) — the local DB is opened with
+        // a PRAGMA key derived from expo-secure-store; see
+        // infrastructure/database/openDatabase.ts. Requires `expo prebuild`
+        // to take effect (not supported in Expo Go).
+        useSQLCipher: true,
+      },
+    ],
+    [
       'expo-splash-screen',
       {
         backgroundColor: colors.neutral[800],
