@@ -80,7 +80,9 @@ function EmptyState({ onAddVehicle }: { onAddVehicle: () => void }) {
           <Text style={styles.emptyPlusLabel}>+</Text>
         </View>
       </View>
-      <Text style={styles.emptyTitle}>Your garage is empty</Text>
+      <Text style={styles.emptyTitle} testID="garage-empty-title">
+        Your garage is empty
+      </Text>
       <Text style={styles.emptyBody}>Add your first vehicle to start tracking its service history.</Text>
       <Pressable style={styles.emptyButton} onPress={onAddVehicle} testID="garage-empty-cta">
         <Text style={styles.emptyButtonLabel}>Add your first vehicle</Text>

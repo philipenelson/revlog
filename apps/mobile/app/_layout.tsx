@@ -15,6 +15,14 @@ export default function RootLayout() {
               title: '',
               headerBackButtonDisplayMode: 'minimal'
             }}>
+              {/* The garage/ group renders its own nested Stack (see
+                  app/garage/_layout.tsx) with the same screenOptions, and
+                  owns header visibility for its own screens (hidden for its
+                  index route, since that's the Garage stack's root with a
+                  custom in-screen header) -- without this, the root Stack
+                  also renders a header for the group as a whole, doubling
+                  up with the nested one. */}
+              <Stack.Screen name="garage" options={{ headerShown: false }} />
             </Stack>
           </SyncProvider>
         </AuthProvider>

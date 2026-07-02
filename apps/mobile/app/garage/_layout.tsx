@@ -8,7 +8,13 @@ import { Stack } from 'expo-router';
 // docs/specs/mobile-app/navigation.md "Garage stack header".
 export default function GarageLayout() {
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerTransparent: true,
+        title: '',
+        headerBackButtonDisplayMode: 'minimal',
+      }}
+    >
       <Stack.Screen name="index" options={{ headerShown: false }} />
     </Stack>
   );
