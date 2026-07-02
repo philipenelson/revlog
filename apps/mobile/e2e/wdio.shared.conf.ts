@@ -4,11 +4,11 @@ import type { Options } from '@wdio/types';
 // Each platform config spreads this and adds its own capabilities.
 export const config: Omit<Options.Testrunner, 'capabilities'> = {
   runner: 'local',
-  // Explicit order, not a glob: Login runs last for clarity since it's the
-  // only spec that signs in for real, though this is no longer strictly
-  // required -- AuthProvider clears expo-secure-store on every mount, so
-  // restartApp() always lands back on Welcome regardless of spec order.
-  specs: ['./specs/welcome.e2e.ts', './specs/register.e2e.ts', './specs/login.e2e.ts'],
+  // Explicit order, not a glob: Login (and now Garage, which also signs in)
+  // runs last for clarity, though this is no longer strictly required --
+  // AuthProvider clears expo-secure-store on every mount, so restartApp()
+  // always lands back on Welcome regardless of spec order.
+  specs: ['./specs/welcome.e2e.ts', './specs/register.e2e.ts', './specs/login.e2e.ts', './specs/garage.e2e.ts'],
   maxInstances: 1,
   logLevel: 'warn',
   waitforTimeout: 15000,
