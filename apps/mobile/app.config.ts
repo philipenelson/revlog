@@ -41,6 +41,19 @@ const config: ExpoConfig = {
       },
     ],
     [
+      'expo-image-picker',
+      {
+        // Library picker only (Add Vehicle's photo field, ADR 0027's
+        // 2026-07-03 "offline-durable photo upload" update — matches the
+        // web app's plain file input, not a camera-specific capability) —
+        // block the camera/microphone permissions this plugin would
+        // otherwise request by default.
+        photosPermission: 'Allow Revlog to access your photos to add a picture of your vehicle.',
+        cameraPermission: false,
+        microphonePermission: false,
+      },
+    ],
+    [
       'expo-splash-screen',
       {
         backgroundColor: colors.neutral[800],

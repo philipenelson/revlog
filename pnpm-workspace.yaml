@@ -37,6 +37,7 @@ minimumReleaseAgeExclude:
   - expo-splash-screen@57.0.1
   - expo@57.0.1
   - '@expo/metro-runtime@57.0.2'
+  - expo-image-picker@57.0.2
 
 # Expo's own tooling deep-imports into metro's internals without declaring
 # metro (or metro-cache) as a dependency -- works under npm/yarn's flat
