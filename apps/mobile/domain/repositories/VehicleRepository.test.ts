@@ -4,15 +4,20 @@ import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
 import { createVehicleRepository, type LocalVehicleDetail } from './VehicleRepository';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'generated-id') }));
-jest.mock('@/infrastructure/storage/photoStorage', () => ({ persistVehiclePhoto: jest.fn() }));
+jest.mock('@/infrastructure/storage/photoStorage', () => ({
+  persistVehiclePhoto: jest.fn(),
+  deleteVehiclePhoto: jest.fn(),
+}));
 
-import { persistVehiclePhoto } from '@/infrastructure/storage/photoStorage';
+import { persistVehiclePhoto, deleteVehiclePhoto } from '@/infrastructure/storage/photoStorage';
 
 const mockPersistVehiclePhoto = persistVehiclePhoto as jest.MockedFunction<typeof persistVehiclePhoto>;
+const mockDeleteVehiclePhoto = deleteVehiclePhoto as jest.MockedFunction<typeof deleteVehiclePhoto>;
 
 function fakeOutboxWriter<T extends { id: string }>() {
   const save = jest.fn(async (_record: T, _outboxType: string, _outboxPayload: unknown) => {});
-  return { writer: { save } as OutboxWriter<T>, save };
+  const remove = jest.fn(async (_id: string, _outboxType: string, _outboxPayload: unknown) => {});
+  return { writer: { save, remove } as OutboxWriter<T>, save, remove };
 }
 
 function fakeStore<T extends { id: string }>(initial: T[] = []) {
@@ -320,5 +325,53 @@ describe('VehicleRepository', () => {
     await repo.update('missing', { nickname: null, make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 });
 
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it('delete removes the local row and enqueues a DELETE_VEHICLE outbox entry atomically', async () => {
+    const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
+    const { writer, remove } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.delete('v1');
+
+    expect(remove).toHaveBeenCalledWith('v1', 'DELETE_VEHICLE', { vehicleId: 'v1' });
+    // The write goes through OutboxWriter, never the plain Store.remove --
+    // that would break the delete+outbox atomicity this exists for.
+    expect(store.remove).not.toHaveBeenCalled();
+  });
+
+  it('delete is a no-op when the vehicle does not exist locally', async () => {
+    const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
+    const { writer, remove } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.delete('missing');
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(mockDeleteVehiclePhoto).not.toHaveBeenCalled();
+  });
+
+  it('delete cleans up a not-yet-synced local photo file before enqueuing the outbox entry', async () => {
+    const { store } = fakeStore([
+      { ...vehicleA, ...defaultDetail, sortOrder: 0, photoUrl: 'file:///documents/vehicle-photos/v1.jpg' },
+    ]);
+    const { writer } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.delete('v1');
+
+    expect(mockDeleteVehiclePhoto).toHaveBeenCalledWith('file:///documents/vehicle-photos/v1.jpg');
+  });
+
+  it('delete leaves a reconciled (remote) photo url alone', async () => {
+    const { store } = fakeStore([
+      { ...vehicleA, ...defaultDetail, sortOrder: 0, photoUrl: 'https://cdn.example.com/v1.jpg' },
+    ]);
+    const { writer } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.delete('v1');
+
+    expect(mockDeleteVehiclePhoto).not.toHaveBeenCalled();
   });
 });

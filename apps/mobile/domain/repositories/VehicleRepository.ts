@@ -2,7 +2,7 @@ import * as Crypto from 'expo-crypto';
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import type { Store } from '@/infrastructure/database/Store';
 import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
-import { persistVehiclePhoto, type PickedPhoto } from '@/infrastructure/storage/photoStorage';
+import { persistVehiclePhoto, deleteVehiclePhoto, type PickedPhoto } from '@/infrastructure/storage/photoStorage';
 
 // Vehicle Detail-only fields — VehicleSummary (GET /vehicles) can't supply
 // these; they come from GET /vehicles/:vehicleId. See ADR 0027's 2026-07-03
@@ -69,6 +69,12 @@ export interface VehicleRepository {
   // entry, atomically (OutboxWriter<T> — see ADR 0027's 2026-07-03 update).
   // No-op if the Vehicle isn't known locally.
   update(vehicleId: string, data: UpdateVehicleData): Promise<void>;
+  // UC-MOB-VEH-4: deletes the local row -- cascading to Log Entries via the
+  // schema's ON DELETE CASCADE foreign key (infrastructure/database/
+  // schema.ts, enforced by openDatabase()'s `PRAGMA foreign_keys = ON`) --
+  // and enqueues a DELETE_VEHICLE outbox entry, atomically (OutboxWriter<T>).
+  // No-op if the Vehicle isn't known locally.
+  delete(vehicleId: string): Promise<void>;
   // Replaces the local Vehicle list with exactly what the API returned,
   // preserving its order. Called by SyncService.pull()'s phase 1 — see ADR
   // 0027's 2026-07-02 update for the phased parent-then-child sequencing.
@@ -143,6 +149,16 @@ export function createVehicleRepository(
       if (!row) return;
       const updated: LocalVehicle = { ...row, ...data };
       await outboxWriter.save(updated, 'UPDATE_VEHICLE', { vehicleId, ...data });
+    },
+
+    async delete(vehicleId: string): Promise<void> {
+      const row = await findRow(vehicleId);
+      if (!row) return;
+      // Only ever a local file:// reference for a photo that hasn't synced
+      // yet (see create()) -- a reconciled row's real CDN url is left
+      // alone, nothing to clean up locally for that case.
+      if (row.photoUrl?.startsWith('file://')) deleteVehiclePhoto(row.photoUrl);
+      await outboxWriter.remove(vehicleId, 'DELETE_VEHICLE', { vehicleId });
     },
 
     async reconcile(vehicles: VehicleSummary[]): Promise<void> {
