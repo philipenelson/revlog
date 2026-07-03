@@ -24,6 +24,7 @@ function fakeVehicleRepository(): jest.Mocked<VehicleRepository> {
     findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
     reconcile: jest.fn(),
     applyDetail: jest.fn(),
   };

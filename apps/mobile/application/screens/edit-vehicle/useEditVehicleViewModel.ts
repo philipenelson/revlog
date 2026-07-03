@@ -34,6 +34,13 @@ export interface EditVehicleViewModel {
   submit: () => void;
   onCancel: () => void;
   onBackToGarage: () => void;
+  // UC-MOB-VEH-4 — danger zone / delete confirmation.
+  deleteDialogOpen: boolean;
+  openDeleteDialog: () => void;
+  closeDeleteDialog: () => void;
+  isDeleting: boolean;
+  deleteError: string | null;
+  handleDelete: () => void;
 }
 
 export function useEditVehicleViewModel(): EditVehicleViewModel {
@@ -45,6 +52,9 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
   const [errors, setErrors] = useState<VehicleFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!vehicleRepository || !vehicleId) return;
@@ -115,6 +125,36 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     }
   }
 
+  function openDeleteDialog(): void {
+    setDeleteError(null);
+    setDeleteDialogOpen(true);
+  }
+
+  function closeDeleteDialog(): void {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+    setDeleteError(null);
+  }
+
+  async function handleDeleteConfirm(): Promise<void> {
+    if (!vehicleRepository || !vehicleId) return;
+
+    setDeleteError(null);
+    setIsDeleting(true);
+    try {
+      await vehicleRepository.delete(vehicleId);
+      // dismissTo(), not back()/replace() -- this deletion pops both Vehicle
+      // Detail and this Edit screen off the stack, landing on the existing
+      // Garage instance underneath rather than leaving the now-gone
+      // Vehicle's stale Detail screen reachable via a back navigation.
+      router.dismissTo('/garage');
+    } catch {
+      setDeleteError("Couldn't delete this vehicle. Try again in a moment.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return {
     loadState,
     vehicleDisplayName,
@@ -126,5 +166,11 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     submit: () => void handleSubmit(),
     onCancel: () => router.back(),
     onBackToGarage: () => router.push('/garage'),
+    deleteDialogOpen,
+    openDeleteDialog,
+    closeDeleteDialog,
+    isDeleting,
+    deleteError,
+    handleDelete: () => void handleDeleteConfirm(),
   };
 }
