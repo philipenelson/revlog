@@ -4,7 +4,8 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
-import { createSyncService, type OutboxHandler } from '@/infrastructure/sync/SyncService';
+import { createSyncService } from '@/infrastructure/sync/SyncService';
+import { createOutboxHandlers } from '@/infrastructure/sync/outboxHandlers';
 import { logger } from '@/infrastructure/logging/logger';
 
 type SyncStatus = 'idle' | 'syncing' | 'error';
@@ -18,11 +19,6 @@ interface SyncContextValue {
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null);
-
-// Nothing enqueues outbox entries yet — no write flow (Add Vehicle, etc.)
-// exists in this pass. See SyncService.flushOutbox() and ADR 0027's
-// 2026-07-02 update.
-const NO_HANDLERS: Record<string, OutboxHandler> = {};
 
 // Mounted inside DatabaseProvider (needs repositories) and AuthProvider
 // (needs the session) in app/_layout.tsx. Triggers a full sync (flush then
@@ -48,7 +44,7 @@ export function SyncProvider({ children }: PropsWithChildren) {
       vehicleRepository,
       logEntryRepository,
       outboxRepository,
-      handlers: NO_HANDLERS,
+      handlers: createOutboxHandlers(tokenHttpClient),
     });
 
     try {
