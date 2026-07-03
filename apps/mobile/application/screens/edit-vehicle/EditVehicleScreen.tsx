@@ -212,7 +212,9 @@ export function EditVehicleScreen() {
             <View style={styles.dialogIcon}>
               <TrashIcon size={20} />
             </View>
-            <Text style={styles.dialogTitle}>Delete {vm.vehicleDisplayName}?</Text>
+            <Text style={styles.dialogTitle} testID="edit-vehicle-delete-dialog-title">
+              Delete {vm.vehicleDisplayName}?
+            </Text>
             <Text style={styles.dialogBody}>
               This will permanently delete the vehicle and all its log entries. This cannot be undone.
             </Text>
