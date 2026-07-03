@@ -8,7 +8,13 @@ export const config: Omit<Options.Testrunner, 'capabilities'> = {
   // runs last for clarity, though this is no longer strictly required --
   // AuthProvider clears expo-secure-store on every mount, so restartApp()
   // always lands back on Welcome regardless of spec order.
-  specs: ['./specs/welcome.e2e.ts', './specs/register.e2e.ts', './specs/login.e2e.ts', './specs/garage.e2e.ts'],
+  specs: [
+    './specs/welcome.e2e.ts',
+    './specs/register.e2e.ts',
+    './specs/login.e2e.ts',
+    './specs/garage.e2e.ts',
+    './specs/vehicle-detail.e2e.ts',
+  ],
   maxInstances: 1,
   logLevel: 'warn',
   waitforTimeout: 15000,

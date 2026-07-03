@@ -86,7 +86,9 @@ function LogEntryCard({ entry, onPress }: { entry: LogEntrySummary; onPress: () 
     <Pressable style={styles.entryCard} onPress={onPress} testID={`log-entry-card-${entry.id}`}>
       <View style={styles.entryCardLeft}>
         <Text style={styles.entryType}>{typeLabel}</Text>
-        <Text style={styles.entryTitle}>{entry.title}</Text>
+        <Text style={styles.entryTitle} testID={`log-entry-title-${entry.id}`}>
+          {entry.title}
+        </Text>
         <Text style={styles.entryMeta}>{formatShortDate(entry.date)}</Text>
       </View>
       {entry.mileage != null && <Text style={styles.entryMileage}>{entry.mileage.toLocaleString()} mi</Text>}
@@ -191,7 +193,7 @@ export function VehicleDetailScreen() {
                 <LockIcon />
                 <View style={styles.lockTextGroup}>
                   <Text style={styles.lockTitle}>Transfer pending</Text>
-                  <Text style={styles.lockBody}>
+                  <Text style={styles.lockBody} testID="vehicle-detail-transfer-banner-body">
                     Awaiting {vehicle.pendingTransferRecipientEmail ?? "the recipient"}&apos;s response. Vehicle is
                     locked until the transfer is accepted, declined, or cancelled.
                   </Text>
@@ -200,15 +202,21 @@ export function VehicleDetailScreen() {
             ) : (
               <View style={styles.statsRow} testID="vehicle-detail-stats">
                 <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{vm.entryCountLabel}</Text>
+                  <Text style={styles.statValue} testID="vehicle-detail-stat-entries">
+                    {vm.entryCountLabel}
+                  </Text>
                   <Text style={styles.statLabel}>Entries</Text>
                 </View>
                 <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{vm.lastLoggedLabel}</Text>
+                  <Text style={styles.statValue} testID="vehicle-detail-stat-last-logged">
+                    {vm.lastLoggedLabel}
+                  </Text>
                   <Text style={styles.statLabel}>Last logged</Text>
                 </View>
                 <View style={styles.statCell}>
-                  <Text style={styles.statValue}>{vm.totalSpentLabel}</Text>
+                  <Text style={styles.statValue} testID="vehicle-detail-stat-total-spent">
+                    {vm.totalSpentLabel}
+                  </Text>
                   <Text style={styles.statLabel}>Total spent</Text>
                 </View>
               </View>

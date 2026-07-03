@@ -26,7 +26,12 @@ async function loginThroughUi(email: string, password: string): Promise<void> {
 async function openVehicleDetail(user: TestUser, vehicleId: string): Promise<void> {
   await loginThroughUi(user.email, user.password);
   const card = await $(byTestId(`garage-vehicle-card-${vehicleId}`));
-  await card.waitForDisplayed({ timeout: 20000 });
+  // Generous timeout: the first sync after login now does an extra
+  // sequential GET /vehicles/:vehicleId per vehicle (ADR 0027's 2026-07-03
+  // update) before Garage's own "hasCompletedOneSyncAttempt" flips, on top
+  // of this worker's own cold-start cost -- 20s was tuned for the
+  // single-request sync this suite had before that update.
+  await card.waitForDisplayed({ timeout: 35000 });
   await card.click();
   await $(byTestId('vehicle-detail-name')).waitForDisplayed({ timeout: 15000 });
 }
@@ -56,12 +61,12 @@ describe('Vehicle Detail screen', () => {
     await openVehicleDetail(user, vehicleId);
 
     await expect($(byTestId('vehicle-detail-name'))).toHaveText('Blackbird', { containing: true });
-    await expect($(byTestId('vehicle-detail-stats'))).toHaveText('1', { containing: true });
-    await expect($(byTestId('vehicle-detail-stats'))).toHaveText('Jun 28, 2026', { containing: true });
+    await expect($(byTestId('vehicle-detail-stat-entries'))).toHaveText('1', { containing: true });
+    await expect($(byTestId('vehicle-detail-stat-last-logged'))).toHaveText('Jun 28, 2026', { containing: true });
 
-    const entryCard = await $(byTestId(`log-entry-card-${entryId}`));
-    await expect(entryCard).toBeDisplayed();
-    await expect(entryCard).toHaveText('Oil & filter change', { containing: true });
+    const entryTitle = await $(byTestId(`log-entry-title-${entryId}`));
+    await expect(entryTitle).toBeDisplayed();
+    await expect(entryTitle).toHaveText('Oil & filter change', { containing: true });
 
     await $(byTestId('vehicle-detail-back')).click();
     await $(byTestId('garage-add-fab')).waitForDisplayed({ timeout: 15000 });
@@ -125,8 +130,8 @@ describe('Vehicle Detail screen', () => {
 
     const emptyHistory = await $(byTestId('vehicle-detail-empty-history'));
     await emptyHistory.waitForDisplayed({ timeout: 15000 });
-    await expect($(byTestId('vehicle-detail-stats'))).toHaveText('None', { containing: true });
-    await expect($(byTestId('vehicle-detail-stats'))).toHaveText('—', { containing: true });
+    await expect($(byTestId('vehicle-detail-stat-entries'))).toHaveText('None', { containing: true });
+    await expect($(byTestId('vehicle-detail-stat-total-spent'))).toHaveText('—', { containing: true });
 
     await $(byTestId('vehicle-detail-empty-history-cta')).click();
     await $(byTestId('placeholder-new-log-entry')).waitForDisplayed({ timeout: 15000 });
@@ -140,9 +145,10 @@ describe('Vehicle Detail screen', () => {
 
     await openVehicleDetail(user, vehicleId);
 
-    const banner = await $(byTestId('vehicle-detail-transfer-banner'));
-    await banner.waitForDisplayed({ timeout: 15000 });
-    await expect(banner).toHaveText('alex@example.com', { containing: true });
+    await $(byTestId('vehicle-detail-transfer-banner')).waitForDisplayed({ timeout: 15000 });
+    await expect($(byTestId('vehicle-detail-transfer-banner-body'))).toHaveText('alex@example.com', {
+      containing: true,
+    });
     await expect($(byTestId('vehicle-detail-stats'))).not.toBeExisting();
 
     // Tapping the disabled action must not navigate anywhere.

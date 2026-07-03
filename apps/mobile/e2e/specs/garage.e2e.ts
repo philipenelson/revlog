@@ -35,7 +35,12 @@ describe('Garage screen', () => {
     await loginThroughUi(user.email, user.password);
 
     const card = await $(byTestId(`garage-vehicle-card-${vehicleId}`));
-    await card.waitForDisplayed({ timeout: 20000 });
+    // Generous timeout: the first sync after login now does an extra
+    // sequential GET /vehicles/:vehicleId per vehicle (ADR 0027's
+    // 2026-07-03 update) before "hasCompletedOneSyncAttempt" flips, on top
+    // of this worker's own cold-start cost -- 20s was tuned for the
+    // single-request sync this suite had before that update.
+    await card.waitForDisplayed({ timeout: 35000 });
     await expect(card).toHaveText('Blackbird', { containing: true });
     await expect(card).toHaveText('2019 Honda CB650R', { containing: true });
     // Badge text renders uppercase (design's textTransform: uppercase) --
@@ -88,7 +93,8 @@ describe('Garage screen', () => {
     await loginThroughUi(user.email, user.password);
 
     const fab = await $(byTestId('garage-add-fab'));
-    await fab.waitForDisplayed({ timeout: 20000 });
+    // See the comment on the same wait in the "populated garage" test above.
+    await fab.waitForDisplayed({ timeout: 35000 });
     await fab.click();
 
     const addVehiclePlaceholder = await $(byTestId('placeholder-add-vehicle'));
