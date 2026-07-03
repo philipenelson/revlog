@@ -1,7 +1,7 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete not started
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete not started
 **Last updated:** 2026-07-03
 
 ---
@@ -13,7 +13,7 @@ Vehicle screens on mobile cover: Vehicle Detail, Add Vehicle, Edit Vehicle, and 
 Mobile-specific differences:
 - All reads come from local SQLite via `VehicleRepository`.
 - Write operations (create, update, delete) apply to local SQLite and are queued in the outbox. The UI responds immediately; sync to the API happens in the background.
-- Vehicle photos are displayed when available (fetched URL from API response cached locally) but upload is V2.
+- Vehicle photos are displayed when available (fetched URL from API response cached locally). Photo upload is supported on Add Vehicle (UC-MOB-VEH-2) and is offline-durable: the picked photo is copied to stable local storage and its upload is queued in the same outbox as the Vehicle create, surviving an app kill/restart while offline (see this file's Decisions and ADR 0027's 2026-07-03 "offline-durable photo upload" update). Editing an existing Vehicle's photo (from Edit Vehicle or Vehicle Detail) is not yet supported on mobile.
 
 Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-mobile-vehicle-detail.html) · [`revlog-mobile-add-vehicle.html`](../../designs/mobile/revlog-mobile-add-vehicle.html) · [`revlog-mobile-edit-vehicle.html`](../../designs/mobile/revlog-mobile-edit-vehicle.html)
 
@@ -40,11 +40,11 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 **Precondition:** Owner is on the Garage screen; taps `[+]`.
 **Milestones:** [V1](../../milestones/v1.md)
 
-1. Owner fills in: make, model, year, nickname (optional), current mileage.
+1. Owner fills in: make, model, year, nickname (optional), current mileage, photo (optional — picked from the device's photo library).
 2. Taps `[Save]`.
 3. App validates the form (same rules as web spec).
-4. On valid: writes new Vehicle to local SQLite; adds `CREATE_VEHICLE` outbox entry in the same transaction. Navigates to the new Vehicle's Detail screen.
-5. SyncService sends the outbox entry to the API when online.
+4. On valid: if a photo was picked, it is copied into stable local storage first. Writes new Vehicle to local SQLite; adds `CREATE_VEHICLE` outbox entry (payload includes the stable local photo reference, if any) in the same transaction. Navigates to the new Vehicle's Detail screen.
+5. SyncService sends the outbox entry to the API when online — as a multipart create-with-photo request when a photo reference is present, matching the web app's `createVehicleWithPhoto`. The local photo file is deleted once its upload succeeds or is permanently rejected (kept for a retryable failure, so a later retry can still find it).
 
 ---
 
@@ -95,6 +95,7 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - [ ] Delete Vehicle shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
 - [x] Transfer-pending Vehicle shows locked state; action buttons disabled
 - [x] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
+- [x] Add Vehicle: a picked photo persists to local storage and uploads via the outbox, surviving an app kill/restart while offline
 - [x] All form validation rules match the web spec (year range, required fields, mileage non-negative) — both Add and Edit Vehicle validate via the shared `createVehicleSchema`
 
 ---
@@ -104,7 +105,7 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Decision | Choice | Reason |
 |---|---|---|
 | Writes via outbox | SQLite + outbox in one transaction | Guarantees consistency: UI update and sync intent are atomic |
-| Vehicle photo upload | V2 | Camera/library access requires additional native modules; scope kept for V2 |
+| Vehicle photo upload on Add Vehicle | In scope for V1, offline-durable via the outbox (not deferred to V2 as an earlier planning pass had it — see this file's history) | The Owner picks a photo from their library (`expo-image-picker`); it's copied into stable local storage (`expo-file-system`, keyed by the Vehicle's client-generated id) before the `CREATE_VEHICLE` outbox entry is written, so the file survives an app kill even while offline. The entry's payload carries that local reference; `outboxHandlers.ts`'s `CREATE_VEHICLE` handler uploads it via a multipart create-with-photo call (`createVehicleWithPhotoUri`, the React-Native-shaped sibling of the web's `createVehicleWithPhoto`) when it runs, and deletes the local file once the upload succeeds or is permanently rejected. See ADR 0027's 2026-07-03 "offline-durable photo upload" update |
 | Delete cascade | Local SQLite cascade + single `DELETE_VEHICLE` outbox entry | API hard-delete cascades server-side; single outbox entry is sufficient |
 | Vehicle Detail: insurance not displayed | No insurance row/dialog on mobile Vehicle Detail in V1, unlike the web spec | `revlog-mobile-vehicle-detail.html` has no insurance affordance in either state; no mobile spec has designed insurance edit UX yet. `SyncService` fetches `insurance` per ADR 0027's 2026-07-03 update but discards it — nothing reads it. Revisit as its own spec when mobile insurance UX is designed, rather than bolting a web-parity row onto this screen |
 | Vehicle Detail: transfer-pending is read-only | Detail shows the locked banner (UC-MOB-VEH-5 steps 1–2) but no `[Cancel transfer]` action | Cancelling requires an `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox handler and `transferService` wiring that don't exist yet — `SyncService.flushOutbox()` marks any entry with no registered handler `failed` permanently (see SyncService.ts), so enqueueing `CANCEL_TRANSFER` before its handler exists would silently and permanently no-op the cancellation. That handler pairs naturally with `INITIATE_TRANSFER`, both squarely in `docs/specs/mobile-app/vehicle-transfer.md`'s scope, so the cancel affordance ships there instead |
@@ -117,14 +118,17 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Edit Vehicle's E2E spec: `router.back()`, not `router.push()`, for Cancel and post-save success | Both handlers in `useEditVehicleViewModel` return to Vehicle Detail via `router.back()`; `useVehicleDetailViewModel` re-reads local SQLite on every `useFocusEffect` (not just on mount) so it shows the just-saved edit without a remount | Found via manual testing: `push()`ing the same route Edit was reached from stacked a second Detail instance on top of Edit instead of returning to the original, so a single "Garage" back-link tap from that second instance landed on the sandwiched Edit screen, not Garage. `back()` fixes the stack; `useFocusEffect` is needed because native-stack doesn't remount a screen it reveals via `back()`, so a plain mount-effect would keep showing pre-edit data |
 | Add Vehicle: `VehicleRepository.create()` generates the Vehicle's id client-side (`Crypto.randomUUID()`) rather than waiting for the server | The new local row, its `sortOrder` (placed ahead of existing rows — the next sync's `reconcile()` re-derives it from the server anyway), and the `CREATE_VEHICLE` outbox entry are all written in one `OutboxWriter<T>` transaction, matching Edit Vehicle's `update()` shape | UC-MOB-VEH-2 requires navigating straight to the new Vehicle's Detail screen on save, entirely offline-capable — there is no server-assigned id to navigate to yet at that point. Requires `POST /vehicles` to accept a client-supplied `id`, which it now does — see ADR 0027's 2026-07-03 "`POST /vehicles` accepts a client-supplied `id`" update for the full mechanism (including why the repository uses an upsert, not a plain create, to stay retry-safe) |
 | Add Vehicle's save handler: `router.replace()`, not `router.push()` or `back()` | On success, `useAddVehicleViewModel` calls `router.replace(\`/garage/${id}\`)`, putting the new Vehicle's Detail screen in place of Add Vehicle on the stack | Add Vehicle was itself reached by pushing from Garage. `push()`ing Detail on top would leave Add Vehicle's already-submitted form sitting underneath it, reachable by a `back()` from Detail; `replace()` means a single `back()` from Detail returns straight to Garage, with no stale form in between — same reasoning as Edit Vehicle's `back()` choice above, applied to the create path |
-| Add Vehicle's photo affordance is a static, non-interactive placeholder | Renders the same "Photo upload — V2" box `revlog-mobile-add-vehicle.html` designs, with no `Pressable`, no image picker wiring | Matches this spec's existing "Vehicle photo upload → V2" scope cut (Out of scope, below) — nothing to wire up yet; the box exists only so the screen matches its design file rather than omitting a designed element |
+| Add Vehicle's photo zone is interactive (supersedes an earlier pass that shipped it as a static placeholder — see this file's history) | Tapping it opens the device's photo library (`expo-image-picker`); once picked, shows the same local preview + remove-photo affordance as the web app's `photoZone`, adapted to `Image`/`Pressable` | The static placeholder in the prior pass had been read straight from this file's own "Vehicle photo upload → V2" cut and `revlog-mobile-add-vehicle.html`'s placeholder text, without confirming that deferral was still wanted — it wasn't; this row and the "Vehicle photo upload on Add Vehicle" row above replace that decision |
+| No camera capture, library picker only | `expo-image-picker`'s `launchImageLibraryAsync`, not `launchCameraAsync` | Matches the web app's affordance exactly — a plain file input, not a camera-specific control — rather than adding a mobile-only capability beyond parity |
+| Photo upload is bundled into the `CREATE_VEHICLE` outbox entry, not a second outbox entry type | The entry's payload carries an optional local photo reference; the same handler does a plain create or a multipart create-with-photo depending on whether it's present | A second entry type (e.g. `UPLOAD_VEHICLE_PHOTO`) would need its own local schema field to track "photo still pending" across `VehicleRepository.reconcile()`, plus ordering logic to guarantee it never runs before its Vehicle's own create succeeds. Bundling into one entry gets an equivalent atomic "vehicle + photo" create the web app already does in a single `POST /vehicles` multipart request, with none of that — the same reasoning ADR 0027 already used for the outbox flushing pending entries strictly in order made a second, ordering-dependent entry type unnecessary here |
 | `createVehicleSchema`'s `nickname` field widened to accept `null`, not just `undefined` | Found while wiring `CREATE_VEHICLE`'s outbox payload: every mobile outbox payload (`CreateVehicleData`/`UpdateVehicleData`) types `nickname` as `string \| null` and always sends the key, so a blank nickname serializes as `"nickname": null` — which the schema rejected with a 400 before this fix, silently breaking the common no-nickname case for both Add and the already-shipped Edit Vehicle | See ADR 0027's 2026-07-03 "`POST /vehicles` accepts a client-supplied `id`" update for the full incident writeup. Pure widening (`null`, `undefined`, and a real string all still collapse to the same transformed output), so no web-side behaviour changes |
 
 ---
 
 ## Out of scope
 
-- Vehicle photo upload → V2
+- Editing an existing Vehicle's photo (from Edit Vehicle or Vehicle Detail) → Add Vehicle only for now; needs its own step once those screens' photo affordances are designed
+- Camera capture on Add Vehicle's photo picker → library picker only, matching the web app's plain file input (see Decisions above)
 - Vehicle makes/models/years reference dataset → tracked in web V1 milestone; same deferral applies to mobile
 - Insurance display/edit on mobile Vehicle Detail → needs its own spec (see Decisions above)
 - Cancel transfer action on mobile Vehicle Detail → ships with `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen
