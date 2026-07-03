@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { LogEntrySummary } from '@maintenance-log/api-client';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useSync } from '@/application/providers/SyncProvider';
@@ -37,17 +37,24 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
 
   // Re-reads whenever a sync completes (lastSyncedAt changes) — the local
   // tables are the only source this screen renders from (ADR 0026), same as
-  // useGarageViewModel.
-  useEffect(() => {
-    if (!vehicleRepository || !logEntryRepository || !vehicleId) return;
-    void Promise.all([vehicleRepository.findById(vehicleId), logEntryRepository.findByVehicleId(vehicleId)]).then(
-      ([foundVehicle, entries]) => {
-        setVehicle(foundVehicle);
-        setLogEntries(entries);
-        setHasLoadedOnce(true);
-      },
-    );
-  }, [vehicleRepository, logEntryRepository, vehicleId, lastSyncedAt]);
+  // useGarageViewModel. useFocusEffect, not useEffect: native-stack doesn't
+  // remount a screen on router.back() (it reveals the same instance), so a
+  // plain mount-effect would keep showing pre-edit data after Edit Vehicle
+  // saves and backs out. Refetching on every focus picks up local writes
+  // made while this screen was hidden, with no dependency on lastSyncedAt
+  // (a background-sync concept) having changed at all.
+  useFocusEffect(
+    useCallback(() => {
+      if (!vehicleRepository || !logEntryRepository || !vehicleId) return;
+      void Promise.all([vehicleRepository.findById(vehicleId), logEntryRepository.findByVehicleId(vehicleId)]).then(
+        ([foundVehicle, entries]) => {
+          setVehicle(foundVehicle);
+          setLogEntries(entries);
+          setHasLoadedOnce(true);
+        },
+      );
+    }, [vehicleRepository, logEntryRepository, vehicleId, lastSyncedAt]),
+  );
 
   async function onRefresh(): Promise<void> {
     setIsRefreshing(true);

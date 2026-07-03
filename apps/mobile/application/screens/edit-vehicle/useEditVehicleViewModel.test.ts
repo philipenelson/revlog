@@ -4,7 +4,7 @@ import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository
 import { useEditVehicleViewModel } from './useEditVehicleViewModel';
 
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn() },
+  router: { push: jest.fn(), back: jest.fn() },
   useLocalSearchParams: jest.fn(() => ({ vehicleId: 'v1' })),
 }));
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
@@ -13,6 +13,7 @@ import { useDatabase } from '@/application/providers/DatabaseProvider';
 
 const mockUseDatabase = useDatabase as jest.MockedFunction<typeof useDatabase>;
 const mockPush = router.push as jest.Mock;
+const mockBack = router.back as jest.Mock;
 
 const vehicle: LocalVehicleDetail = {
   id: 'v1',
@@ -82,6 +83,7 @@ describe('useEditVehicleViewModel', () => {
 
     expect(result.current.errors.make).toBeTruthy();
     expect(mockPush).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it('clears a field error as soon as that field is edited', async () => {
@@ -102,7 +104,7 @@ describe('useEditVehicleViewModel', () => {
     expect(result.current.errors.make).toBeUndefined();
   });
 
-  it('saves via vehicleRepository.update and navigates to Vehicle Detail on success', async () => {
+  it('saves via vehicleRepository.update and navigates back to Vehicle Detail on success', async () => {
     const update = setDatabase(vehicle);
 
     const { result } = await renderHook(() => useEditVehicleViewModel());
@@ -122,7 +124,10 @@ describe('useEditVehicleViewModel', () => {
       year: 2019,
       mileage: 5000,
     });
-    expect(mockPush).toHaveBeenCalledWith('/garage/v1');
+    // back(), not push() -- Edit was reached by pushing from Vehicle Detail,
+    // so pushing the same route again would stack a second instance instead
+    // of returning to the one already on the stack.
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it('strips commas from mileage before validating and saving', async () => {
@@ -154,10 +159,10 @@ describe('useEditVehicleViewModel', () => {
     });
 
     expect(result.current.submitError).toBe("Couldn't save changes. Try again in a moment.");
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it('onCancel and onBackToGarage navigate to the right routes', async () => {
+  it('onCancel navigates back; onBackToGarage pushes /garage', async () => {
     setDatabase(vehicle);
 
     const { result } = await renderHook(() => useEditVehicleViewModel());
@@ -166,7 +171,7 @@ describe('useEditVehicleViewModel', () => {
     result.current.onCancel();
     result.current.onBackToGarage();
 
-    expect(mockPush).toHaveBeenCalledWith('/garage/v1');
+    expect(mockBack).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith('/garage');
   });
 });

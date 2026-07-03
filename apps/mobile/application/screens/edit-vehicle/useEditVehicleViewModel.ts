@@ -101,7 +101,13 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     setIsSubmitting(true);
     try {
       await vehicleRepository.update(vehicleId, result.data);
-      router.push(`/garage/${vehicleId}`);
+      // back(), not push(`/garage/${vehicleId}`) -- this screen was reached
+      // by pushing from Vehicle Detail, so push()ing the same route again
+      // stacked a second instance on top instead of returning to the first,
+      // leaving this screen itself sandwiched in the stack. Detail's
+      // useFocusEffect (see useVehicleDetailViewModel.ts) re-reads on
+      // return, so back() still shows the just-saved values.
+      router.back();
     } catch {
       setSubmitError("Couldn't save changes. Try again in a moment.");
     } finally {
@@ -118,7 +124,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     isSubmitting,
     submitError,
     submit: () => void handleSubmit(),
-    onCancel: () => router.push(`/garage/${vehicleId}`),
+    onCancel: () => router.back(),
     onBackToGarage: () => router.push('/garage'),
   };
 }

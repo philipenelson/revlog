@@ -4,10 +4,18 @@ import type { LogEntrySummary } from '@maintenance-log/api-client';
 import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import { useVehicleDetailViewModel } from './useVehicleDetailViewModel';
 
-jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), back: jest.fn() },
-  useLocalSearchParams: jest.fn(() => ({ vehicleId: 'v1' })),
-}));
+// useFocusEffect stands in for a plain useEffect here: the test renderer has
+// no navigation container to actually gain/lose focus, and the real
+// implementation's contract ("re-run when the memoized callback changes")
+// is exactly what useEffect already gives us for a jest.fn()-free callback.
+jest.mock('expo-router', () => {
+  const { useEffect } = require('react');
+  return {
+    router: { push: jest.fn(), back: jest.fn() },
+    useLocalSearchParams: jest.fn(() => ({ vehicleId: 'v1' })),
+    useFocusEffect: (effect: () => void) => useEffect(effect),
+  };
+});
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
 jest.mock('@/application/providers/SyncProvider', () => ({ useSync: jest.fn() }));
 
