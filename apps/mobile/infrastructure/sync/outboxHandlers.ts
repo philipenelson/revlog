@@ -1,4 +1,4 @@
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, deleteVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
 import { logger } from '@/infrastructure/logging/logger';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
@@ -24,6 +24,10 @@ interface UpdateVehicleOutboxPayload {
   model: string;
   year: number;
   mileage: number;
+}
+
+interface DeleteVehicleOutboxPayload {
+  vehicleId: string;
 }
 
 // A 4xx (validation, 403, 404) means the mutation itself is rejected —
@@ -77,6 +81,26 @@ export function createOutboxHandlers(client: HttpClient): Record<string, OutboxH
           throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
         }
         logger.warn('outbox: UPDATE_VEHICLE rejected by the API, dropping local change', {
+          vehicleId,
+          err: String(err),
+        });
+        throw err;
+      }
+    },
+
+    DELETE_VEHICLE: async (payload) => {
+      const { vehicleId } = payload as DeleteVehicleOutboxPayload;
+      try {
+        await deleteVehicle(client, vehicleId);
+      } catch (err) {
+        if (isRetryable(err)) {
+          throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
+        }
+        // A 404 here means the Vehicle is already gone server-side (e.g.
+        // deleted from another device) -- the local delete already reached
+        // its intended end state either way, so this is logged and dropped
+        // the same as any other permanent rejection, not retried.
+        logger.warn('outbox: DELETE_VEHICLE rejected by the API, dropping local change', {
           vehicleId,
           err: String(err),
         });

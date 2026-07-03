@@ -7,18 +7,20 @@ jest.mock('@maintenance-log/api-client', () => ({
   createVehicle: jest.fn(),
   createVehicleWithPhotoUri: jest.fn(),
   updateVehicle: jest.fn(),
+  deleteVehicle: jest.fn(),
 }));
 jest.mock('@/infrastructure/storage/photoStorage', () => ({
   deleteVehiclePhoto: jest.fn(),
   openVehiclePhotoFile: jest.fn(),
 }));
 
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, deleteVehicle } from '@maintenance-log/api-client';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
 
 const mockCreateVehicle = createVehicle as jest.MockedFunction<typeof createVehicle>;
 const mockCreateVehicleWithPhotoUri = createVehicleWithPhotoUri as jest.MockedFunction<typeof createVehicleWithPhotoUri>;
 const mockUpdateVehicle = updateVehicle as jest.MockedFunction<typeof updateVehicle>;
+const mockDeleteVehicle = deleteVehicle as jest.MockedFunction<typeof deleteVehicle>;
 const mockDeleteVehiclePhoto = deleteVehiclePhoto as jest.MockedFunction<typeof deleteVehiclePhoto>;
 const mockOpenVehiclePhotoFile = openVehiclePhotoFile as jest.MockedFunction<typeof openVehiclePhotoFile>;
 const fakeClient = {} as HttpClient;
@@ -152,5 +154,40 @@ describe('outboxHandlers.UPDATE_VEHICLE', () => {
     const handlers = createOutboxHandlers(fakeClient);
 
     await expect(handlers.UPDATE_VEHICLE!(payload)).rejects.toBe(notFound);
+  });
+});
+
+describe('outboxHandlers.DELETE_VEHICLE', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('DELETEs the vehicle by id', async () => {
+    mockDeleteVehicle.mockResolvedValue(undefined);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await handlers.DELETE_VEHICLE!({ vehicleId: 'v1' });
+
+    expect(mockDeleteVehicle).toHaveBeenCalledWith(fakeClient, 'v1');
+  });
+
+  it('wraps a 5xx ApiError as retryable', async () => {
+    mockDeleteVehicle.mockRejectedValue(new ApiError(500, {}));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.DELETE_VEHICLE!({ vehicleId: 'v1' })).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('wraps a raw network failure as retryable', async () => {
+    mockDeleteVehicle.mockRejectedValue(new TypeError('Network request failed'));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.DELETE_VEHICLE!({ vehicleId: 'v1' })).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('lets a 4xx ApiError propagate as permanent, not wrapped', async () => {
+    const notFound = new ApiError(404, { error: 'Vehicle not found' });
+    mockDeleteVehicle.mockRejectedValue(notFound);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.DELETE_VEHICLE!({ vehicleId: 'v1' })).rejects.toBe(notFound);
   });
 });
