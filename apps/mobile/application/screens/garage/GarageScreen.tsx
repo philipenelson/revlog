@@ -1,43 +1,11 @@
 import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
 import { RevlogMark } from '@/application/components/RevlogMark';
 import { OfflineIndicator } from '@/application/components/OfflineIndicator';
+import { VehicleGlyph } from '@/application/components/VehicleGlyph';
 import { useGarageViewModel } from './useGarageViewModel';
-
-// Motorcycle glyph — see revlog-mobile-garage.html. `dashed` renders the
-// empty-state's outline treatment; solid otherwise (a card's photo
-// placeholder when the Vehicle has no photoUrl).
-function VehicleGlyph({ dashed = false, size = 40 }: { dashed?: boolean; size?: number }) {
-  const color = dashed ? colors.neutral[300] : colors.teal[500];
-  const dashArray = dashed ? '3 3' : undefined;
-  return (
-    <Svg width={size} height={size * 0.6} viewBox="0 0 80 48" fill="none" aria-hidden>
-      <Circle cx={16} cy={36} r={9} stroke={color} strokeWidth={2} strokeDasharray={dashArray} />
-      <Circle cx={62} cy={36} r={9} stroke={color} strokeWidth={2} strokeDasharray={dashArray} />
-      <Path
-        d="M16 36 L30 19 L46 19 L62 36"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={dashArray}
-      />
-      <Path d="M30 19 L37 36" stroke={color} strokeWidth={2} strokeLinecap="round" strokeDasharray={dashArray} />
-      <Path
-        d="M46 19 L41 11 L52 11"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={dashArray}
-      />
-      <Path d="M21 13 L33 13" stroke={color} strokeWidth={2} strokeLinecap="round" strokeDasharray={dashArray} />
-    </Svg>
-  );
-}
 
 function VehicleCard({ vehicle, onPress }: { vehicle: VehicleSummary; onPress: () => void }) {
   const name = vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`;
