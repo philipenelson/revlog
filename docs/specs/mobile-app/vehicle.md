@@ -1,7 +1,7 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only) implemented; Edit Vehicle (UC-MOB-VEH-3) in progress; Add/Delete not started
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only) and Edit Vehicle (UC-MOB-VEH-3) implemented and unit-tested; Edit Vehicle's E2E spec is written but not yet passing live (see Decisions — a WDA/simulator tap-delivery issue on its header buttons, still unresolved after live investigation); Add/Delete not started
 **Last updated:** 2026-07-03
 
 ---
@@ -91,7 +91,7 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 
 - [x] Vehicle Detail reads from local SQLite — renders without network
 - [ ] Add Vehicle writes to SQLite + outbox in one transaction; navigates to detail on success
-- [ ] Edit Vehicle pre-fills from SQLite; writes update to SQLite + outbox on save
+- [x] Edit Vehicle pre-fills from SQLite; writes update to SQLite + outbox on save
 - [ ] Delete Vehicle shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
 - [x] Transfer-pending Vehicle shows locked state; action buttons disabled
 - [x] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
@@ -113,6 +113,7 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Edit Vehicle ships without the danger zone | This pass implements only UC-MOB-VEH-3 (pre-fill, validate, save). `revlog-mobile-edit-vehicle.html` designs a Danger zone / delete-vehicle confirmation on the same screen, but that's UC-MOB-VEH-4, a distinct use case with its own outbox entry type (`DELETE_VEHICLE`), cascade semantics, and confirmation dialog | Same reasoning as Vehicle Detail's cancel-transfer deferral: bolting delete onto this pass means shipping a `DELETE_VEHICLE` outbox entry with no registered handler, which `SyncService.flushOutbox()` would mark permanently `failed`. Delete ships as its own step once it has a handler |
 | Edit Vehicle form validation reuses `createVehicleSchema` from `@maintenance-log/domain`, not a hand-duplicated draft validator | Form fields are plain strings (mirrors web's `VehicleDraft`, avoids react-hook-form's type friction with `createVehicleSchema`'s `nickname` transform); on submit, the draft is parsed with `createVehicleSchema.safeParse()` and Zod's `fieldErrors` become the inline error state | Keeps the exact same field rules as the API and the web form without a second, hand-maintained copy of the regex/range checks — matches this file's own acceptance criterion "form validation rules match the web spec" more faithfully than re-deriving them |
 | Edit Vehicle write path: `OutboxWriter<T>`, not `Store<T>.save()` + `OutboxRepository.enqueue()` | `VehicleRepository.update()` writes the vehicle row and enqueues the `UPDATE_VEHICLE` outbox entry in one `db.transaction()` via a new `OutboxWriter<T>` port | `Store<T>` is scoped to one table; a sequential save-then-enqueue isn't atomic and could lose an edit on a crash between the two calls, which is exactly what this ADR's outbox pattern exists to prevent. See ADR 0027's 2026-07-03 update |
+| Edit Vehicle's E2E spec ships unconfirmed against a live simulator | `e2e/specs/edit-vehicle.e2e.ts` exists, is registered in `wdio.shared.conf.ts`, and is written to the same standard as the rest of this suite, but a live run repeatedly failed: taps on the header's Save/Cancel `Pressable`s (`edit-vehicle-save-btn`/`edit-vehicle-cancel-btn`) produce no observable effect | Investigated across many live runs with page-source evidence at each step: ruled out keyboard occlusion (the button reports `visible="false"` in WDA's snapshot even with the keyboard fully dismissed), `browser.hideKeyboard()` (WDA has no recognized dismiss strategy for this layout), a blind double-tap, and a coordinate-based `mobile: tap` that bypasses the element-hittable check entirely — none changed the outcome. A device console capture during a run showed no JS-side error, which points away from an app-code bug toward something in native touch delivery this session couldn't isolate further. The unit-tested viewmodel and screen are not in question — see the session summary for the full investigation before repeating it |
 
 ---
 
