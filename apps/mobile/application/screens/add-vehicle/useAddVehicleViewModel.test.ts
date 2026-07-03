@@ -6,12 +6,21 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
 }));
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
+jest.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(),
+  launchImageLibraryAsync: jest.fn(),
+}));
 
 import { useDatabase } from '@/application/providers/DatabaseProvider';
+import * as ImagePicker from 'expo-image-picker';
 
 const mockUseDatabase = useDatabase as jest.MockedFunction<typeof useDatabase>;
 const mockBack = router.back as jest.Mock;
 const mockReplace = router.replace as jest.Mock;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockRequestPermissions = ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockLaunchLibrary = ImagePicker.launchImageLibraryAsync as jest.MockedFunction<any>;
 
 function setDatabase(createImpl?: () => Promise<string>) {
   const create = jest.fn(createImpl ?? (async () => 'new-vehicle-id'));
@@ -86,13 +95,16 @@ describe('useAddVehicleViewModel', () => {
       result.current.submit();
     });
 
-    expect(create).toHaveBeenCalledWith({
-      nickname: 'Blackbird',
-      make: 'Honda',
-      model: 'CB650R',
-      year: 2019,
-      mileage: 4200,
-    });
+    expect(create).toHaveBeenCalledWith(
+      {
+        nickname: 'Blackbird',
+        make: 'Honda',
+        model: 'CB650R',
+        year: 2019,
+        mileage: 4200,
+      },
+      undefined,
+    );
     // replace(), not push()/back() -- Add Vehicle was itself reached by
     // pushing from Garage, so replacing it means a single back() from
     // Detail returns to Garage, not to a stale, already-submitted form.
@@ -114,7 +126,7 @@ describe('useAddVehicleViewModel', () => {
       result.current.submit();
     });
 
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ nickname: null }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ nickname: null }), undefined);
   });
 
   it('strips commas from mileage before validating and saving', async () => {
@@ -132,7 +144,7 @@ describe('useAddVehicleViewModel', () => {
       result.current.submit();
     });
 
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ mileage: 12500 }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ mileage: 12500 }), undefined);
   });
 
   it('shows a submit error and does not navigate when the local write throws', async () => {
@@ -154,6 +166,101 @@ describe('useAddVehicleViewModel', () => {
 
     expect(result.current.submitError).toBe("Couldn't save your vehicle. Try again in a moment.");
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('pickPhoto sets a photo error and no preview when library permission is denied', async () => {
+    setDatabase();
+    mockRequestPermissions.mockResolvedValue({ granted: false });
+
+    const { result } = await renderHook(() => useAddVehicleViewModel());
+    await act(async () => {
+      result.current.pickPhoto();
+    });
+
+    expect(result.current.photoError).toBe('Enable photo access in Settings to add a picture of your vehicle.');
+    expect(result.current.photoPreviewUri).toBeNull();
+    expect(mockLaunchLibrary).not.toHaveBeenCalled();
+  });
+
+  it('pickPhoto sets a preview from the picked asset', async () => {
+    setDatabase();
+    mockRequestPermissions.mockResolvedValue({ granted: true });
+    mockLaunchLibrary.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///tmp/picker-cache/abc.jpg', fileName: 'IMG_0001.jpg', mimeType: 'image/jpeg' }],
+    });
+
+    const { result } = await renderHook(() => useAddVehicleViewModel());
+    await act(async () => {
+      result.current.pickPhoto();
+    });
+
+    expect(result.current.photoPreviewUri).toBe('file:///tmp/picker-cache/abc.jpg');
+    expect(result.current.photoError).toBeNull();
+  });
+
+  it('pickPhoto leaves the preview unset when the picker is canceled', async () => {
+    setDatabase();
+    mockRequestPermissions.mockResolvedValue({ granted: true });
+    mockLaunchLibrary.mockResolvedValue({ canceled: true, assets: null });
+
+    const { result } = await renderHook(() => useAddVehicleViewModel());
+    await act(async () => {
+      result.current.pickPhoto();
+    });
+
+    expect(result.current.photoPreviewUri).toBeNull();
+  });
+
+  it('removePhoto clears the preview and any photo error', async () => {
+    setDatabase();
+    mockRequestPermissions.mockResolvedValue({ granted: true });
+    mockLaunchLibrary.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///tmp/picker-cache/abc.jpg', fileName: 'IMG_0001.jpg', mimeType: 'image/jpeg' }],
+    });
+
+    const { result } = await renderHook(() => useAddVehicleViewModel());
+    await act(async () => {
+      result.current.pickPhoto();
+    });
+    expect(result.current.photoPreviewUri).not.toBeNull();
+
+    await act(async () => {
+      result.current.removePhoto();
+    });
+
+    expect(result.current.photoPreviewUri).toBeNull();
+    expect(result.current.photoError).toBeNull();
+  });
+
+  it('submit passes the picked photo through to vehicleRepository.create', async () => {
+    const create = setDatabase();
+    mockRequestPermissions.mockResolvedValue({ granted: true });
+    mockLaunchLibrary.mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file:///tmp/picker-cache/abc.jpg', fileName: 'IMG_0001.jpg', mimeType: 'image/jpeg' }],
+    });
+
+    const { result } = await renderHook(() => useAddVehicleViewModel());
+    await act(async () => {
+      result.current.pickPhoto();
+    });
+    await act(async () => {
+      result.current.updateField('make', 'Honda');
+      result.current.updateField('model', 'CB650R');
+      result.current.updateField('year', '2019');
+      result.current.updateField('mileage', '4200');
+    });
+    await act(async () => {
+      result.current.submit();
+    });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ make: 'Honda' }), {
+      uri: 'file:///tmp/picker-cache/abc.jpg',
+      name: 'IMG_0001.jpg',
+      type: 'image/jpeg',
+    });
   });
 
   it('onCancel navigates back', async () => {

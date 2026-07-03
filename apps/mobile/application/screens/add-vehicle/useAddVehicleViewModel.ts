@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { createVehicleSchema } from '@maintenance-log/domain';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
+import type { PickedPhoto } from '@/infrastructure/storage/photoStorage';
 
 // Plain strings, not react-hook-form + zodResolver<CreateVehicleInput> — same
 // reasoning as Edit Vehicle's VehicleFormFields (the schema's nickname
@@ -24,6 +26,10 @@ export interface AddVehicleViewModel {
   fields: VehicleFormFields;
   errors: VehicleFormErrors;
   updateField: (field: keyof VehicleFormFields, value: string) => void;
+  photoPreviewUri: string | null;
+  photoError: string | null;
+  pickPhoto: () => void;
+  removePhoto: () => void;
   isSubmitting: boolean;
   submitError: string | null;
   submit: () => void;
@@ -34,12 +40,34 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
   const { vehicleRepository } = useDatabase();
   const [fields, setFields] = useState<VehicleFormFields>(EMPTY_FIELDS);
   const [errors, setErrors] = useState<VehicleFormErrors>({});
+  const [photo, setPhoto] = useState<PickedPhoto | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   function updateField(field: keyof VehicleFormFields, value: string): void {
     setFields((f) => ({ ...f, [field]: value }));
     setErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
+  }
+
+  async function handlePickPhoto(): Promise<void> {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setPhotoError('Enable photo access in Settings to add a picture of your vehicle.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (result.canceled || result.assets.length === 0) return;
+
+    const asset = result.assets[0]!;
+    setPhotoError(null);
+    setPhoto({ uri: asset.uri, name: asset.fileName ?? 'vehicle-photo.jpg', type: asset.mimeType ?? 'image/jpeg' });
+  }
+
+  function removePhoto(): void {
+    setPhoto(null);
+    setPhotoError(null);
   }
 
   async function handleSubmit(): Promise<void> {
@@ -72,7 +100,7 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      const id = await vehicleRepository.create(result.data);
+      const id = await vehicleRepository.create(result.data, photo ?? undefined);
       // replace(), not push() -- Add Vehicle was itself reached by pushing
       // from Garage, so replacing it means the new Vehicle's Detail screen
       // takes its place in the stack: a single back() from Detail returns
@@ -89,6 +117,10 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
     fields,
     errors,
     updateField,
+    photoPreviewUri: photo?.uri ?? null,
+    photoError,
+    pickPhoto: () => void handlePickPhoto(),
+    removePhoto,
     isSubmitting,
     submitError,
     submit: () => void handleSubmit(),

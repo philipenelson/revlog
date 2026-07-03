@@ -1,4 +1,4 @@
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
@@ -85,9 +85,31 @@ export function AddVehicleScreen() {
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.photoPlaceholder} testID="add-vehicle-photo-placeholder">
-            <CameraIcon />
-            <Text style={styles.photoText}>Photo upload — V2</Text>
+          <View style={styles.photoSection}>
+            {vm.photoPreviewUri ? (
+              <View style={styles.photoPreviewWrap} testID="add-vehicle-photo-preview">
+                <Image source={{ uri: vm.photoPreviewUri }} style={styles.photoPreviewImage} resizeMode="cover" />
+                <Pressable
+                  style={styles.photoRemoveBtn}
+                  onPress={vm.removePhoto}
+                  hitSlop={8}
+                  testID="add-vehicle-photo-remove-btn"
+                >
+                  <Text style={styles.photoRemoveLabel}>×</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable style={styles.photoPlaceholder} onPress={vm.pickPhoto} testID="add-vehicle-photo-picker">
+                <CameraIcon />
+                <Text style={styles.photoText}>Add a photo</Text>
+                <Text style={styles.photoSubtext}>Optional</Text>
+              </Pressable>
+            )}
+            {vm.photoError && (
+              <Text style={styles.photoError} testID="add-vehicle-photo-error">
+                {vm.photoError}
+              </Text>
+            )}
           </View>
 
           <View style={styles.fieldRow}>
@@ -197,6 +219,9 @@ const styles = StyleSheet.create({
     padding: spacing[5],
     paddingBottom: spacing[10],
   },
+  photoSection: {
+    marginBottom: spacing[5],
+  },
   photoPlaceholder: {
     height: 120,
     backgroundColor: colors.neutral[700],
@@ -207,11 +232,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing[2],
-    marginBottom: spacing[5],
   },
   photoText: {
     fontSize: fontSize.xs,
     color: colors.neutral[300],
+  },
+  photoSubtext: {
+    fontSize: fontSize.xs,
+    color: colors.neutral[400],
+  },
+  photoPreviewWrap: {
+    height: 120,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  photoPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoRemoveBtn: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral[900],
+  },
+  photoRemoveLabel: {
+    fontSize: fontSize.base,
+    color: colors.neutral[50],
+    marginTop: -2,
+  },
+  photoError: {
+    marginTop: spacing[2],
+    fontSize: fontSize.xs,
+    color: colors.danger[500],
   },
   fieldRow: {
     flexDirection: 'row',
