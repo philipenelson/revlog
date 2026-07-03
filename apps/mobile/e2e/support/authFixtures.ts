@@ -132,3 +132,54 @@ export async function deleteVehicleViaApi(accessToken: string, vehicleId: string
     throw new Error(`deleteVehicleViaApi(${vehicleId}) failed: ${res.status} ${await res.text()}`);
   }
 }
+
+export interface LogEntryPayload {
+  typeId: string;
+  title: string;
+  date: string;
+  mileage?: number;
+}
+
+/**
+ * Creates a Log Entry for the given Vehicle -- seeds Vehicle Detail's
+ * service history/stats without going through the (not-yet-built) New Log
+ * Entry screen. `items` is omitted (defaults to `[]` per log-entry-api.md),
+ * so `totalCost` on the created entry is null.
+ */
+export async function createLogEntryViaApi(
+  accessToken: string,
+  vehicleId: string,
+  payload: LogEntryPayload,
+): Promise<string> {
+  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/log`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(`createLogEntryViaApi failed: ${res.status} ${await res.text()}`);
+  }
+  const body = (await res.json()) as { logEntry: { id: string } };
+  return body.logEntry.id;
+}
+
+/**
+ * Initiates a Vehicle Transfer -- seeds the transfer-pending locked state
+ * on Vehicle Detail (UC-MOB-VEH-5) without a mobile Initiate Transfer
+ * screen, which doesn't exist yet (see docs/specs/mobile-app/vehicle.md's
+ * Decisions).
+ */
+export async function initiateTransferViaApi(
+  accessToken: string,
+  vehicleId: string,
+  recipientEmail: string,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/vehicles/${vehicleId}/transfer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ recipientEmail }),
+  });
+  if (!res.ok) {
+    throw new Error(`initiateTransferViaApi failed: ${res.status} ${await res.text()}`);
+  }
+}

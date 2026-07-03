@@ -45,9 +45,12 @@ describe('Garage screen', () => {
 
     await card.click();
 
-    const vehicleDetailPlaceholder = await $(byTestId('placeholder-vehicle-detail'));
-    await vehicleDetailPlaceholder.waitForDisplayed({ timeout: 15000 });
-    await expect(vehicleDetailPlaceholder).toBeDisplayed();
+    // Vehicle Detail is a real screen now (see vehicle-detail.e2e.ts for its
+    // own coverage) -- this test only needs to confirm the card tap
+    // actually navigates there with the right vehicle.
+    const vehicleDetailName = await $(byTestId('vehicle-detail-name'));
+    await vehicleDetailName.waitForDisplayed({ timeout: 15000 });
+    await expect(vehicleDetailName).toHaveText('Blackbird', { containing: true });
   });
 
   it('shows the empty state for an ACTIVE account with zero vehicles, and its CTA navigates to Add Vehicle', async () => {
