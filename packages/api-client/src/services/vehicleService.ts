@@ -2,7 +2,10 @@ import type { HttpClient } from '../HttpClient';
 import type { VehicleDetail, VehicleSummary } from '../types';
 
 export interface CreateVehiclePayload {
-  nickname?: string;
+  // Client-generated (mobile offline creation, ADR 0027's 2026-07-03
+  // update) — the web client never sets this, letting the API default it.
+  id?: string;
+  nickname?: string | null;
   make: string;
   model: string;
   year: number;

@@ -6,10 +6,15 @@ export const createVehicleSchema = z.object({
   // Client-generated (mobile offline creation, ADR 0027's 2026-07-03 update)
   // — omitted entirely by the web client, which lets the API default it.
   id: z.uuid().optional(),
+  // Accepts null (explicit "clear this field", sent as-is by the mobile
+  // Edit/Add Vehicle outbox payloads, which always carry a transformed,
+  // already-nullable nickname) in addition to undefined (omitted by the web
+  // client) and a real string — all three collapse to the same output below.
   nickname: z
     .string()
     .trim()
     .max(100, 'Nickname must be 100 characters or fewer')
+    .nullable()
     .optional()
     .transform((value) => (value ? value : null)),
   make: z

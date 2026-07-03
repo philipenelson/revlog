@@ -1,6 +1,15 @@
-import { updateVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
+import { createVehicle, updateVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
 import { logger } from '@/infrastructure/logging/logger';
+
+interface CreateVehicleOutboxPayload {
+  id: string;
+  nickname: string | null;
+  make: string;
+  model: string;
+  year: number;
+  mileage: number;
+}
 
 interface UpdateVehicleOutboxPayload {
   vehicleId: string;
@@ -27,6 +36,22 @@ function isRetryable(err: unknown): boolean {
 // handlers are pure functions of that client, not stateful themselves.
 export function createOutboxHandlers(client: HttpClient): Record<string, OutboxHandler> {
   return {
+    CREATE_VEHICLE: async (payload) => {
+      const data = payload as CreateVehicleOutboxPayload;
+      try {
+        await createVehicle(client, data);
+      } catch (err) {
+        if (isRetryable(err)) {
+          throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
+        }
+        logger.warn('outbox: CREATE_VEHICLE rejected by the API, dropping local change', {
+          vehicleId: data.id,
+          err: String(err),
+        });
+        throw err;
+      }
+    },
+
     UPDATE_VEHICLE: async (payload) => {
       const { vehicleId, ...data } = payload as UpdateVehicleOutboxPayload;
       try {

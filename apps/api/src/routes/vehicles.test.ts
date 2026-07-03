@@ -325,6 +325,25 @@ describe('POST /vehicles', () => {
     );
   });
 
+  // Regression test: the mobile Add/Edit Vehicle outbox payloads send an
+  // already-transformed `nickname: null` (never omit the key) when the
+  // Owner leaves it blank -- the schema previously only accepted undefined,
+  // which would have rejected the single most common case (no nickname).
+  it('accepts an explicit null nickname (mobile outbox payload shape)', async () => {
+    (mockVehicleService.createVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicle);
+
+    await supertest(buildApp())
+      .post('/vehicles')
+      .set('Authorization', authHeader)
+      .send({ ...validBody, nickname: null });
+
+    expect(mockVehicleService.createVehicle).toHaveBeenCalledWith(
+      'account-1',
+      expect.objectContaining({ nickname: null }),
+      null,
+    );
+  });
+
   it('returns 500 on unexpected service errors', async () => {
     (mockVehicleService.createVehicle as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
 
@@ -553,6 +572,24 @@ describe('PATCH /vehicles/:id', () => {
 
     expect(res.status).toBe(400);
     expect(mockVehicleService.updateVehicle).not.toHaveBeenCalled();
+  });
+
+  // Regression test: mobile's Edit Vehicle outbox payload always sends the
+  // full field set, including an already-transformed `nickname: null` when
+  // cleared -- the schema previously only accepted undefined there too.
+  it('accepts an explicit null nickname (mobile outbox payload shape)', async () => {
+    (mockVehicleService.updateVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicle);
+
+    await supertest(buildApp())
+      .patch('/vehicles/vehicle-1')
+      .set('Authorization', authHeader)
+      .send({ nickname: null, make: 'Honda', model: 'CB500F', year: 2021, mileage: 14230 });
+
+    expect(mockVehicleService.updateVehicle).toHaveBeenCalledWith(
+      'vehicle-1',
+      'account-1',
+      expect.objectContaining({ nickname: null }),
+    );
   });
 
   it('returns 403 when the service throws a 403 AppError', async () => {
