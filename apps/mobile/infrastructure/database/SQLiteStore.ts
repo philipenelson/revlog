@@ -82,5 +82,13 @@ export function createOutboxWriter<T extends { id: string }>(
         tx.insert(outboxTable).values(entry).run();
       });
     },
+
+    async remove(id: string, outboxType: string, outboxPayload: unknown): Promise<void> {
+      const entry = buildOutboxEntry(outboxType, outboxPayload);
+      db.transaction((tx) => {
+        tx.delete(table).where(eq(table.id, id)).run();
+        tx.insert(outboxTable).values(entry).run();
+      });
+    },
   };
 }

@@ -5,4 +5,7 @@
 // (single-collection) read/write in this app.
 export interface OutboxWriter<T extends { id: string }> {
   save(record: T, outboxType: string, outboxPayload: unknown): Promise<void>;
+  // Delete-path sibling of save() -- removes the row and enqueues an outbox
+  // entry in the same transaction.
+  remove(id: string, outboxType: string, outboxPayload: unknown): Promise<void>;
 }
