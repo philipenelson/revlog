@@ -107,7 +107,7 @@ describe('Vehicle Detail screen', () => {
     await openVehicleDetail(user, vehicleId);
     await $(byTestId('vehicle-detail-edit-btn')).click();
 
-    await $(byTestId('placeholder-edit-vehicle')).waitForDisplayed({ timeout: 15000 });
+    await $(byTestId('edit-vehicle-make-input')).waitForDisplayed({ timeout: 15000 });
   });
 
   it('the Share icon and [Share report] action both navigate to the Mechanic Printout screen', async () => {

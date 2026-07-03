@@ -185,7 +185,9 @@ export function VehicleDetailScreen() {
               <Text style={styles.vehicleName} testID="vehicle-detail-name">
                 {vm.displayName}
               </Text>
-              <Text style={styles.vehicleSub}>{vm.subMeta}</Text>
+              <Text style={styles.vehicleSub} testID="vehicle-detail-sub">
+                {vm.subMeta}
+              </Text>
             </View>
 
             {locked ? (
