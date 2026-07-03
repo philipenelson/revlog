@@ -115,21 +115,25 @@ export function createVehicleRepository(
       // window before that.
       const existing = await store.getAll();
       const sortOrder = existing.length > 0 ? Math.min(...existing.map((row) => row.sortOrder)) - 1 : 0;
+
+      // No separate "pending photo" column: the stable local file:// path
+      // is stored directly in `photoUrl` (Image renders a local uri exactly
+      // like a remote one) so Garage/Vehicle Detail show the picked photo
+      // immediately, before the create has even reached the server. Once
+      // reconcile() picks up the confirmed row from GET /vehicles, its own
+      // `photoUrl` (the real CDN url) naturally overwrites this local one —
+      // see ADR 0027's 2026-07-03 "local photo preview" update.
+      const stablePhoto = photo ? await persistVehiclePhoto(id, photo) : undefined;
       const vehicle: LocalVehicle = {
         id,
         ...data,
-        photoUrl: null,
+        photoUrl: stablePhoto?.uri ?? null,
         logEntryCount: 0,
         ...DEFAULT_DETAIL,
         sortOrder,
       };
-      // No local column tracks a pending photo — the reference lives only
-      // in this outbox entry's payload until it's uploaded; the next
-      // successful sync's applyDetail() picks up the confirmed photoUrl the
-      // same way it already does for a Vehicle created without one. See ADR
-      // 0027's 2026-07-03 "offline-durable photo upload" update.
       const outboxPayload: Record<string, unknown> = { id, ...data };
-      if (photo) outboxPayload.photo = await persistVehiclePhoto(id, photo);
+      if (stablePhoto) outboxPayload.photo = stablePhoto;
       await outboxWriter.save(vehicle, 'CREATE_VEHICLE', outboxPayload);
       return id;
     },

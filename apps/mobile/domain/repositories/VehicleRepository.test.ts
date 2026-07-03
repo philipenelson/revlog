@@ -236,7 +236,11 @@ describe('VehicleRepository', () => {
 
     expect(mockPersistVehiclePhoto).toHaveBeenCalledWith('generated-id', pickedPhoto);
     expect(save).toHaveBeenCalledWith(
-      expect.anything(),
+      // photoUrl is the stable local file, not null -- Garage/Vehicle
+      // Detail render it immediately, before the create has even reached
+      // the server. reconcile() overwrites it with the real url once
+      // confirmed.
+      expect.objectContaining({ photoUrl: stablePhoto.uri }),
       'CREATE_VEHICLE',
       expect.objectContaining({ photo: stablePhoto }),
     );
