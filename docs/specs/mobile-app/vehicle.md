@@ -1,7 +1,7 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only) and Edit Vehicle (UC-MOB-VEH-3) implemented, unit-tested, and E2E-verified live; Add/Delete not started
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete not started
 **Last updated:** 2026-07-03
 
 ---
@@ -90,12 +90,12 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 ## Acceptance Criteria
 
 - [x] Vehicle Detail reads from local SQLite — renders without network
-- [ ] Add Vehicle writes to SQLite + outbox in one transaction; navigates to detail on success
+- [x] Add Vehicle writes to SQLite + outbox in one transaction; navigates to detail on success
 - [x] Edit Vehicle pre-fills from SQLite; writes update to SQLite + outbox on save
 - [ ] Delete Vehicle shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
 - [x] Transfer-pending Vehicle shows locked state; action buttons disabled
 - [x] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
-- [ ] All form validation rules match the web spec (year range, required fields, mileage non-negative)
+- [x] All form validation rules match the web spec (year range, required fields, mileage non-negative) — both Add and Edit Vehicle validate via the shared `createVehicleSchema`
 
 ---
 
@@ -115,6 +115,10 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Edit Vehicle write path: `OutboxWriter<T>`, not `Store<T>.save()` + `OutboxRepository.enqueue()` | `VehicleRepository.update()` writes the vehicle row and enqueues the `UPDATE_VEHICLE` outbox entry in one `db.transaction()` via a new `OutboxWriter<T>` port | `Store<T>` is scoped to one table; a sequential save-then-enqueue isn't atomic and could lose an edit on a crash between the two calls, which is exactly what this ADR's outbox pattern exists to prevent. See ADR 0027's 2026-07-03 update |
 | Garage-stack header ownership: `headerShown: false` at the Stack level, not per-screen | `garage/_layout.tsx`'s `screenOptions` hides the native header for every route in the stack by default, rather than the previous pattern of a visible-by-default native header with `index`/`[vehicleId]/index` individually opting out | Found via manual testing, not E2E debugging: the old per-screen opt-out pattern left Edit Vehicle's route with a stray, visible-but-transparent native header on top of its own custom header, silently absorbing every tap on Save/Cancel. This was the actual cause of every symptom logged below and in the session summary's original (wrong) live-E2E investigation — see ADR 0028's 2026-07-03 update |
 | Edit Vehicle's E2E spec: `router.back()`, not `router.push()`, for Cancel and post-save success | Both handlers in `useEditVehicleViewModel` return to Vehicle Detail via `router.back()`; `useVehicleDetailViewModel` re-reads local SQLite on every `useFocusEffect` (not just on mount) so it shows the just-saved edit without a remount | Found via manual testing: `push()`ing the same route Edit was reached from stacked a second Detail instance on top of Edit instead of returning to the original, so a single "Garage" back-link tap from that second instance landed on the sandwiched Edit screen, not Garage. `back()` fixes the stack; `useFocusEffect` is needed because native-stack doesn't remount a screen it reveals via `back()`, so a plain mount-effect would keep showing pre-edit data |
+| Add Vehicle: `VehicleRepository.create()` generates the Vehicle's id client-side (`Crypto.randomUUID()`) rather than waiting for the server | The new local row, its `sortOrder` (placed ahead of existing rows — the next sync's `reconcile()` re-derives it from the server anyway), and the `CREATE_VEHICLE` outbox entry are all written in one `OutboxWriter<T>` transaction, matching Edit Vehicle's `update()` shape | UC-MOB-VEH-2 requires navigating straight to the new Vehicle's Detail screen on save, entirely offline-capable — there is no server-assigned id to navigate to yet at that point. Requires `POST /vehicles` to accept a client-supplied `id`, which it now does — see ADR 0027's 2026-07-03 "`POST /vehicles` accepts a client-supplied `id`" update for the full mechanism (including why the repository uses an upsert, not a plain create, to stay retry-safe) |
+| Add Vehicle's save handler: `router.replace()`, not `router.push()` or `back()` | On success, `useAddVehicleViewModel` calls `router.replace(\`/garage/${id}\`)`, putting the new Vehicle's Detail screen in place of Add Vehicle on the stack | Add Vehicle was itself reached by pushing from Garage. `push()`ing Detail on top would leave Add Vehicle's already-submitted form sitting underneath it, reachable by a `back()` from Detail; `replace()` means a single `back()` from Detail returns straight to Garage, with no stale form in between — same reasoning as Edit Vehicle's `back()` choice above, applied to the create path |
+| Add Vehicle's photo affordance is a static, non-interactive placeholder | Renders the same "Photo upload — V2" box `revlog-mobile-add-vehicle.html` designs, with no `Pressable`, no image picker wiring | Matches this spec's existing "Vehicle photo upload → V2" scope cut (Out of scope, below) — nothing to wire up yet; the box exists only so the screen matches its design file rather than omitting a designed element |
+| `createVehicleSchema`'s `nickname` field widened to accept `null`, not just `undefined` | Found while wiring `CREATE_VEHICLE`'s outbox payload: every mobile outbox payload (`CreateVehicleData`/`UpdateVehicleData`) types `nickname` as `string \| null` and always sends the key, so a blank nickname serializes as `"nickname": null` — which the schema rejected with a 400 before this fix, silently breaking the common no-nickname case for both Add and the already-shipped Edit Vehicle | See ADR 0027's 2026-07-03 "`POST /vehicles` accepts a client-supplied `id`" update for the full incident writeup. Pure widening (`null`, `undefined`, and a real string all still collapse to the same transformed output), so no web-side behaviour changes |
 
 ---
 
