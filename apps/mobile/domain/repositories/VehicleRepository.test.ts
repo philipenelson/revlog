@@ -4,6 +4,11 @@ import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
 import { createVehicleRepository, type LocalVehicleDetail } from './VehicleRepository';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'generated-id') }));
+jest.mock('@/infrastructure/storage/photoStorage', () => ({ persistVehiclePhoto: jest.fn() }));
+
+import { persistVehiclePhoto } from '@/infrastructure/storage/photoStorage';
+
+const mockPersistVehiclePhoto = persistVehiclePhoto as jest.MockedFunction<typeof persistVehiclePhoto>;
 
 function fakeOutboxWriter<T extends { id: string }>() {
   const save = jest.fn(async (_record: T, _outboxType: string, _outboxPayload: unknown) => {});
@@ -71,6 +76,8 @@ const defaultDetail = {
 };
 
 describe('VehicleRepository', () => {
+  afterEach(() => jest.clearAllMocks());
+
   it('findAll returns vehicles ordered by sortOrder, without leaking sortOrder or detail fields', async () => {
     const { store } = fakeStore([
       { ...vehicleB, ...defaultDetail, sortOrder: 1 },
@@ -215,6 +222,36 @@ describe('VehicleRepository', () => {
       'CREATE_VEHICLE',
       expect.anything(),
     );
+  });
+
+  it('create persists a picked photo locally and includes the stable reference in the outbox payload', async () => {
+    const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+    const pickedPhoto = { uri: 'file:///tmp/picker-cache/abc.jpg', name: 'photo.jpg', type: 'image/jpeg' };
+    const stablePhoto = { uri: 'file:///documents/vehicle-photos/generated-id.jpg', name: 'photo.jpg', type: 'image/jpeg' };
+    mockPersistVehiclePhoto.mockResolvedValue(stablePhoto);
+
+    await repo.create({ nickname: null, make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 }, pickedPhoto);
+
+    expect(mockPersistVehiclePhoto).toHaveBeenCalledWith('generated-id', pickedPhoto);
+    expect(save).toHaveBeenCalledWith(
+      expect.anything(),
+      'CREATE_VEHICLE',
+      expect.objectContaining({ photo: stablePhoto }),
+    );
+  });
+
+  it('create does not touch photo storage when no photo is given', async () => {
+    const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.create({ nickname: null, make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 });
+
+    expect(mockPersistVehiclePhoto).not.toHaveBeenCalled();
+    const [, , payload] = save.mock.calls[0]!;
+    expect(payload).not.toHaveProperty('photo');
   });
 
   it('applyDetail merges detail fields into the existing row', async () => {

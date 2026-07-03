@@ -2,6 +2,7 @@ import * as Crypto from 'expo-crypto';
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import type { Store } from '@/infrastructure/database/Store';
 import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
+import { persistVehiclePhoto, type PickedPhoto } from '@/infrastructure/storage/photoStorage';
 
 // Vehicle Detail-only fields — VehicleSummary (GET /vehicles) can't supply
 // these; they come from GET /vehicles/:vehicleId. See ADR 0027's 2026-07-03
@@ -58,7 +59,12 @@ export interface VehicleRepository {
   // secureStorage already use) so the screen can navigate to the new
   // Vehicle's Detail screen before the create has ever reached the server —
   // ADR 0027's 2026-07-03 update. Returns the new id.
-  create(data: CreateVehicleData): Promise<string>;
+  //
+  // If `photo` is given, it's persisted to stable local storage (keyed by
+  // the new id) before the outbox entry is written, and the entry's payload
+  // carries that stable reference — see ADR 0027's 2026-07-03
+  // "offline-durable photo upload" update.
+  create(data: CreateVehicleData, photo?: PickedPhoto): Promise<string>;
   // Applies `data` to the local row and enqueues an UPDATE_VEHICLE outbox
   // entry, atomically (OutboxWriter<T> — see ADR 0027's 2026-07-03 update).
   // No-op if the Vehicle isn't known locally.
@@ -100,7 +106,7 @@ export function createVehicleRepository(
       return detail;
     },
 
-    async create(data: CreateVehicleData): Promise<string> {
+    async create(data: CreateVehicleData, photo?: PickedPhoto): Promise<string> {
       const id = Crypto.randomUUID();
       // Newly-created Vehicles sort first, matching GET /vehicles' own
       // updatedAt-desc ordering (garage-list-api.md's "sort order proxy") —
@@ -117,7 +123,14 @@ export function createVehicleRepository(
         ...DEFAULT_DETAIL,
         sortOrder,
       };
-      await outboxWriter.save(vehicle, 'CREATE_VEHICLE', { id, ...data });
+      // No local column tracks a pending photo — the reference lives only
+      // in this outbox entry's payload until it's uploaded; the next
+      // successful sync's applyDetail() picks up the confirmed photoUrl the
+      // same way it already does for a Vehicle created without one. See ADR
+      // 0027's 2026-07-03 "offline-durable photo upload" update.
+      const outboxPayload: Record<string, unknown> = { id, ...data };
+      if (photo) outboxPayload.photo = await persistVehiclePhoto(id, photo);
+      await outboxWriter.save(vehicle, 'CREATE_VEHICLE', outboxPayload);
       return id;
     },
 
