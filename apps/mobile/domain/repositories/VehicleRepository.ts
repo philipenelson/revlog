@@ -31,8 +31,12 @@ export interface VehicleRepository {
   // Replaces the local Vehicle list with exactly what the API returned,
   // preserving its order. Called by SyncService.pull()'s phase 1 — see ADR
   // 0027's 2026-07-02 update for the phased parent-then-child sequencing.
-  // Detail fields default to DEFAULT_DETAIL here; phase 2's applyDetail()
-  // fills them in before pull() returns (2026-07-03 update).
+  // Preserves each Vehicle's already-known detail fields across the
+  // replace (falling back to DEFAULT_DETAIL for a Vehicle seen for the
+  // first time); phase 2's applyDetail() then refreshes them from the API
+  // before pull() returns. This means a Vehicle whose phase-2 fetch fails
+  // this cycle keeps last cycle's detail fields rather than losing them —
+  // see ADR 0027's 2026-07-03 update.
   reconcile(vehicles: VehicleSummary[]): Promise<void>;
   // Merges Vehicle Detail fields into an already-reconciled row. Called by
   // SyncService.pull()'s phase 2, once per Vehicle.
@@ -59,8 +63,14 @@ export function createVehicleRepository(store: Store<LocalVehicle>): VehicleRepo
     },
 
     async reconcile(vehicles: VehicleSummary[]): Promise<void> {
+      const existing = await store.getAll();
+      const existingDetailById = new Map(existing.map((row) => [row.id, extractDetail(row)]));
       await store.replaceAll(
-        vehicles.map((vehicle, index) => ({ ...vehicle, ...DEFAULT_DETAIL, sortOrder: index })),
+        vehicles.map((vehicle, index) => ({
+          ...vehicle,
+          ...(existingDetailById.get(vehicle.id) ?? DEFAULT_DETAIL),
+          sortOrder: index,
+        })),
       );
     },
 
@@ -75,4 +85,9 @@ export function createVehicleRepository(store: Store<LocalVehicle>): VehicleRepo
 function stripDetail(vehicle: LocalVehicleDetail): VehicleSummary {
   const { totalSpent: _totalSpent, lastLoggedAt: _lastLoggedAt, transferPending: _transferPending, pendingTransferRecipientEmail: _pendingTransferRecipientEmail, ...summary } = vehicle;
   return summary;
+}
+
+function extractDetail(row: LocalVehicleDetail): VehicleDetailFields {
+  const { totalSpent, lastLoggedAt, transferPending, pendingTransferRecipientEmail } = row;
+  return { totalSpent, lastLoggedAt, transferPending, pendingTransferRecipientEmail };
 }

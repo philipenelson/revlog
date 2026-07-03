@@ -103,6 +103,37 @@ describe('VehicleRepository', () => {
     expect(getRows()).toEqual([]);
   });
 
+  it('reconcile preserves an already-known vehicle\'s detail fields instead of resetting them', async () => {
+    const { getRows, store } = fakeStore([
+      {
+        ...vehicleA,
+        sortOrder: 0,
+        totalSpent: '1840.00',
+        lastLoggedAt: '2026-06-28',
+        transferPending: true,
+        pendingTransferRecipientEmail: 'alex@example.com',
+      },
+    ]);
+    const repo = createVehicleRepository(store);
+
+    // vehicleA reappears in the fresh GET /vehicles list (phase 1); its
+    // previously-fetched detail fields must survive this replace even
+    // though VehicleSummary alone can't supply them.
+    await repo.reconcile([vehicleA, vehicleB]);
+
+    expect(getRows()).toEqual([
+      {
+        ...vehicleA,
+        sortOrder: 0,
+        totalSpent: '1840.00',
+        lastLoggedAt: '2026-06-28',
+        transferPending: true,
+        pendingTransferRecipientEmail: 'alex@example.com',
+      },
+      { ...vehicleB, ...defaultDetail, sortOrder: 1 },
+    ]);
+  });
+
   it('findById returns the vehicle with detail fields, without leaking sortOrder', async () => {
     const { store } = fakeStore([
       {
