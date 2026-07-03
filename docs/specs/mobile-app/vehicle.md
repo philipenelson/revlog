@@ -1,8 +1,8 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete not started
-**Last updated:** 2026-07-03
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete Vehicle (UC-MOB-VEH-4) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator (see Decisions)
+**Last updated:** 2026-07-04
 
 ---
 
@@ -92,7 +92,7 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - [x] Vehicle Detail reads from local SQLite — renders without network
 - [x] Add Vehicle writes to SQLite + outbox in one transaction; navigates to detail on success
 - [x] Edit Vehicle pre-fills from SQLite; writes update to SQLite + outbox on save
-- [ ] Delete Vehicle shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
+- [x] Delete Vehicle shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
 - [x] Transfer-pending Vehicle shows locked state; action buttons disabled
 - [x] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
 - [x] Add Vehicle: a picked photo persists to local storage and uploads via the outbox, surviving an app kill/restart while offline
@@ -107,6 +107,10 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Writes via outbox | SQLite + outbox in one transaction | Guarantees consistency: UI update and sync intent are atomic |
 | Vehicle photo upload on Add Vehicle | In scope for V1, offline-durable via the outbox (not deferred to V2 as an earlier planning pass had it — see this file's history) | The Owner picks a photo from their library (`expo-image-picker`); it's copied into stable local storage (`expo-file-system`, keyed by the Vehicle's client-generated id) before the `CREATE_VEHICLE` outbox entry is written, so the file survives an app kill even while offline. The entry's payload carries that local reference; `outboxHandlers.ts`'s `CREATE_VEHICLE` handler uploads it via a multipart create-with-photo call (`createVehicleWithPhotoUri`, the React-Native-shaped sibling of the web's `createVehicleWithPhoto`) when it runs, and deletes the local file once the upload succeeds or is permanently rejected. See ADR 0027's 2026-07-03 "offline-durable photo upload" update |
 | Delete cascade | Local SQLite cascade + single `DELETE_VEHICLE` outbox entry | API hard-delete cascades server-side; single outbox entry is sufficient |
+| Delete Vehicle ships (supersedes the "Edit Vehicle ships without the danger zone" deferral below — its blocker, a registered `DELETE_VEHICLE` outbox handler, now exists) | `VehicleRepository.delete()` + a `DELETE_VEHICLE` case in `outboxHandlers.ts`, both landed 2026-07-04 | The deferral's own reasoning (`SyncService.flushOutbox()` permanently fails any entry type with no registered handler) no longer applies once the handler exists — same resolution pattern as this file's other superseded rows |
+| `OutboxWriter<T>` gets a `remove()` sibling to `save()` | `remove(id, outboxType, outboxPayload)` deletes the row and enqueues the outbox entry in one `db.transaction()`, mirroring `save()`'s shape | A separate `Store<T>.remove()` call plus a separate outbox enqueue wouldn't be atomic across a crash between the two — the same reasoning ADR 0027 already used for `save()`, applied to the delete path |
+| Delete cleans up a not-yet-synced local photo file | `VehicleRepository.delete()` calls `deleteVehiclePhoto()` when the row's `photoUrl` is still a local `file://` reference (i.e. picked on Add Vehicle, not yet uploaded); a reconciled remote CDN url is left alone | Without this, deleting a Vehicle created offline with a photo, before its `CREATE_VEHICLE` outbox entry ever syncs, would permanently orphan that file in local storage — nothing else ever cleans it up |
+| Delete navigates via `router.dismissTo('/garage')`, not `back()` or `replace()` | Pops both Vehicle Detail and this Edit screen off the stack in one call, landing on the already-existing Garage instance underneath | Edit Vehicle sits two levels below Garage (Garage → Detail → Edit); `back()` only pops one level, and `replace()` (the pattern Add/Edit Vehicle already use elsewhere in this file) only swaps the *current* screen, leaving the deleted Vehicle's stale Detail screen still reachable via a back navigation from the resulting Garage. `dismissTo()` (expo-router 57, see ADR 0031) is the primitive built for exactly this — pop-to-existing-route — case |
 | Vehicle Detail: insurance not displayed | No insurance row/dialog on mobile Vehicle Detail in V1, unlike the web spec | `revlog-mobile-vehicle-detail.html` has no insurance affordance in either state; no mobile spec has designed insurance edit UX yet. `SyncService` fetches `insurance` per ADR 0027's 2026-07-03 update but discards it — nothing reads it. Revisit as its own spec when mobile insurance UX is designed, rather than bolting a web-parity row onto this screen |
 | Vehicle Detail: transfer-pending is read-only | Detail shows the locked banner (UC-MOB-VEH-5 steps 1–2) but no `[Cancel transfer]` action | Cancelling requires an `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox handler and `transferService` wiring that don't exist yet — `SyncService.flushOutbox()` marks any entry with no registered handler `failed` permanently (see SyncService.ts), so enqueueing `CANCEL_TRANSFER` before its handler exists would silently and permanently no-op the cancellation. That handler pairs naturally with `INITIATE_TRANSFER`, both squarely in `docs/specs/mobile-app/vehicle-transfer.md`'s scope, so the cancel affordance ships there instead |
 | Vehicle Detail: no type filter / sort control | Service history always renders newest-first, no filter dropdown | Unlike the web spec, this file's Acceptance Criteria and the design file never called for one; keeps V1 scope matched to what's actually specified here |
@@ -135,4 +139,4 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - Insurance display/edit on mobile Vehicle Detail → needs its own spec (see Decisions above)
 - Cancel transfer action on mobile Vehicle Detail → ships with `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen
 - Type filter / sort control on mobile Service History → not specified for V1
-- Danger zone / Delete Vehicle (UC-MOB-VEH-4) on the Edit Vehicle screen → its own step, needs a `DELETE_VEHICLE` outbox handler and confirmation dialog (see Decisions above)
+- Appium E2E run against a live simulator for Delete Vehicle (UC-MOB-VEH-4) → the spec at `apps/mobile/e2e/specs/edit-vehicle.e2e.ts` is written and typechecks, but this pass didn't have a simulator available to run it against a live backend
