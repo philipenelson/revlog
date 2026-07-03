@@ -1,6 +1,7 @@
-import { createVehicle, updateVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
 import { logger } from '@/infrastructure/logging/logger';
+import { deleteVehiclePhoto } from '@/infrastructure/storage/photoStorage';
 
 interface CreateVehicleOutboxPayload {
   id: string;
@@ -9,6 +10,11 @@ interface CreateVehicleOutboxPayload {
   model: string;
   year: number;
   mileage: number;
+  // Present only when the Owner picked a photo on Add Vehicle -- the stable
+  // local reference persistVehiclePhoto() wrote before this entry was
+  // enqueued. See ADR 0027's 2026-07-03 "offline-durable photo upload"
+  // update.
+  photo?: { uri: string; name: string; type: string };
 }
 
 interface UpdateVehicleOutboxPayload {
@@ -37,9 +43,13 @@ function isRetryable(err: unknown): boolean {
 export function createOutboxHandlers(client: HttpClient): Record<string, OutboxHandler> {
   return {
     CREATE_VEHICLE: async (payload) => {
-      const data = payload as CreateVehicleOutboxPayload;
+      const { photo, ...data } = payload as CreateVehicleOutboxPayload;
       try {
-        await createVehicle(client, data);
+        if (photo) {
+          await createVehicleWithPhotoUri(client, data, photo);
+        } else {
+          await createVehicle(client, data);
+        }
       } catch (err) {
         if (isRetryable(err)) {
           throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
@@ -48,8 +58,14 @@ export function createOutboxHandlers(client: HttpClient): Record<string, OutboxH
           vehicleId: data.id,
           err: String(err),
         });
+        // Terminal outcome (permanent failure) -- nothing will retry this
+        // file, same reasoning as the success path below.
+        if (photo) deleteVehiclePhoto(photo.uri);
         throw err;
       }
+      // Only after a terminal success -- a retryable failure above leaves
+      // the file in place for the next flush attempt to find.
+      if (photo) deleteVehiclePhoto(photo.uri);
     },
 
     UPDATE_VEHICLE: async (payload) => {
