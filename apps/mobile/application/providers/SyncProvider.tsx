@@ -35,7 +35,26 @@ export function SyncProvider({ children }: PropsWithChildren) {
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const wasOnline = useRef(isOnline);
 
-  async function runFullSync(): Promise<void> {
+  // Single-flight, mirroring TokenHttpClient's refreshOnce() -- mount,
+  // reconnect, app-foreground, and an explicit pull-to-refresh can all fire
+  // close together with no other coordination between them. Without this,
+  // two overlapping runFullSync() calls can both pick up the same pending
+  // outbox entry (SyncService.flushOutbox() has no cross-call locking
+  // either): harmless for a plain CREATE_VEHICLE/UPDATE_VEHICLE (idempotent
+  // upsert/PATCH), but for a photo upload, one call's success can delete the
+  // local stable-storage file (see outboxHandlers.ts) out from under the
+  // other call's still-in-flight read of that same file, surfacing as a
+  // spurious "no such file" failure. See ADR 0027's 2026-07-03 update.
+  const syncInFlight = useRef<Promise<void> | null>(null);
+
+  function runFullSync(): Promise<void> {
+    syncInFlight.current ??= performSync().finally(() => {
+      syncInFlight.current = null;
+    });
+    return syncInFlight.current;
+  }
+
+  async function performSync(): Promise<void> {
     if (!isReady || !vehicleRepository || !outboxRepository || !logEntryRepository || !session) return;
 
     setSyncStatus('syncing');

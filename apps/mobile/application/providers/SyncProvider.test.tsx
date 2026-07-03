@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { act, render, waitFor } from '@testing-library/react-native';
 import type { Session } from '@maintenance-log/api-client';
 import { SyncProvider, useSync } from './SyncProvider';
 
@@ -103,6 +103,47 @@ describe('SyncProvider', () => {
 
     await waitFor(() => expect(latestValue!.syncStatus).toBe('error'));
     expect(latestValue!.lastSyncedAt).toBeNull();
+  });
+
+  it('coalesces overlapping refresh() calls into a single in-flight sync', async () => {
+    setReady(fakeSession);
+    const deferred: Array<() => void> = [];
+    const runFullSync = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          deferred.push(resolve);
+        }),
+    );
+    mockCreateSyncService.mockReturnValue({ pull: jest.fn(), flushOutbox: jest.fn(), runFullSync });
+
+    await render(
+      <SyncProvider>
+        <Probe />
+      </SyncProvider>,
+    );
+    await waitFor(() => expect(runFullSync).toHaveBeenCalledTimes(1));
+
+    // A manual pull-to-refresh (or a reconnect/foreground trigger) firing
+    // while the mount-triggered sync is still in flight must not start a
+    // second, overlapping SyncService.runFullSync() call -- see the
+    // "no such file" photo-upload race this coalescing prevents.
+    const overlapping = latestValue!.refresh();
+    expect(runFullSync).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      deferred[0]!();
+      await overlapping;
+    });
+    expect(runFullSync).toHaveBeenCalledTimes(1);
+
+    // A later, non-overlapping refresh() still triggers its own sync --
+    // the guard only coalesces truly concurrent calls, it doesn't wedge.
+    const later = latestValue!.refresh();
+    expect(runFullSync).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      deferred[1]!();
+      await later;
+    });
   });
 
   it('reflects netinfo connectivity as isOnline', async () => {
