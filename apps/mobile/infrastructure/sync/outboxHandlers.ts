@@ -1,7 +1,7 @@
 import { createVehicle, createVehicleWithPhotoUri, updateVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
 import { logger } from '@/infrastructure/logging/logger';
-import { deleteVehiclePhoto } from '@/infrastructure/storage/photoStorage';
+import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
 
 interface CreateVehicleOutboxPayload {
   id: string;
@@ -46,7 +46,7 @@ export function createOutboxHandlers(client: HttpClient): Record<string, OutboxH
       const { photo, ...data } = payload as CreateVehicleOutboxPayload;
       try {
         if (photo) {
-          await createVehicleWithPhotoUri(client, data, photo);
+          await createVehicleWithPhotoUri(client, data, openVehiclePhotoFile(photo.uri));
         } else {
           await createVehicle(client, data);
         }

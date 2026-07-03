@@ -31,3 +31,16 @@ export function deleteVehiclePhoto(uri: string): void {
   const file = new File(uri);
   if (file.exists) file.delete();
 }
+
+// Opens a live File handle on a stable photo reference, for the
+// CREATE_VEHICLE outbox handler to actually upload. `File` implements
+// `Blob` (arrayBuffer/bytes/slice/stream/type) -- required because Expo's
+// own fetch (this app's global `fetch`) only accepts a real Blob-like value
+// for a FormData file part; a plain `{ uri, name, type }` descriptor (the
+// classic React Native FormData convention, and this outbox entry's own
+// serializable payload shape) throws "Unsupported FormDataPart
+// implementation" there. This is the one place that plain descriptor gets
+// converted into something actually uploadable.
+export function openVehiclePhotoFile(uri: string): File {
+  return new File(uri);
+}

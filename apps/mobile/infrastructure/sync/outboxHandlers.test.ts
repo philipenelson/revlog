@@ -8,15 +8,19 @@ jest.mock('@maintenance-log/api-client', () => ({
   createVehicleWithPhotoUri: jest.fn(),
   updateVehicle: jest.fn(),
 }));
-jest.mock('@/infrastructure/storage/photoStorage', () => ({ deleteVehiclePhoto: jest.fn() }));
+jest.mock('@/infrastructure/storage/photoStorage', () => ({
+  deleteVehiclePhoto: jest.fn(),
+  openVehiclePhotoFile: jest.fn(),
+}));
 
 import { createVehicle, createVehicleWithPhotoUri, updateVehicle } from '@maintenance-log/api-client';
-import { deleteVehiclePhoto } from '@/infrastructure/storage/photoStorage';
+import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
 
 const mockCreateVehicle = createVehicle as jest.MockedFunction<typeof createVehicle>;
 const mockCreateVehicleWithPhotoUri = createVehicleWithPhotoUri as jest.MockedFunction<typeof createVehicleWithPhotoUri>;
 const mockUpdateVehicle = updateVehicle as jest.MockedFunction<typeof updateVehicle>;
 const mockDeleteVehiclePhoto = deleteVehiclePhoto as jest.MockedFunction<typeof deleteVehiclePhoto>;
+const mockOpenVehiclePhotoFile = openVehiclePhotoFile as jest.MockedFunction<typeof openVehiclePhotoFile>;
 const fakeClient = {} as HttpClient;
 
 const createPayload = {
@@ -30,6 +34,8 @@ const createPayload = {
 
 const stablePhoto = { uri: 'file:///documents/vehicle-photos/v1.jpg', name: 'photo.jpg', type: 'image/jpeg' };
 const createPayloadWithPhoto = { ...createPayload, photo: stablePhoto };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fakeOpenedFile = { name: 'v1.jpg', type: 'image/jpeg', bytes: jest.fn() } as any;
 
 const payload = { vehicleId: 'v1', nickname: 'Blackbird', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 };
 
@@ -67,17 +73,20 @@ describe('outboxHandlers.CREATE_VEHICLE', () => {
     await expect(handlers.CREATE_VEHICLE!(createPayload)).rejects.toBe(badRequest);
   });
 
-  it('when a photo is present, uploads via createVehicleWithPhotoUri instead of createVehicle', async () => {
+  it('when a photo is present, opens a File handle on the stable path and uploads via createVehicleWithPhotoUri', async () => {
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
     mockCreateVehicleWithPhotoUri.mockResolvedValue(undefined);
     const handlers = createOutboxHandlers(fakeClient);
 
     await handlers.CREATE_VEHICLE!(createPayloadWithPhoto);
 
-    expect(mockCreateVehicleWithPhotoUri).toHaveBeenCalledWith(fakeClient, createPayload, stablePhoto);
+    expect(mockOpenVehiclePhotoFile).toHaveBeenCalledWith(stablePhoto.uri);
+    expect(mockCreateVehicleWithPhotoUri).toHaveBeenCalledWith(fakeClient, createPayload, fakeOpenedFile);
     expect(mockCreateVehicle).not.toHaveBeenCalled();
   });
 
   it('deletes the local photo file after a successful upload', async () => {
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
     mockCreateVehicleWithPhotoUri.mockResolvedValue(undefined);
     const handlers = createOutboxHandlers(fakeClient);
 
@@ -87,6 +96,7 @@ describe('outboxHandlers.CREATE_VEHICLE', () => {
   });
 
   it('deletes the local photo file after a permanent (4xx) failure', async () => {
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
     mockCreateVehicleWithPhotoUri.mockRejectedValue(new ApiError(400, { error: 'Invalid input' }));
     const handlers = createOutboxHandlers(fakeClient);
 
@@ -95,6 +105,7 @@ describe('outboxHandlers.CREATE_VEHICLE', () => {
   });
 
   it('keeps the local photo file after a retryable failure, for the next flush attempt to find', async () => {
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
     mockCreateVehicleWithPhotoUri.mockRejectedValue(new ApiError(500, {}));
     const handlers = createOutboxHandlers(fakeClient);
 

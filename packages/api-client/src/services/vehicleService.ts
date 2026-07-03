@@ -58,24 +58,25 @@ export async function createVehicleWithPhoto(
   await client.post('/vehicles', fd);
 }
 
-// React Native's own `FormData` accepts a `{ uri, name, type }` descriptor
-// for a file part; DOM's `FormData.append()` typing (this package also
-// compiles against the web client) only models `string | Blob`, which is
-// why this isn't just an overload of createVehicleWithPhoto above -- this is
-// the one place a cross-platform package's shared types meet a
-// platform-specific runtime shape. Used by the mobile Add Vehicle screen's
-// CREATE_VEHICLE outbox handler (ADR 0027's 2026-07-03 "offline-durable
-// photo upload" update), never by web.
-export interface RNPhotoFile {
-  uri: string;
+// A Blob-like value with a name/type/bytes() — satisfied by expo-file-
+// system's `File` (which `implements Blob`), NOT a plain `{ uri, name,
+// type }` descriptor. This package's web-only createVehicleWithPhoto above
+// takes a DOM `File` directly; a separate function exists here because this
+// package doesn't (and shouldn't) depend on expo-file-system to name that
+// type precisely — a minimal structural interface is enough for FormData's
+// purposes. Used by the mobile Add Vehicle screen's CREATE_VEHICLE outbox
+// handler (ADR 0027's 2026-07-03 "offline-durable photo upload" update),
+// never by web.
+export interface UploadableFile {
   name: string;
   type: string;
+  bytes(): Promise<Uint8Array>;
 }
 
 export async function createVehicleWithPhotoUri(
   client: HttpClient,
   payload: CreateVehiclePayload,
-  photo: RNPhotoFile,
+  photo: UploadableFile,
 ): Promise<void> {
   const fd = buildCreateVehicleFormData(payload);
   fd.append('photo', photo as unknown as Blob);

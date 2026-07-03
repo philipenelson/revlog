@@ -35,7 +35,7 @@ jest.mock('expo-file-system', () => {
   return { File: MockFile, Directory: MockDirectory, Paths: { document: 'file:///mock-documents' } };
 });
 
-import { persistVehiclePhoto, deleteVehiclePhoto } from './photoStorage';
+import { persistVehiclePhoto, deleteVehiclePhoto, openVehiclePhotoFile } from './photoStorage';
 
 describe('photoStorage', () => {
   beforeEach(() => {
@@ -85,5 +85,11 @@ describe('photoStorage', () => {
     deleteVehiclePhoto('file:///mock-documents/vehicle-photos/vehicle-1.jpg');
 
     expect(deleteCalls).toEqual([]);
+  });
+
+  it('openVehiclePhotoFile returns a live File handle on the given uri', () => {
+    const file = openVehiclePhotoFile('file:///mock-documents/vehicle-photos/vehicle-1.jpg');
+
+    expect(file.uri).toBe('file:///mock-documents/vehicle-photos/vehicle-1.jpg');
   });
 });
