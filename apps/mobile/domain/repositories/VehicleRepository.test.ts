@@ -3,6 +3,8 @@ import type { Store, StoreQueryOptions } from '@/infrastructure/database/Store';
 import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
 import { createVehicleRepository, type LocalVehicleDetail } from './VehicleRepository';
 
+jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'generated-id') }));
+
 function fakeOutboxWriter<T extends { id: string }>() {
   const save = jest.fn(async (_record: T, _outboxType: string, _outboxPayload: unknown) => {});
   return { writer: { save } as OutboxWriter<T>, save };
@@ -170,6 +172,49 @@ describe('VehicleRepository', () => {
     const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     expect(await repo.findById('missing')).toBeNull();
+  });
+
+  it('create writes a new row with a generated id and default detail fields, and enqueues a CREATE_VEHICLE outbox entry atomically', async () => {
+    const { store, getRows } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    const id = await repo.create({ nickname: 'Blackbird', make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 });
+
+    expect(id).toBe('generated-id');
+    expect(save).toHaveBeenCalledWith(
+      {
+        id: 'generated-id',
+        nickname: 'Blackbird',
+        make: 'Honda',
+        model: 'CB650R',
+        year: 2019,
+        mileage: 4200,
+        photoUrl: null,
+        logEntryCount: 0,
+        ...defaultDetail,
+        sortOrder: 0,
+      },
+      'CREATE_VEHICLE',
+      { id: 'generated-id', nickname: 'Blackbird', make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 },
+    );
+    // The write goes through OutboxWriter, never the plain Store.save.
+    expect(store.save).not.toHaveBeenCalled();
+    expect(getRows()).toEqual([]); // fakeOutboxWriter doesn't touch the store
+  });
+
+  it('create sorts a new vehicle ahead of existing ones', async () => {
+    const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.create({ nickname: null, make: 'KTM', model: '390 Duke', year: 2021, mileage: 1800 });
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ sortOrder: -1 }),
+      'CREATE_VEHICLE',
+      expect.anything(),
+    );
   });
 
   it('applyDetail merges detail fields into the existing row', async () => {

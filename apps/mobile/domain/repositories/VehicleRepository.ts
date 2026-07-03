@@ -1,3 +1,4 @@
+import * as Crypto from 'expo-crypto';
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import type { Store } from '@/infrastructure/database/Store';
 import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
@@ -37,9 +38,27 @@ export interface UpdateVehicleData {
   mileage: number;
 }
 
+// UC-MOB-VEH-2's fields — same shape as UpdateVehicleData minus the id,
+// mirrors the web spec's CreateVehiclePayload (docs/specs/garage/
+// vehicle-creation-api.md).
+export interface CreateVehicleData {
+  nickname: string | null;
+  make: string;
+  model: string;
+  year: number;
+  mileage: number;
+}
+
 export interface VehicleRepository {
   findAll(): Promise<VehicleSummary[]>;
   findById(id: string): Promise<LocalVehicleDetail | null>;
+  // Writes a new local row and enqueues a CREATE_VEHICLE outbox entry,
+  // atomically (OutboxWriter<T>). Generates the Vehicle's id client-side
+  // (Crypto.randomUUID(), the same primitive OutboxRepository and
+  // secureStorage already use) so the screen can navigate to the new
+  // Vehicle's Detail screen before the create has ever reached the server —
+  // ADR 0027's 2026-07-03 update. Returns the new id.
+  create(data: CreateVehicleData): Promise<string>;
   // Applies `data` to the local row and enqueues an UPDATE_VEHICLE outbox
   // entry, atomically (OutboxWriter<T> — see ADR 0027's 2026-07-03 update).
   // No-op if the Vehicle isn't known locally.
@@ -79,6 +98,27 @@ export function createVehicleRepository(
       if (!row) return null;
       const { sortOrder: _sortOrder, ...detail } = row;
       return detail;
+    },
+
+    async create(data: CreateVehicleData): Promise<string> {
+      const id = Crypto.randomUUID();
+      // Newly-created Vehicles sort first, matching GET /vehicles' own
+      // updatedAt-desc ordering (garage-list-api.md's "sort order proxy") —
+      // the next successful sync's reconcile() will re-derive sortOrder
+      // from the server's order anyway, so this only governs the brief
+      // window before that.
+      const existing = await store.getAll();
+      const sortOrder = existing.length > 0 ? Math.min(...existing.map((row) => row.sortOrder)) - 1 : 0;
+      const vehicle: LocalVehicle = {
+        id,
+        ...data,
+        photoUrl: null,
+        logEntryCount: 0,
+        ...DEFAULT_DETAIL,
+        sortOrder,
+      };
+      await outboxWriter.save(vehicle, 'CREATE_VEHICLE', { id, ...data });
+      return id;
     },
 
     async update(vehicleId: string, data: UpdateVehicleData): Promise<void> {
