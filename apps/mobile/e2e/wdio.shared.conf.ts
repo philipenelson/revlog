@@ -15,6 +15,7 @@ export const config: Omit<Options.Testrunner, 'capabilities'> = {
     './specs/garage.e2e.ts',
     './specs/vehicle-detail.e2e.ts',
     './specs/edit-vehicle.e2e.ts',
+    './specs/add-vehicle.e2e.ts',
   ],
   maxInstances: 1,
   logLevel: 'warn',

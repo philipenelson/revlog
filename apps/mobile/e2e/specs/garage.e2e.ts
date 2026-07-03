@@ -80,9 +80,12 @@ describe('Garage screen', () => {
 
     await emptyCta.click();
 
-    const addVehiclePlaceholder = await $(byTestId('placeholder-add-vehicle'));
-    await addVehiclePlaceholder.waitForDisplayed({ timeout: 15000 });
-    await expect(addVehiclePlaceholder).toBeDisplayed();
+    // Add Vehicle is a real screen now (see add-vehicle.e2e.ts for its own
+    // coverage) -- this test only needs to confirm the CTA actually
+    // navigates there.
+    const makeInput = await $(byTestId('add-vehicle-make-input'));
+    await makeInput.waitForDisplayed({ timeout: 15000 });
+    await expect(makeInput).toBeDisplayed();
   });
 
   it('the FAB navigates to Add Vehicle', async () => {
@@ -97,9 +100,9 @@ describe('Garage screen', () => {
     await fab.waitForDisplayed({ timeout: 35000 });
     await fab.click();
 
-    const addVehiclePlaceholder = await $(byTestId('placeholder-add-vehicle'));
-    await addVehiclePlaceholder.waitForDisplayed({ timeout: 15000 });
-    await expect(addVehiclePlaceholder).toBeDisplayed();
+    const makeInput = await $(byTestId('add-vehicle-make-input'));
+    await makeInput.waitForDisplayed({ timeout: 15000 });
+    await expect(makeInput).toBeDisplayed();
   });
 
   // Offline-banner coverage is intentionally not automated here: this
