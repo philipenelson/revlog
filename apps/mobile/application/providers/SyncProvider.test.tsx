@@ -29,6 +29,8 @@ const fakeSession: Session = {
 const fakeVehicleRepository = {} as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const fakeOutboxRepository = { listPending: jest.fn(async () => []) } as any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fakeLogEntryRepository = {} as any;
 
 let latestValue: ReturnType<typeof useSync> | undefined;
 
@@ -43,6 +45,7 @@ function setReady(session: Session | null) {
     isReady: true,
     vehicleRepository: fakeVehicleRepository,
     outboxRepository: fakeOutboxRepository,
+    logEntryRepository: fakeLogEntryRepository,
   });
   mockUseNetInfo.mockReturnValue({ isConnected: true } as ReturnType<typeof useNetInfo>);
 }
@@ -104,7 +107,12 @@ describe('SyncProvider', () => {
 
   it('reflects netinfo connectivity as isOnline', async () => {
     mockUseAuth.mockReturnValue({ session: null, isRestoring: false, setSession: jest.fn(), clearSession: jest.fn() });
-    mockUseDatabase.mockReturnValue({ isReady: false, vehicleRepository: null, outboxRepository: null });
+    mockUseDatabase.mockReturnValue({
+      isReady: false,
+      vehicleRepository: null,
+      outboxRepository: null,
+      logEntryRepository: null,
+    });
     mockUseNetInfo.mockReturnValue({ isConnected: false } as ReturnType<typeof useNetInfo>);
 
     await render(

@@ -40,5 +40,7 @@ describe('DatabaseProvider', () => {
     expect(latestValue!.vehicleRepository).toHaveProperty('reconcile');
     expect(latestValue!.outboxRepository).toHaveProperty('enqueue');
     expect(latestValue!.outboxRepository).toHaveProperty('listPending');
+    expect(latestValue!.logEntryRepository).toHaveProperty('findByVehicleId');
+    expect(latestValue!.logEntryRepository).toHaveProperty('reconcile');
   });
 });

@@ -1,19 +1,21 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { openDatabase } from '@/infrastructure/database/openDatabase';
 import { createSQLiteStore } from '@/infrastructure/database/SQLiteStore';
-import { vehiclesTable, outboxTable } from '@/infrastructure/database/schema';
-import { createVehicleRepository, type VehicleRepository } from '@/domain/repositories/VehicleRepository';
+import { vehiclesTable, outboxTable, logEntriesTable } from '@/infrastructure/database/schema';
+import { createVehicleRepository, type VehicleRepository, type LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import {
   createOutboxRepository,
   type OutboxRepository,
   type OutboxEntry,
 } from '@/domain/repositories/OutboxRepository';
-import type { VehicleSummary } from '@maintenance-log/api-client';
+import { createLogEntryRepository, type LogEntryRepository } from '@/domain/repositories/LogEntryRepository';
+import type { LogEntrySummary } from '@maintenance-log/api-client';
 
 interface DatabaseContextValue {
   isReady: boolean;
   vehicleRepository: VehicleRepository | null;
   outboxRepository: OutboxRepository | null;
+  logEntryRepository: LogEntryRepository | null;
 }
 
 const DatabaseContext = createContext<DatabaseContextValue | null>(null);
@@ -28,6 +30,7 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
     isReady: false,
     vehicleRepository: null,
     outboxRepository: null,
+    logEntryRepository: null,
   });
 
   useEffect(() => {
@@ -36,10 +39,13 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
     openDatabase().then((db) => {
       if (cancelled) return;
       const vehicleRepository = createVehicleRepository(
-        createSQLiteStore<VehicleSummary & { sortOrder: number }>(db, vehiclesTable),
+        createSQLiteStore<LocalVehicleDetail & { sortOrder: number }>(db, vehiclesTable),
       );
       const outboxRepository = createOutboxRepository(createSQLiteStore<OutboxEntry>(db, outboxTable));
-      setValue({ isReady: true, vehicleRepository, outboxRepository });
+      const logEntryRepository = createLogEntryRepository(
+        createSQLiteStore<LogEntrySummary & { vehicleId: string }>(db, logEntriesTable),
+      );
+      setValue({ isReady: true, vehicleRepository, outboxRepository, logEntryRepository });
     });
 
     return () => {

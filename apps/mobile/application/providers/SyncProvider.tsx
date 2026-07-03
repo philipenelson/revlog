@@ -30,7 +30,7 @@ const NO_HANDLERS: Record<string, OutboxHandler> = {};
 // while unauthenticated or before the local database is ready.
 export function SyncProvider({ children }: PropsWithChildren) {
   const { session } = useAuth();
-  const { isReady, vehicleRepository, outboxRepository } = useDatabase();
+  const { isReady, vehicleRepository, outboxRepository, logEntryRepository } = useDatabase();
   const netInfo = useNetInfo();
   const isOnline = netInfo.isConnected ?? true;
 
@@ -40,12 +40,13 @@ export function SyncProvider({ children }: PropsWithChildren) {
   const wasOnline = useRef(isOnline);
 
   async function runFullSync(): Promise<void> {
-    if (!isReady || !vehicleRepository || !outboxRepository || !session) return;
+    if (!isReady || !vehicleRepository || !outboxRepository || !logEntryRepository || !session) return;
 
     setSyncStatus('syncing');
     const service = createSyncService({
       client: tokenHttpClient,
       vehicleRepository,
+      logEntryRepository,
       outboxRepository,
       handlers: NO_HANDLERS,
     });

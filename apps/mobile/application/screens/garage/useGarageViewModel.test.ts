@@ -32,6 +32,8 @@ function setDatabase(vehicles: VehicleSummary[]) {
     vehicleRepository: { findAll: jest.fn(async () => vehicles), reconcile: jest.fn() } as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     outboxRepository: {} as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    logEntryRepository: {} as any,
   });
 }
 
