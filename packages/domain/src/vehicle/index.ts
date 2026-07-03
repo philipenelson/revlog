@@ -12,6 +12,9 @@ export interface DomainVehicle {
 }
 
 export interface CreateVehicleData {
+  // Client-generated id (mobile offline creation, ADR 0027's 2026-07-03
+  // update) — omitted by the web client, which lets the DB default it.
+  id?: string;
   accountId: string;
   nickname: string | null;
   make: string;

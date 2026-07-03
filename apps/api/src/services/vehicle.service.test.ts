@@ -112,6 +112,14 @@ describe('VehicleService.createVehicle', () => {
 
     expect(result).toEqual(mockVehicle);
   });
+
+  it('forwards a client-supplied id to the repository (mobile offline creation, ADR 0027)', async () => {
+    await service.createVehicle('account-1', { ...validInput, id: 'a1111111-1111-4111-8111-111111111111' });
+
+    expect(vehicleRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'a1111111-1111-4111-8111-111111111111' }),
+    );
+  });
 });
 
 describe('VehicleService.listVehicles', () => {

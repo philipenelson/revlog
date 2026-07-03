@@ -43,7 +43,14 @@ export class PrismaVehicleRepository implements IVehicleRepository {
   constructor(private readonly db: VehicleDb) {}
 
   async create(data: CreateVehicleData): Promise<DomainVehicle> {
-    return this.db.vehicle.create({ data });
+    if (!data.id) {
+      return this.db.vehicle.create({ data });
+    }
+    // Upsert with a no-op update: makes create retry-safe when the caller
+    // supplies its own id (mobile offline creation, ADR 0027) — a retried
+    // request with the same id returns the row already created instead of
+    // failing on the unique constraint.
+    return this.db.vehicle.upsert({ where: { id: data.id }, create: data, update: {} });
   }
 
   async findAllByAccountId(accountId: string): Promise<DomainVehicle[]> {

@@ -274,6 +274,31 @@ describe('POST /vehicles', () => {
     );
   });
 
+  it('forwards a client-supplied id to the service (mobile offline creation, ADR 0027)', async () => {
+    (mockVehicleService.createVehicle as ReturnType<typeof vi.fn>).mockResolvedValue(mockVehicle);
+
+    await supertest(buildApp())
+      .post('/vehicles')
+      .set('Authorization', authHeader)
+      .send({ ...validBody, id: 'a1111111-1111-4111-8111-111111111111' });
+
+    expect(mockVehicleService.createVehicle).toHaveBeenCalledWith(
+      'account-1',
+      expect.objectContaining({ id: 'a1111111-1111-4111-8111-111111111111' }),
+      null,
+    );
+  });
+
+  it('returns 400 when id is not a valid UUID', async () => {
+    const res = await supertest(buildApp())
+      .post('/vehicles')
+      .set('Authorization', authHeader)
+      .send({ ...validBody, id: 'not-a-uuid' });
+
+    expect(res.status).toBe(400);
+    expect(mockVehicleService.createVehicle).not.toHaveBeenCalled();
+  });
+
   it('returns 400 and does not call the service when the body fails schema validation', async () => {
     const res = await supertest(buildApp())
       .post('/vehicles')

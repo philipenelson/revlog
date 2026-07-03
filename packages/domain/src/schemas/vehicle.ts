@@ -3,6 +3,9 @@ import { z } from 'zod';
 const currentYear = new Date().getFullYear();
 
 export const createVehicleSchema = z.object({
+  // Client-generated (mobile offline creation, ADR 0027's 2026-07-03 update)
+  // — omitted entirely by the web client, which lets the API default it.
+  id: z.uuid().optional(),
   nickname: z
     .string()
     .trim()

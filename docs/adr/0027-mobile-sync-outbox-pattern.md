@@ -95,6 +95,20 @@ Two approaches were considered:
 
 This does not change the outbox pattern, the outbox table schema, or the conflict policy — it is the concrete mechanism this ADR's original Decision described but never specified, now that a write path actually needs it.
 
+### Update (2026-07-03): `POST /vehicles` accepts a client-supplied `id`
+
+Fulfils the prerequisite the 2026-07-02 update flagged and deferred: "this requires the relevant create endpoints... to accept a client-supplied `id`, which they do not today... a prerequisite for whichever future work adds offline vehicle/log-entry creation (Add Vehicle, New Log Entry)." Add Vehicle (UC-MOB-VEH-2) is that work.
+
+**Decision:** `createVehicleSchema` (`packages/domain`) gains an optional `id: z.uuid()` field, validated and forwarded end-to-end — `CreateVehicleData`/`IVehicleRepository.create` accept it, and `PrismaVehicleRepository.create` uses `vehicle.upsert({ where: { id }, create: data, update: {} })` instead of a plain `create` whenever an `id` is supplied. The web client never sends one, so `Vehicle.id`'s Prisma default (`@default(uuid())`) still applies there unchanged.
+
+The upsert-with-no-op-update (rather than a plain `create`) is what makes this ADR's original idempotency promise ("retrying with the same id is safe") actually hold for creates specifically: `VehicleRepository.create()` on mobile (see below) generates the id at local-write time, before the outbox entry has been sent even once, so a retried `CREATE_VEHICLE` outbox entry — e.g. the request reached the server and committed, but the response was lost before the client saw it — resolves to the same row instead of a unique-constraint error.
+
+**Known limitation, deliberately not solved here:** this only covers the "same id resubmitted" case at the row level. A retried create is still classified by `outboxHandlers.ts`'s existing `isRetryable()` the same as any other mutation (5xx/network → retryable, 4xx → permanent) — it does not special-case "this looks like the same request landed already." That's fine for the common failure mode (the request never reached the server), and the upsert above means it's also fine for the "reached the server, response lost" case. Revisit only if a distinct failure mode turns up in practice that this doesn't cover.
+
+**Mobile side:** `VehicleRepository.create()` generates the id via `Crypto.randomUUID()` (the same primitive `OutboxRepository` and `secureStorage` already use for client-generated ids elsewhere in this app) and writes it through `OutboxWriter<T>` — entity row and `CREATE_VEHICLE` outbox entry in one transaction, the same shape this ADR's 2026-07-03 `OutboxWriter<T>` update already established for `update()`. `outboxHandlers.ts` gets a `CREATE_VEHICLE` handler calling `createVehicle(client, { id, ...data })`, classified retryable/permanent identically to `UPDATE_VEHICLE`'s existing handler.
+
+This does not change the outbox pattern, the outbox table schema, or the conflict policy — it closes the one open prerequisite the 2026-07-02 update left for offline entity creation.
+
 ## Status
 
 accepted
