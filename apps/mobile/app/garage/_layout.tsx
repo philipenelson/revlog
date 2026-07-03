@@ -1,22 +1,19 @@
 import { Stack } from 'expo-router';
 
-// Garage index and Vehicle Detail each render their own header (matching
-// revlog-mobile-garage.html / revlog-mobile-vehicle-detail.html: back link,
-// title, action icons) instead of the native Stack header. Garage index is
-// the stack root with no back button to show; Vehicle Detail needs a title
-// (the Vehicle's display name) and icon buttons the generic screenOptions
-// below can't express per-route. Other child routes (Add vehicle, etc.)
-// keep the native header. A gear icon -> /settings push is future work —
-// see docs/specs/mobile-app/navigation.md "Garage stack header".
+// Every screen in this stack renders its own header (matching each design
+// file: back link, title, action icons) instead of the native Stack header
+// -- headerShown: false is the stack-wide default, not a per-screen
+// override. Edit Vehicle shipped without its own entry here, inheriting the
+// old default of a *visible* native header (transparent, empty title); that
+// stray header sat on top of Edit Vehicle's own header and silently
+// swallowed every tap on its Save/Cancel buttons -- undetectable by reading
+// the code, only found via a live Appium run. headerShown: false at the
+// Stack level closes that hole for every current and future screen; the
+// per-screen options below are now redundant but kept for clarity. See ADR
+// 0028's 2026-07-03 update.
 export default function GarageLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerTransparent: true,
-        title: '',
-        headerBackButtonDisplayMode: 'minimal',
-      }}
-    >
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="[vehicleId]/index" options={{ headerShown: false }} />
     </Stack>

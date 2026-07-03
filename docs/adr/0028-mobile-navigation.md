@@ -65,3 +65,13 @@ accepted
 ## V2+ items
 
 - **Tab bar** — if a third prominent top-level section emerges (e.g. a Fuel Entries dashboard or a reminders inbox), introduce a bottom tab bar at that point. The stack-push approach does not preclude this.
+
+### Update (2026-07-03): every Garage-stack screen renders its own header; the shared native header (gear icon, offline indicator) never shipped
+
+Gap found while building Edit Vehicle: this ADR's original decision assumed a single shared native Stack header carrying the gear icon and offline indicator across every Garage-stack screen. In practice, once Garage and Vehicle Detail were actually built, both rendered their own custom header (matching their design files exactly — back link, title, action icons, and, for Garage, its own `OfflineIndicator`) instead of using the native one. `garage/_layout.tsx` was left straddling both worlds: `screenOptions` kept the native header *visible but transparent* as the stack-wide default, with `Stack.Screen` entries for `index` and `[vehicleId]/index` individually overriding it to `headerShown: false`. Every other route (Edit Vehicle among them) inherited the visible-but-transparent default.
+
+This mismatch was invisible in code review and in unit tests — it only surfaced building Edit Vehicle's screen, where the still-visible native header sat on top of the custom one and silently absorbed every tap on the Save/Cancel buttons. A live Appium run misdiagnosed this at length as a keyboard-occlusion or Appium-tooling issue before the actual cause was found by inspection: the stray native header, not a test-tooling gap.
+
+**Decision:** `garage/_layout.tsx`'s `screenOptions` now sets `headerShown: false` for the whole stack — every screen owns its own header, full stop. There is no shared native header today; the gear icon → Settings and offline-indicator-in-the-header pieces of this ADR's original decision were never implemented and aren't planned to be revisited under this design. A future screen that wants Settings access or an offline indicator implements it itself, the way Garage already does for the offline indicator.
+
+This does not change the root-stack-with-Settings-as-a-push navigation decision itself, only which layer owns header rendering.
