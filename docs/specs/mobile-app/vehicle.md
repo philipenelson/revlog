@@ -1,8 +1,8 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** Not started
-**Last updated:** 2026-06-30
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only) implemented; Add/Edit/Delete not started
+**Last updated:** 2026-07-03
 
 ---
 
@@ -81,20 +81,20 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 **Precondition:** A `TRANSFER_VEHICLE` outbox entry has been sent; API has a pending transfer for this Vehicle.
 **Milestones:** [V1](../../milestones/v1.md)
 
-1. Vehicle Detail screen shows the Vehicle as locked: "Transfer pending — awaiting recipient response."
-2. Add Log Entry, Edit Vehicle, Share Report, and Delete buttons are disabled.
-3. Owner can cancel the transfer (adds `CANCEL_TRANSFER` outbox entry; Vehicle unlocks locally).
+1. Vehicle Detail screen shows the Vehicle as locked: "Transfer pending — awaiting [recipient email]'s response."
+2. Add Log Entry and Share Report actions are disabled (Edit and Delete live on screens not yet built).
+3. Owner can cancel the transfer (adds `CANCEL_TRANSFER` outbox entry; Vehicle unlocks locally) — **implemented on `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen, not here**; see this file's Decisions for why.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Vehicle Detail reads from local SQLite — renders without network
+- [x] Vehicle Detail reads from local SQLite — renders without network
 - [ ] Add Vehicle writes to SQLite + outbox in one transaction; navigates to detail on success
 - [ ] Edit Vehicle pre-fills from SQLite; writes update to SQLite + outbox on save
 - [ ] Delete Vehicle shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
-- [ ] Transfer-pending Vehicle shows locked state; action buttons disabled
-- [ ] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
+- [x] Transfer-pending Vehicle shows locked state; action buttons disabled
+- [x] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
 - [ ] All form validation rules match the web spec (year range, required fields, mileage non-negative)
 
 ---
@@ -106,6 +106,10 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Writes via outbox | SQLite + outbox in one transaction | Guarantees consistency: UI update and sync intent are atomic |
 | Vehicle photo upload | V2 | Camera/library access requires additional native modules; scope kept for V2 |
 | Delete cascade | Local SQLite cascade + single `DELETE_VEHICLE` outbox entry | API hard-delete cascades server-side; single outbox entry is sufficient |
+| Vehicle Detail: insurance not displayed | No insurance row/dialog on mobile Vehicle Detail in V1, unlike the web spec | `revlog-mobile-vehicle-detail.html` has no insurance affordance in either state; no mobile spec has designed insurance edit UX yet. `SyncService` fetches `insurance` per ADR 0027's 2026-07-03 update but discards it — nothing reads it. Revisit as its own spec when mobile insurance UX is designed, rather than bolting a web-parity row onto this screen |
+| Vehicle Detail: transfer-pending is read-only | Detail shows the locked banner (UC-MOB-VEH-5 steps 1–2) but no `[Cancel transfer]` action | Cancelling requires an `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox handler and `transferService` wiring that don't exist yet — `SyncService.flushOutbox()` marks any entry with no registered handler `failed` permanently (see SyncService.ts), so enqueueing `CANCEL_TRANSFER` before its handler exists would silently and permanently no-op the cancellation. That handler pairs naturally with `INITIATE_TRANSFER`, both squarely in `docs/specs/mobile-app/vehicle-transfer.md`'s scope, so the cancel affordance ships there instead |
+| Vehicle Detail: no type filter / sort control | Service history always renders newest-first, no filter dropdown | Unlike the web spec, this file's Acceptance Criteria and the design file never called for one; keeps V1 scope matched to what's actually specified here |
+| Vehicle Detail: stats sourced from per-vehicle API fetch, not client computation | `stats.totalSpent`/`stats.lastLoggedAt` come from `GET /vehicles/:vehicleId` and are cached locally, not summed from local Log Entries | Mirrors the web spec's "stats computed server-side" decision; avoids a second, possibly-divergent computation living in the mobile client. See ADR 0027's 2026-07-03 update |
 
 ---
 
@@ -113,3 +117,6 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 
 - Vehicle photo upload → V2
 - Vehicle makes/models/years reference dataset → tracked in web V1 milestone; same deferral applies to mobile
+- Insurance display/edit on mobile Vehicle Detail → needs its own spec (see Decisions above)
+- Cancel transfer action on mobile Vehicle Detail → ships with `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen
+- Type filter / sort control on mobile Service History → not specified for V1

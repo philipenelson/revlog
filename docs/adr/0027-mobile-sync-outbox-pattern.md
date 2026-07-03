@@ -66,6 +66,22 @@ Two approaches were considered for the pull-side ordering problem beyond the two
 
 This does not change the outbox pattern, the outbox table schema, or the server-wins conflict policy above — it refines *how* multi-collection reconcile is sequenced and *how* dependent offline-created entities get ordered on push. No code in the mobile Garage screen work ships against this yet (it reconciles a single collection, Vehicles, with no children); this is captured now so `LogEntryRepository` and Add Vehicle have a documented answer when they're built, per this repo's rule that a decision isn't made until it's written down.
 
+### Update (2026-07-03): child-collection pull sourced from per-vehicle `GET /vehicles/:vehicleId`, not a standalone list endpoint
+
+Gap found while building the Vehicle Detail screen (`LogEntryRepository`, the first consumer of the 2026-07-02 update above): that update assumed Log Entries would be pulled as a flat child collection, but the API has no endpoint that lists Log Entries across all of an account's Vehicles — the only ways to read a Vehicle's Log Entries are `GET /vehicles/:vehicleId` (full `VehicleDetail`: identity, insurance, `logEntries`, `stats`, `transferPending`/`pendingTransfer`) or `GET /vehicles/:vehicleId/log/:entryId` (one entry). Phase 2 of `pull()` therefore fetches the whole `VehicleDetail`, not just its `logEntries`.
+
+**Decision:** phase 2 iterates the Vehicles just reconciled by phase 1 and calls `getVehicle(client, vehicle.id)` for each (N calls for N Vehicles — accepted at V1 scale for the same reason as this ADR's original "small data volumes" reasoning; revisit if an Owner's Vehicle count grows large enough to matter). For each response:
+
+- The local Vehicle row is extended in place (`VehicleRepository.applyDetail`) with the fields `VehicleSummary` doesn't carry: `stats.totalSpent`, `stats.lastLoggedAt`, `transferPending`, and `pendingTransfer.recipientEmail` — this is what makes the Vehicle Detail screen's stats strip and locked-transfer state renderable from local SQLite alone, with no request in the render path.
+- `logEntries` from every response are collected into one array and reconciled **once**, after the per-vehicle loop, via `LogEntryRepository.reconcile()` — a single full-collection replace, consistent with how `VehicleRepository.reconcile()` already works. This keeps `Store<T>.replaceAll()` as the only atomicity primitive needed; no per-vehicle-scoped replace was added to the `Store<T>` port.
+- A per-vehicle `getVehicle` failure (network blip, or the Vehicle was deleted server-side between phase 1 and phase 2) is logged and skipped rather than aborting the whole pull — that Vehicle's detail fields and Log Entries simply stay stale until the next sync, which is the same "an interrupted sync leaves some collections stale, never a dangling reference" tradeoff this ADR already accepted for the phased-reconcile design.
+
+**`insurance` is fetched but not persisted.** `VehicleDetail.insurance` comes back on every one of these calls, but no mobile screen reads or writes insurance yet (Vehicle Detail's V1 design has no insurance UI — see `docs/specs/mobile-app/vehicle.md`'s Decisions). Storing it now would be a local column with zero readers, which this repo's guidance is to avoid; it is discarded in `SyncService.pull()` today. This is deliberately deferred, not forgotten — captured here for whichever future work adds mobile insurance display so it has a documented starting point (probably a further extension of `applyDetail`) rather than re-deriving this call site from scratch.
+
+**Transient null/stale detail fields between phase 1 and phase 2.** Phase 1's `reconcile()` call defaults the new detail columns (`totalSpent: null`, `lastLoggedAt: null`, `transferPending: false`, `pendingTransferRecipientEmail: null`) for any Vehicle it writes, since `VehicleSummary` alone can't populate them. Phase 2 overwrites those defaults before `pull()` returns, so no screen observes the transient default — both `useGarageViewModel` and the Vehicle Detail viewmodel only re-read after `lastSyncedAt` changes, which `SyncProvider` sets after `runFullSync()` resolves.
+
+This does not change the outbox pattern, the outbox table schema, the server-wins conflict policy, or the 2026-07-02 update's phased-reconcile/FK-cascade/client-generated-id decisions — it answers the specific question that update left open ("what does `LogEntryRepository` actually pull from") now that `LogEntryRepository` exists.
+
 ## Status
 
 accepted
