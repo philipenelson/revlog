@@ -82,6 +82,19 @@ Gap found while building the Vehicle Detail screen (`LogEntryRepository`, the fi
 
 This does not change the outbox pattern, the outbox table schema, the server-wins conflict policy, or the 2026-07-02 update's phased-reconcile/FK-cascade/client-generated-id decisions — it answers the specific question that update left open ("what does `LogEntryRepository` actually pull from") now that `LogEntryRepository` exists.
 
+### Update (2026-07-03): `OutboxWriter<T>` — cross-table atomic write port for offline entity writes
+
+Gap found while building Edit Vehicle (UC-MOB-VEH-3), the first mobile screen that actually writes offline: this ADR's Decision says "Writes go to SQLite and the outbox in a single atomic transaction," but no code path implements that yet. `Store<T>` — the only write primitive that exists — is deliberately scoped to one collection (this ADR's 2026-07-02 update: "no cross-collection transaction() method... each phase is its own complete, atomic single-collection replace"), and a write that also enqueues an outbox entry touches two collections (the entity's table and `outbox`) that don't share a `Store<T>` instance: `DatabaseProvider` constructs one `Store<T>` per table, so a repository's `update()` has no way to reach the outbox table's rows through the store it's given.
+
+Two approaches were considered:
+
+- **Sequential writes** — the repository calls `store.save()` then a separate `outboxRepository.enqueue()`, un-transacted. Simplest, but violates this ADR's own atomicity requirement: a crash or app kill between the two calls leaves a locally "saved" edit that never reaches the outbox, silently losing the write with no user-visible signal — exactly what the outbox pattern exists to prevent.
+- **`OutboxWriter<T>`, a second, narrower port** — `save(record: T, outboxType: string, outboxPayload: unknown): Promise<void>` that writes both tables inside one `db.transaction()` call. Kept separate from `Store<T>` rather than folded into it, because `Store<T>` is deliberately generic and SQL-agnostic (its own header comment: "not named or shaped after a database... nothing here presupposes SQL") and used everywhere, including read paths and the pull-side `replaceAll()` that have no outbox involvement at all. Making every `Store<T>` call site outbox-aware would be a much bigger, unrelated change for a capability only offline-write repositories need.
+
+**Decision:** add `OutboxWriter<T>` (`infrastructure/database/OutboxWriter.ts`), implemented by `createOutboxWriter(db, table)` in `SQLiteStore.ts` using the same synchronous `db.transaction()` primitive `SQLiteStore.replaceAll()` already uses — one transaction upserts the entity row (`onConflictDoUpdate`, same semantics as `Store<T>.save()`) and inserts the outbox row, so a crash between the two is impossible: either both commit or neither does. A repository that needs this (today: `VehicleRepository.update()`; the same shape will serve `create`/`delete` and later `LogEntryRepository` writes) is constructed with both its `Store<T>` (for reads and non-outbox writes) and an `OutboxWriter<T>` scoped to the same table. `DatabaseProvider` wires both from the same `DrizzleDb` instance.
+
+This does not change the outbox pattern, the outbox table schema, or the conflict policy — it is the concrete mechanism this ADR's original Decision described but never specified, now that a write path actually needs it.
+
 ## Status
 
 accepted

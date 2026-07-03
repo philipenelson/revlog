@@ -1,7 +1,7 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only) implemented; Add/Edit/Delete not started
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only) implemented; Edit Vehicle (UC-MOB-VEH-3) in progress; Add/Delete not started
 **Last updated:** 2026-07-03
 
 ---
@@ -110,6 +110,9 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Vehicle Detail: transfer-pending is read-only | Detail shows the locked banner (UC-MOB-VEH-5 steps 1–2) but no `[Cancel transfer]` action | Cancelling requires an `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox handler and `transferService` wiring that don't exist yet — `SyncService.flushOutbox()` marks any entry with no registered handler `failed` permanently (see SyncService.ts), so enqueueing `CANCEL_TRANSFER` before its handler exists would silently and permanently no-op the cancellation. That handler pairs naturally with `INITIATE_TRANSFER`, both squarely in `docs/specs/mobile-app/vehicle-transfer.md`'s scope, so the cancel affordance ships there instead |
 | Vehicle Detail: no type filter / sort control | Service history always renders newest-first, no filter dropdown | Unlike the web spec, this file's Acceptance Criteria and the design file never called for one; keeps V1 scope matched to what's actually specified here |
 | Vehicle Detail: stats sourced from per-vehicle API fetch, not client computation | `stats.totalSpent`/`stats.lastLoggedAt` come from `GET /vehicles/:vehicleId` and are cached locally, not summed from local Log Entries | Mirrors the web spec's "stats computed server-side" decision; avoids a second, possibly-divergent computation living in the mobile client. See ADR 0027's 2026-07-03 update |
+| Edit Vehicle ships without the danger zone | This pass implements only UC-MOB-VEH-3 (pre-fill, validate, save). `revlog-mobile-edit-vehicle.html` designs a Danger zone / delete-vehicle confirmation on the same screen, but that's UC-MOB-VEH-4, a distinct use case with its own outbox entry type (`DELETE_VEHICLE`), cascade semantics, and confirmation dialog | Same reasoning as Vehicle Detail's cancel-transfer deferral: bolting delete onto this pass means shipping a `DELETE_VEHICLE` outbox entry with no registered handler, which `SyncService.flushOutbox()` would mark permanently `failed`. Delete ships as its own step once it has a handler |
+| Edit Vehicle form validation reuses `createVehicleSchema` from `@maintenance-log/domain`, not a hand-duplicated draft validator | Form fields are plain strings (mirrors web's `VehicleDraft`, avoids react-hook-form's type friction with `createVehicleSchema`'s `nickname` transform); on submit, the draft is parsed with `createVehicleSchema.safeParse()` and Zod's `fieldErrors` become the inline error state | Keeps the exact same field rules as the API and the web form without a second, hand-maintained copy of the regex/range checks — matches this file's own acceptance criterion "form validation rules match the web spec" more faithfully than re-deriving them |
+| Edit Vehicle write path: `OutboxWriter<T>`, not `Store<T>.save()` + `OutboxRepository.enqueue()` | `VehicleRepository.update()` writes the vehicle row and enqueues the `UPDATE_VEHICLE` outbox entry in one `db.transaction()` via a new `OutboxWriter<T>` port | `Store<T>` is scoped to one table; a sequential save-then-enqueue isn't atomic and could lose an edit on a crash between the two calls, which is exactly what this ADR's outbox pattern exists to prevent. See ADR 0027's 2026-07-03 update |
 
 ---
 
@@ -120,3 +123,4 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - Insurance display/edit on mobile Vehicle Detail → needs its own spec (see Decisions above)
 - Cancel transfer action on mobile Vehicle Detail → ships with `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen
 - Type filter / sort control on mobile Service History → not specified for V1
+- Danger zone / Delete Vehicle (UC-MOB-VEH-4) on the Edit Vehicle screen → its own step, needs a `DELETE_VEHICLE` outbox handler and confirmation dialog (see Decisions above)
