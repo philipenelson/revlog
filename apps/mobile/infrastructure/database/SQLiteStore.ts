@@ -1,7 +1,10 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
+import { buildOutboxEntry } from '@/domain/repositories/OutboxRepository';
 import type { Store, StoreQueryOptions } from './Store';
+import type { OutboxWriter } from './OutboxWriter';
 import type { DrizzleDb } from './openDatabase';
+import { outboxTable } from './schema';
 
 // A Drizzle table whose column properties line up with T's fields, so
 // Store<T>'s generic where/orderBy can address them by key.
@@ -57,6 +60,26 @@ export function createSQLiteStore<T extends { id: string }>(db: DrizzleDb, table
         if (values.length > 0) {
           tx.insert(table).values(values).run();
         }
+      });
+    },
+  };
+}
+
+// See OutboxWriter's doc comment and ADR 0027's 2026-07-03 update. Reuses
+// the same synchronous db.transaction() primitive as replaceAll() above,
+// but across two tables instead of one.
+export function createOutboxWriter<T extends { id: string }>(
+  db: DrizzleDb,
+  table: EntityTable<T>,
+): OutboxWriter<T> {
+  return {
+    async save(record: T, outboxType: string, outboxPayload: unknown): Promise<void> {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const values = record as any;
+      const entry = buildOutboxEntry(outboxType, outboxPayload);
+      db.transaction((tx) => {
+        tx.insert(table).values(values).onConflictDoUpdate({ target: table.id, set: values }).run();
+        tx.insert(outboxTable).values(entry).run();
       });
     },
   };

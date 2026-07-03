@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { openDatabase } from '@/infrastructure/database/openDatabase';
-import { createSQLiteStore } from '@/infrastructure/database/SQLiteStore';
+import { createSQLiteStore, createOutboxWriter } from '@/infrastructure/database/SQLiteStore';
 import { vehiclesTable, outboxTable, logEntriesTable } from '@/infrastructure/database/schema';
 import { createVehicleRepository, type VehicleRepository, type LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import {
@@ -40,6 +40,7 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
       if (cancelled) return;
       const vehicleRepository = createVehicleRepository(
         createSQLiteStore<LocalVehicleDetail & { sortOrder: number }>(db, vehiclesTable),
+        createOutboxWriter<LocalVehicleDetail & { sortOrder: number }>(db, vehiclesTable),
       );
       const outboxRepository = createOutboxRepository(createSQLiteStore<OutboxEntry>(db, outboxTable));
       const logEntryRepository = createLogEntryRepository(

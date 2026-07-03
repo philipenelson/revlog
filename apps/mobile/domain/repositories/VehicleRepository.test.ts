@@ -1,6 +1,12 @@
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import type { Store, StoreQueryOptions } from '@/infrastructure/database/Store';
+import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
 import { createVehicleRepository, type LocalVehicleDetail } from './VehicleRepository';
+
+function fakeOutboxWriter<T extends { id: string }>() {
+  const save = jest.fn(async (_record: T, _outboxType: string, _outboxPayload: unknown) => {});
+  return { writer: { save } as OutboxWriter<T>, save };
+}
 
 function fakeStore<T extends { id: string }>(initial: T[] = []) {
   let rows = initial;
@@ -68,7 +74,7 @@ describe('VehicleRepository', () => {
       { ...vehicleB, ...defaultDetail, sortOrder: 1 },
       { ...vehicleA, ...defaultDetail, sortOrder: 0 },
     ]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     const result = await repo.findAll();
 
@@ -81,7 +87,7 @@ describe('VehicleRepository', () => {
     const { store, getRows } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([
       { ...vehicleA, ...defaultDetail, sortOrder: 0 },
     ]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     await repo.reconcile([vehicleB, vehicleA]);
 
@@ -96,7 +102,7 @@ describe('VehicleRepository', () => {
     const { store, getRows } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([
       { ...vehicleA, ...defaultDetail, sortOrder: 0 },
     ]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     await repo.reconcile([]);
 
@@ -114,7 +120,7 @@ describe('VehicleRepository', () => {
         pendingTransferRecipientEmail: 'alex@example.com',
       },
     ]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     // vehicleA reappears in the fresh GET /vehicles list (phase 1); its
     // previously-fetched detail fields must survive this replace even
@@ -145,7 +151,7 @@ describe('VehicleRepository', () => {
         pendingTransferRecipientEmail: null,
       },
     ]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     const result = await repo.findById('v1');
 
@@ -161,14 +167,14 @@ describe('VehicleRepository', () => {
 
   it('findById returns null when the vehicle does not exist locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     expect(await repo.findById('missing')).toBeNull();
   });
 
   it('applyDetail merges detail fields into the existing row', async () => {
     const { store, getRows } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     await repo.applyDetail('v1', {
       totalSpent: '1840.00',
@@ -191,7 +197,7 @@ describe('VehicleRepository', () => {
 
   it('applyDetail is a no-op when the vehicle no longer exists locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
-    const repo = createVehicleRepository(store);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
 
     await repo.applyDetail('missing', {
       totalSpent: '0.00',
@@ -201,5 +207,32 @@ describe('VehicleRepository', () => {
     });
 
     expect(store.save).not.toHaveBeenCalled();
+  });
+
+  it('update merges the given fields into the existing row and enqueues an UPDATE_VEHICLE outbox entry atomically', async () => {
+    const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.update('v1', { nickname: 'Widowmaker', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 });
+
+    expect(save).toHaveBeenCalledWith(
+      { ...vehicleA, ...defaultDetail, sortOrder: 0, nickname: 'Widowmaker', year: 2020, mileage: 5000 },
+      'UPDATE_VEHICLE',
+      { vehicleId: 'v1', nickname: 'Widowmaker', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 },
+    );
+    // The write goes through OutboxWriter, never the plain Store.save — that
+    // would break the write+outbox atomicity this exists for.
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
+  it('update is a no-op when the vehicle does not exist locally', async () => {
+    const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.update('missing', { nickname: null, make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 });
+
+    expect(save).not.toHaveBeenCalled();
   });
 });

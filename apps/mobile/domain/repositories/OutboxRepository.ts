@@ -20,16 +20,24 @@ export interface OutboxRepository {
   remove(id: string): Promise<void>;
 }
 
+// Shared with infrastructure/database/SQLiteStore.ts's createOutboxWriter —
+// the same entry shape whether it's written via this repository's own store
+// or atomically alongside another table's row (ADR 0027's 2026-07-03
+// update).
+export function buildOutboxEntry(type: string, payload: unknown): OutboxEntry {
+  return {
+    id: Crypto.randomUUID(),
+    type,
+    payload: JSON.stringify(payload),
+    createdAt: Date.now(),
+    status: 'pending',
+  };
+}
+
 export function createOutboxRepository(store: Store<OutboxEntry>): OutboxRepository {
   return {
     async enqueue(type: string, payload: unknown): Promise<void> {
-      await store.save({
-        id: Crypto.randomUUID(),
-        type,
-        payload: JSON.stringify(payload),
-        createdAt: Date.now(),
-        status: 'pending',
-      });
+      await store.save(buildOutboxEntry(type, payload));
     },
 
     async listPending(): Promise<OutboxEntry[]> {

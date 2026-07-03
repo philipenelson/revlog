@@ -1,5 +1,6 @@
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import type { Store } from '@/infrastructure/database/Store';
+import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
 
 // Vehicle Detail-only fields — VehicleSummary (GET /vehicles) can't supply
 // these; they come from GET /vehicles/:vehicleId. See ADR 0027's 2026-07-03
@@ -25,9 +26,24 @@ export type LocalVehicleDetail = VehicleSummary & VehicleDetailFields;
 // infrastructure/database/schema.ts).
 type LocalVehicle = LocalVehicleDetail & { sortOrder: number };
 
+// UC-MOB-VEH-3's editable fields — mirrors the web spec's UpdateVehiclePayload
+// (docs/specs/garage/edit-vehicle.md): always sent in full, not a partial
+// diff, matching how the web Edit Vehicle screen submits.
+export interface UpdateVehicleData {
+  nickname: string | null;
+  make: string;
+  model: string;
+  year: number;
+  mileage: number;
+}
+
 export interface VehicleRepository {
   findAll(): Promise<VehicleSummary[]>;
   findById(id: string): Promise<LocalVehicleDetail | null>;
+  // Applies `data` to the local row and enqueues an UPDATE_VEHICLE outbox
+  // entry, atomically (OutboxWriter<T> — see ADR 0027's 2026-07-03 update).
+  // No-op if the Vehicle isn't known locally.
+  update(vehicleId: string, data: UpdateVehicleData): Promise<void>;
   // Replaces the local Vehicle list with exactly what the API returned,
   // preserving its order. Called by SyncService.pull()'s phase 1 — see ADR
   // 0027's 2026-07-02 update for the phased parent-then-child sequencing.
@@ -43,7 +59,10 @@ export interface VehicleRepository {
   applyDetail(vehicleId: string, detail: VehicleDetailFields): Promise<void>;
 }
 
-export function createVehicleRepository(store: Store<LocalVehicle>): VehicleRepository {
+export function createVehicleRepository(
+  store: Store<LocalVehicle>,
+  outboxWriter: OutboxWriter<LocalVehicle>,
+): VehicleRepository {
   async function findRow(id: string): Promise<LocalVehicle | undefined> {
     const [row] = await store.getAll({ where: { id } });
     return row;
@@ -60,6 +79,13 @@ export function createVehicleRepository(store: Store<LocalVehicle>): VehicleRepo
       if (!row) return null;
       const { sortOrder: _sortOrder, ...detail } = row;
       return detail;
+    },
+
+    async update(vehicleId: string, data: UpdateVehicleData): Promise<void> {
+      const row = await findRow(vehicleId);
+      if (!row) return;
+      const updated: LocalVehicle = { ...row, ...data };
+      await outboxWriter.save(updated, 'UPDATE_VEHICLE', { vehicleId, ...data });
     },
 
     async reconcile(vehicles: VehicleSummary[]): Promise<void> {

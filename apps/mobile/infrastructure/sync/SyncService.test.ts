@@ -19,7 +19,7 @@ const mockGetVehicle = getVehicle as jest.MockedFunction<typeof getVehicle>;
 const fakeClient = {} as HttpClient;
 
 function fakeVehicleRepository(): jest.Mocked<VehicleRepository> {
-  return { findAll: jest.fn(), findById: jest.fn(), reconcile: jest.fn(), applyDetail: jest.fn() };
+  return { findAll: jest.fn(), findById: jest.fn(), update: jest.fn(), reconcile: jest.fn(), applyDetail: jest.fn() };
 }
 
 function fakeLogEntryRepository(): jest.Mocked<LogEntryRepository> {
