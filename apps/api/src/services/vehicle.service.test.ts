@@ -55,7 +55,7 @@ const mockVehicleDetail: DomainVehicleDetail = {
 function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
   return {
     create: vi.fn().mockResolvedValue(mockVehicle),
-    findAllByAccountId: vi.fn().mockResolvedValue([mockVehicle]),
+    findAllByAccountId: vi.fn().mockResolvedValue([{ ...mockVehicle, logEntryCount: 0 }]),
     setPhoto: vi.fn().mockResolvedValue({ ...mockVehicle, photoPath: 'new.jpg' }),
     findDetailById: vi.fn().mockResolvedValue(mockVehicleDetail),
     update: vi.fn().mockResolvedValue(mockVehicle),
@@ -144,7 +144,18 @@ describe('VehicleService.listVehicles', () => {
   it('returns the vehicles from the repository', async () => {
     const result = await service.listVehicles('account-1');
 
-    expect(result).toEqual([mockVehicle]);
+    expect(result).toEqual([{ ...mockVehicle, logEntryCount: 0 }]);
+  });
+
+  it('passes through a non-zero logEntryCount from the repository', async () => {
+    vehicleRepo = makeFakeVehicleRepo({
+      findAllByAccountId: vi.fn().mockResolvedValue([{ ...mockVehicle, logEntryCount: 3 }]),
+    });
+    service = new VehicleService(vehicleRepo, accountRepo);
+
+    const result = await service.listVehicles('account-1');
+
+    expect(result).toEqual([{ ...mockVehicle, logEntryCount: 3 }]);
   });
 
   it('returns an empty array for an account with no vehicles', async () => {

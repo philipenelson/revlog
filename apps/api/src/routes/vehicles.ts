@@ -39,10 +39,8 @@ function toVehicleDetailResponse(req: Request, detail: DomainVehicleDetail) {
   };
 }
 
-// logEntryCount is a hardcoded placeholder until the LogEntry model exists —
-// see garage-list-api.md "Decisions — logEntryCount is a hardcoded placeholder".
-function toVehicleListItemResponse(req: Request, vehicle: DomainVehicle) {
-  return { ...toVehicleResponse(req, vehicle), logEntryCount: 0 };
+function toVehicleListItemResponse(req: Request, vehicle: DomainVehicle & { logEntryCount: number }) {
+  return { ...toVehicleResponse(req, vehicle), logEntryCount: vehicle.logEntryCount };
 }
 
 export function createVehicleRouter(vehicleService: VehicleService, transferService: VehicleTransferService): ExpressRouter {

@@ -2,7 +2,7 @@
 
 **Area:** Garage
 **Status:** Implemented
-**Last updated:** 2026-06-07
+**Last updated:** 2026-07-03
 
 ---
 
@@ -55,7 +55,7 @@ No query parameters, no request body.
 
 | Status | Body | When |
 |---|---|---|
-| 200 | `{ "vehicles": [{ "id": "...", "nickname": "...\|null", "make": "...", "model": "...", "year": 2021, "mileage": 14230, "logEntryCount": 0 }] }` | Always, on a valid request — `vehicles` is `[]` for an empty garage (this *is* the empty-state signal; see UC-GARAGE-2) |
+| 200 | `{ "vehicles": [{ "id": "...", "nickname": "...\|null", "make": "...", "model": "...", "year": 2021, "mileage": 14230, "logEntryCount": 3 }] }` | Always, on a valid request — `vehicles` is `[]` for an empty garage (this *is* the empty-state signal; see UC-GARAGE-2) |
 | 401 | `{ "error": "Missing or invalid authorization header" }` / `{ "error": "Invalid or expired access token" }` | No/invalid/expired bearer token (from `authenticate` middleware) |
 | 500 | `{ "error": "Internal server error" }` | Unexpected failure |
 
@@ -71,7 +71,7 @@ None — this is a read-only query. It does not touch `Account.status`; onboardi
 - [x] `GET /vehicles` for an Account with no Vehicles returns 200 `{ vehicles: [] }` (not a 404 — an empty garage is a valid, expected state, not an error)
 - [x] `GET /vehicles` orders results by `updatedAt` descending (most-recently-touched Vehicle first — see Decisions — "Sort order proxy")
 - [x] `GET /vehicles` with no/invalid/expired bearer token returns 401 and performs no query
-- [x] Each Vehicle in the response includes `logEntryCount: 0` (see Decisions — "`logEntryCount` is a hardcoded placeholder")
+- [x] Each Vehicle in the response includes its real `logEntryCount` — a count of that Vehicle's `LogEntry` rows (see Decisions — "`logEntryCount` is a real aggregate")
 - [x] Response payload matches the stat blocks the Garage screen design renders per card (nickname/make/model/year, odometer reading with its unit, log entry count or "No entries yet")
 
 ---
@@ -85,7 +85,7 @@ None — this is a read-only query. It does not touch `Account.status`; onboardi
 | Empty garage is `200 { vehicles: [] }`, not `404` | Plain empty array | An Owner with no Vehicles (e.g. skipped onboarding) is a normal, expected state with its own designed UI (the empty state in `revlog-garage-preview.html`) — not an error condition. A `404` would force the client to special-case "no vehicles" vs. "request failed," which the response shape already disambiguates for free |
 | Response shape | `{ vehicles: [...] }` (wrapped, array under a named key) | Consistent with the `{ vehicle: {...} }` wrapping convention `POST /vehicles` already established, and leaves room to add sibling keys (e.g. pagination metadata, account summary) later without a breaking shape change |
 | **Sort order proxy: `updatedAt` descending stands in for "most recently logged"** | `ORDER BY updatedAt DESC` | The Garage design's subtitle reads "Sorted by most recently logged" — but `LogEntry` does not exist yet (see [v1 milestone](../../milestones/v1.md) — Log Entry is `[ ]` not started), so there is no timestamp to sort by directly. `Vehicle.updatedAt` is the closest available proxy: it already reflects vehicle creation and any edit, and is the natural column to also move once logging a maintenance entry updates its Vehicle (e.g. bumping `mileage`) — a connection the Log Entry feature's own spec will need to make explicit. Until then, "most recently logged" effectively reads as "most recently touched," which is a reasonable, honest approximation rather than a fabricated signal |
-| **`logEntryCount` is a hardcoded placeholder (`0`) until `LogEntry` exists** | Every Vehicle's `logEntryCount` is `0` | There is no `LogEntry` table to `COUNT` against — returning `0` for every Vehicle is the *literally true* answer today (zero log entries exist anywhere in the system), not a stub masquerading as data. The Garage design already renders empty counts via its `is-empty` stat-block style ("No entries yet"), so the UI requires no special-casing. When the Log Entry feature ships, this becomes a real `COUNT(*) ... GROUP BY vehicleId` aggregate added to the repository — an additive, non-breaking change to this same response shape |
+| **`logEntryCount` is a real aggregate** | `findAllByAccountId` includes a Prisma `_count` on the `logEntries` relation, mapped onto each returned Vehicle | Originally shipped as a hardcoded `0` placeholder (see history below) because `LogEntry` didn't exist yet. Now that it does, the repository counts each Vehicle's `LogEntry` rows directly — an additive, non-breaking change to this same response shape, exactly as planned. The Garage design's `is-empty` stat-block style ("No entries yet") still covers the zero case, now because it's really zero rather than because it's always zero |
 | No `GET /vehicles/:id` in this spec | Out of scope here | The Garage screen only needs the list; Vehicle detail is its own screen and its own spec (see Out of scope) |
 
 ---
@@ -93,6 +93,6 @@ None — this is a read-only query. It does not touch `Account.status`; onboardi
 ## Out of scope
 
 - `GET /vehicles/:id` (Vehicle detail), `PATCH /vehicles/:id` (edit), `DELETE /vehicles/:id` — separate Vehicle screen spec (see `docs/milestones/v1.md` — Vehicle); also still listed as out of scope on [vehicle-creation-api.md](./vehicle-creation-api.md)
-- Real `logEntryCount` aggregation and true "most recently logged" sorting — both depend on the `LogEntry` model, which is its own unstarted V1 feature (see `docs/milestones/v1.md` — Log Entry). Tracked here so the Log Entry spec knows to circle back and upgrade both
+- True "most recently logged" sorting — still depends on `Vehicle.updatedAt` being bumped when a Log Entry is logged, which is the Log Entry feature's concern, not this endpoint's. (Real `logEntryCount` aggregation shipped 2026-07-03 — see Decisions.)
 - Search, filtering, sorting controls, or pagination on the Garage list — no V1 use case calls for them at expected garage sizes
 - Vehicle photos / thumbnails in the list response (V2 — see `docs/milestones/v2.md`)

@@ -26,7 +26,7 @@ export class VehicleService {
     return vehicle;
   }
 
-  async listVehicles(accountId: string): Promise<DomainVehicle[]> {
+  async listVehicles(accountId: string): Promise<(DomainVehicle & { logEntryCount: number })[]> {
     return this.vehicleRepo.findAllByAccountId(accountId);
   }
 

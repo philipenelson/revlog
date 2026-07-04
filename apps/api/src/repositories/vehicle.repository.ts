@@ -53,11 +53,13 @@ export class PrismaVehicleRepository implements IVehicleRepository {
     return this.db.vehicle.upsert({ where: { id: data.id }, create: data, update: {} });
   }
 
-  async findAllByAccountId(accountId: string): Promise<DomainVehicle[]> {
-    return this.db.vehicle.findMany({
+  async findAllByAccountId(accountId: string): Promise<(DomainVehicle & { logEntryCount: number })[]> {
+    const rows = await this.db.vehicle.findMany({
       where: { accountId },
       orderBy: { updatedAt: 'desc' },
+      include: { _count: { select: { logEntries: true } } },
     });
+    return rows.map(({ _count, ...vehicle }) => ({ ...vehicle, logEntryCount: _count.logEntries }));
   }
 
   async setPhoto(vehicleId: string, accountId: string, photoPath: string): Promise<DomainVehicle | null> {

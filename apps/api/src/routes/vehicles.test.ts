@@ -149,7 +149,9 @@ describe('GET /vehicles', () => {
   });
 
   it('returns 200 with photoUrl null when the vehicle has no photo', async () => {
-    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([mockVehicle]);
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { ...mockVehicle, logEntryCount: 0 },
+    ]);
 
     const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
 
@@ -170,8 +172,21 @@ describe('GET /vehicles', () => {
     });
   });
 
+  it('returns the real logEntryCount reported by the service', async () => {
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { ...mockVehicle, logEntryCount: 5 },
+    ]);
+
+    const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.vehicles[0].logEntryCount).toBe(5);
+  });
+
   it('returns a constructed photoUrl when the vehicle has a photo', async () => {
-    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([mockVehicleWithPhoto]);
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { ...mockVehicleWithPhoto, logEntryCount: 0 },
+    ]);
 
     const res = await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
 
@@ -180,7 +195,9 @@ describe('GET /vehicles', () => {
   });
 
   it('calls vehicleService.listVehicles with the accountId from the access token', async () => {
-    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([mockVehicle]);
+    (mockVehicleService.listVehicles as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { ...mockVehicle, logEntryCount: 0 },
+    ]);
 
     await supertest(buildApp()).get('/vehicles').set('Authorization', authHeader);
 
