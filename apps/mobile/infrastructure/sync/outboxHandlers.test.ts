@@ -9,13 +9,14 @@ jest.mock('@maintenance-log/api-client', () => ({
   updateVehicle: jest.fn(),
   setVehiclePhotoUri: jest.fn(),
   deleteVehicle: jest.fn(),
+  createLogEntry: jest.fn(),
 }));
 jest.mock('@/infrastructure/storage/photoStorage', () => ({
   deleteVehiclePhoto: jest.fn(),
   openVehiclePhotoFile: jest.fn(),
 }));
 
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, createLogEntry } from '@maintenance-log/api-client';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
 
 const mockCreateVehicle = createVehicle as jest.MockedFunction<typeof createVehicle>;
@@ -23,6 +24,7 @@ const mockCreateVehicleWithPhotoUri = createVehicleWithPhotoUri as jest.MockedFu
 const mockUpdateVehicle = updateVehicle as jest.MockedFunction<typeof updateVehicle>;
 const mockSetVehiclePhotoUri = setVehiclePhotoUri as jest.MockedFunction<typeof setVehiclePhotoUri>;
 const mockDeleteVehicle = deleteVehicle as jest.MockedFunction<typeof deleteVehicle>;
+const mockCreateLogEntry = createLogEntry as jest.MockedFunction<typeof createLogEntry>;
 const mockDeleteVehiclePhoto = deleteVehiclePhoto as jest.MockedFunction<typeof deleteVehiclePhoto>;
 const mockOpenVehiclePhotoFile = openVehiclePhotoFile as jest.MockedFunction<typeof openVehiclePhotoFile>;
 const fakeClient = {} as HttpClient;
@@ -260,5 +262,58 @@ describe('outboxHandlers.DELETE_VEHICLE', () => {
     const handlers = createOutboxHandlers(fakeClient);
 
     await expect(handlers.DELETE_VEHICLE!({ vehicleId: 'v1' })).rejects.toBe(notFound);
+  });
+});
+
+describe('outboxHandlers.CREATE_LOG_ENTRY', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  const logEntryPayload = {
+    vehicleId: 'v1',
+    typeId: 'MAINTENANCE',
+    title: 'Oil & filter change',
+    date: '2026-07-04',
+    mileage: 12400,
+    notes: null,
+    items: [{ categoryId: 'PART', description: 'Oil filter', quantity: 1, unitCost: 8.99 }],
+  };
+
+  it('POSTs to /vehicles/:vehicleId/log with time null and sortOrder assigned by array index', async () => {
+    mockCreateLogEntry.mockResolvedValue(undefined);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await handlers.CREATE_LOG_ENTRY!(logEntryPayload);
+
+    expect(mockCreateLogEntry).toHaveBeenCalledWith(fakeClient, 'v1', {
+      typeId: 'MAINTENANCE',
+      title: 'Oil & filter change',
+      date: '2026-07-04',
+      mileage: 12400,
+      notes: null,
+      time: null,
+      items: [{ categoryId: 'PART', description: 'Oil filter', quantity: 1, unitCost: 8.99, sortOrder: 0 }],
+    });
+  });
+
+  it('wraps a 5xx ApiError as retryable', async () => {
+    mockCreateLogEntry.mockRejectedValue(new ApiError(500, {}));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.CREATE_LOG_ENTRY!(logEntryPayload)).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('wraps a raw network failure as retryable', async () => {
+    mockCreateLogEntry.mockRejectedValue(new TypeError('Network request failed'));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.CREATE_LOG_ENTRY!(logEntryPayload)).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('lets a 4xx ApiError propagate as permanent, not wrapped', async () => {
+    const badRequest = new ApiError(400, { error: 'Invalid input' });
+    mockCreateLogEntry.mockRejectedValue(badRequest);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.CREATE_LOG_ENTRY!(logEntryPayload)).rejects.toBe(badRequest);
   });
 });

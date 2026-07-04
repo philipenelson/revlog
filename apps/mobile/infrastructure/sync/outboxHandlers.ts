@@ -1,4 +1,4 @@
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, ApiError, type HttpClient } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, createLogEntry, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
 import { logger } from '@/infrastructure/logging/logger';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
@@ -33,6 +33,25 @@ interface UpdateVehicleOutboxPayload {
 
 interface DeleteVehicleOutboxPayload {
   vehicleId: string;
+}
+
+// Mirrors LogEntryRepository.CreateLogEntryData plus the vehicleId needed
+// for the URL -- see its create()'s doc comment for why no local `id` is
+// carried here (no API support for a client-supplied Log Entry id, and
+// nothing navigates by it before the next sync's reconcile() fixes it up).
+interface CreateLogEntryOutboxPayload {
+  vehicleId: string;
+  typeId: string;
+  title: string;
+  date: string;
+  mileage: number;
+  notes: string | null;
+  items: Array<{
+    categoryId: string;
+    description: string;
+    quantity: number | null;
+    unitCost: number | null;
+  }>;
 }
 
 // A 4xx (validation, 403, 404) means the mutation itself is rejected —
@@ -116,6 +135,26 @@ export function createOutboxHandlers(client: HttpClient): Record<string, OutboxH
         // its intended end state either way, so this is logged and dropped
         // the same as any other permanent rejection, not retried.
         logger.warn('outbox: DELETE_VEHICLE rejected by the API, dropping local change', {
+          vehicleId,
+          err: String(err),
+        });
+        throw err;
+      }
+    },
+
+    CREATE_LOG_ENTRY: async (payload) => {
+      const { vehicleId, items, ...data } = payload as CreateLogEntryOutboxPayload;
+      try {
+        await createLogEntry(client, vehicleId, {
+          ...data,
+          time: null, // not collected on mobile -- see docs/specs/mobile-app/log-entry.md
+          items: items.map((item, sortOrder) => ({ ...item, sortOrder })),
+        });
+      } catch (err) {
+        if (isRetryable(err)) {
+          throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
+        }
+        logger.warn('outbox: CREATE_LOG_ENTRY rejected by the API, dropping local change', {
           vehicleId,
           err: String(err),
         });
