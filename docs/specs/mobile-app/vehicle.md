@@ -1,7 +1,7 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete Vehicle (UC-MOB-VEH-4) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator; Change Vehicle Photo on Edit Vehicle (UC-MOB-VEH-6) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator (see Decisions)
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete Vehicle (UC-MOB-VEH-4) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator; Change Vehicle Photo on Edit Vehicle (UC-MOB-VEH-6) implemented and unit-tested — no Appium coverage of the picker interaction itself, see Out of scope (see Decisions)
 **Last updated:** 2026-07-04
 
 ---
@@ -162,3 +162,4 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - Cancel transfer action on mobile Vehicle Detail → ships with `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen
 - Type filter / sort control on mobile Service History → not specified for V1
 - Appium E2E run against a live simulator for Delete Vehicle (UC-MOB-VEH-4) → the spec at `apps/mobile/e2e/specs/edit-vehicle.e2e.ts` is written and typechecks, but this pass didn't have a simulator available to run it against a live backend
+- Appium E2E coverage of the photo-picker interaction itself (UC-MOB-VEH-2 and UC-MOB-VEH-6) → `expo-image-picker` hands off to the native OS photo library outside the app's own view hierarchy; no existing Appium helper or mock drives it, and none was added here. This is a pre-existing gap, not new to UC-MOB-VEH-6: Add Vehicle's photo upload (UC-MOB-VEH-2) shipped "E2E-verified live" without it too. Unit tests (`useEditVehicleViewModel.test.ts`, `VehicleRepository.test.ts`, `outboxHandlers.test.ts`) cover the picked-photo path with a mocked picker instead
