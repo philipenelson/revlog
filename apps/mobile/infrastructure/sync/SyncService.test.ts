@@ -31,7 +31,7 @@ function fakeVehicleRepository(): jest.Mocked<VehicleRepository> {
 }
 
 function fakeLogEntryRepository(): jest.Mocked<LogEntryRepository> {
-  return { findByVehicleId: jest.fn(async (_vehicleId: string) => []), reconcile: jest.fn() };
+  return { findByVehicleId: jest.fn(async (_vehicleId: string) => []), create: jest.fn(), reconcile: jest.fn() };
 }
 
 function fakeOutboxRepository(entries: OutboxEntry[]): jest.Mocked<OutboxRepository> {

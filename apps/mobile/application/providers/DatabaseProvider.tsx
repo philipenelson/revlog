@@ -45,6 +45,7 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
       const outboxRepository = createOutboxRepository(createSQLiteStore<OutboxEntry>(db, outboxTable));
       const logEntryRepository = createLogEntryRepository(
         createSQLiteStore<LogEntrySummary & { vehicleId: string }>(db, logEntriesTable),
+        createOutboxWriter<LogEntrySummary & { vehicleId: string }>(db, logEntriesTable),
       );
       setValue({ isReady: true, vehicleRepository, outboxRepository, logEntryRepository });
     });
