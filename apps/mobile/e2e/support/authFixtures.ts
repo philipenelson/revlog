@@ -142,9 +142,10 @@ export interface LogEntryPayload {
 
 /**
  * Creates a Log Entry for the given Vehicle -- seeds Vehicle Detail's
- * service history/stats without going through the (not-yet-built) New Log
- * Entry screen. `items` is omitted (defaults to `[]` per log-entry-api.md),
- * so `totalCost` on the created entry is null.
+ * service history/stats without going through the New Log Entry screen (or
+ * through Edit Log Entry, which isn't built yet). `items` is omitted
+ * (defaults to `[]` per log-entry-api.md), so `totalCost` on the created
+ * entry is null.
  */
 export async function createLogEntryViaApi(
   accessToken: string,
