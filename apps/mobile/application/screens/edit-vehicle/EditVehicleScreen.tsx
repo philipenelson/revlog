@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -11,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
 import { useEditVehicleViewModel, type VehicleFormFields } from './useEditVehicleViewModel';
 
@@ -39,6 +40,16 @@ function TrashIcon({ size = 13 }: { size?: number }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </Svg>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <Rect x={2} y={5} width={20} height={15} rx={2.5} stroke={colors.neutral[300]} strokeWidth={1.5} />
+      <Circle cx={12} cy={13} r={3.5} stroke={colors.neutral[300]} strokeWidth={1.5} />
+      <Path d="M8.5 5l1-2h5l1 2" stroke={colors.neutral[300]} strokeWidth={1.5} strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -125,6 +136,38 @@ export function EditVehicleScreen() {
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.photoSection}>
+            {vm.photoPreviewUri ? (
+              <Pressable
+                style={styles.photoPreviewWrap}
+                onPress={vm.hasPendingPhotoPick ? undefined : vm.pickPhoto}
+                testID="edit-vehicle-photo-preview"
+              >
+                <Image source={{ uri: vm.photoPreviewUri }} style={styles.photoPreviewImage} resizeMode="cover" />
+                {vm.hasPendingPhotoPick && (
+                  <Pressable
+                    style={styles.photoRemoveBtn}
+                    onPress={vm.removePhoto}
+                    hitSlop={8}
+                    testID="edit-vehicle-photo-remove-btn"
+                  >
+                    <Text style={styles.photoRemoveLabel}>×</Text>
+                  </Pressable>
+                )}
+              </Pressable>
+            ) : (
+              <Pressable style={styles.photoPlaceholder} onPress={vm.pickPhoto} testID="edit-vehicle-photo-picker">
+                <CameraIcon />
+                <Text style={styles.photoText}>Add a photo</Text>
+              </Pressable>
+            )}
+            {vm.photoError && (
+              <Text style={styles.photoError} testID="edit-vehicle-photo-error">
+                {vm.photoError}
+              </Text>
+            )}
+          </View>
+
           <View style={styles.fieldRow}>
             <Field
               field="make"
@@ -310,6 +353,54 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing[5],
     paddingBottom: spacing[10],
+  },
+  photoSection: {
+    marginBottom: spacing[5],
+  },
+  photoPlaceholder: {
+    height: 120,
+    backgroundColor: colors.neutral[600],
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.neutral[400],
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+  },
+  photoText: {
+    fontSize: fontSize.xs,
+    color: colors.neutral[300],
+  },
+  photoPreviewWrap: {
+    height: 120,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  photoPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoRemoveBtn: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral[900],
+  },
+  photoRemoveLabel: {
+    fontSize: fontSize.base,
+    color: colors.neutral[50],
+    marginTop: -2,
+  },
+  photoError: {
+    marginTop: spacing[2],
+    fontSize: fontSize.xs,
+    color: colors.danger[500],
   },
   fieldRow: {
     flexDirection: 'row',

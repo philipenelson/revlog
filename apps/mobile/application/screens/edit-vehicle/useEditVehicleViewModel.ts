@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { createVehicleSchema } from '@maintenance-log/domain';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
+import type { PickedPhoto } from '@/infrastructure/storage/photoStorage';
 
 type LoadState = 'loading' | 'not-found' | 'ready';
 
@@ -29,6 +31,16 @@ export interface EditVehicleViewModel {
   fields: VehicleFormFields;
   errors: VehicleFormErrors;
   updateField: (field: keyof VehicleFormFields, value: string) => void;
+  // UC-MOB-VEH-6 — photo change. photoPreviewUri is the saved photo until a
+  // replacement is picked, then the pending pick; hasPendingPhotoPick
+  // governs whether the remove-selection control is shown (there is no
+  // "clear to none" affordance — see docs/specs/mobile-app/vehicle.md's
+  // Decisions).
+  photoPreviewUri: string | null;
+  hasPendingPhotoPick: boolean;
+  photoError: string | null;
+  pickPhoto: () => void;
+  removePhoto: () => void;
   isSubmitting: boolean;
   submitError: string | null;
   submit: () => void;
@@ -50,6 +62,9 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
   const [vehicleDisplayName, setVehicleDisplayName] = useState('');
   const [fields, setFields] = useState<VehicleFormFields>(EMPTY_FIELDS);
   const [errors, setErrors] = useState<VehicleFormErrors>({});
+  const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | null>(null);
+  const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -71,6 +86,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
         mileage: String(vehicle.mileage),
       });
       setVehicleDisplayName(vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`);
+      setSavedPhotoUrl(vehicle.photoUrl);
       setLoadState('ready');
     });
   }, [vehicleRepository, vehicleId]);
@@ -78,6 +94,26 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
   function updateField(field: keyof VehicleFormFields, value: string): void {
     setFields((f) => ({ ...f, [field]: value }));
     setErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
+  }
+
+  async function handlePickPhoto(): Promise<void> {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setPhotoError('Enable photo access in Settings to change this vehicle\'s picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (result.canceled || result.assets.length === 0) return;
+
+    const asset = result.assets[0]!;
+    setPhotoError(null);
+    setPickedPhoto({ uri: asset.uri, name: asset.fileName ?? 'vehicle-photo.jpg', type: asset.mimeType ?? 'image/jpeg' });
+  }
+
+  function removePhoto(): void {
+    setPickedPhoto(null);
+    setPhotoError(null);
   }
 
   async function handleSubmit(): Promise<void> {
@@ -110,7 +146,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      await vehicleRepository.update(vehicleId, result.data);
+      await vehicleRepository.update(vehicleId, result.data, pickedPhoto ?? undefined);
       // back(), not push(`/garage/${vehicleId}`) -- this screen was reached
       // by pushing from Vehicle Detail, so push()ing the same route again
       // stacked a second instance on top instead of returning to the first,
@@ -161,6 +197,11 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     fields,
     errors,
     updateField,
+    photoPreviewUri: pickedPhoto?.uri ?? savedPhotoUrl,
+    hasPendingPhotoPick: pickedPhoto !== null,
+    photoError,
+    pickPhoto: () => void handlePickPhoto(),
+    removePhoto,
     isSubmitting,
     submitError,
     submit: () => void handleSubmit(),
