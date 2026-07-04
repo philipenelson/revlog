@@ -2,7 +2,7 @@
 
 **Area:** Garage
 **Status:** In progress
-**Last updated:** 2026-06-09
+**Last updated:** 2026-07-04
 
 ---
 
@@ -43,6 +43,17 @@ The edit screen is reached via the ✎ Edit button on the Vehicle Detail screen.
 1. Edit screen fetches `GET /vehicles/:vehicleId` on mount.
 2. API returns 403 or 404.
 3. Screen shows an error state ("Vehicle not found") with a link back to `/garage`.
+
+### UC-VEDIT-4 — Owner changes the vehicle photo
+
+**Precondition:** The Owner is on `/garage/[vehicleId]/edit`.
+
+1. The photo zone shows the Vehicle's current photo if one is set, otherwise an empty "Click to upload a photo" placeholder — same visual component as Add Vehicle's `photoZone`.
+2. Owner clicks the zone and picks an image file. The zone immediately shows a local preview (an `×` button appears, letting the Owner discard this pending pick and revert to what's currently saved — this does not call the API).
+3. Owner taps Save. The screen submits `PATCH /vehicles/:vehicleId` with the text fields, then — only if a new photo was picked — `POST /vehicles/:vehicleId/photo` with the file.
+4. On both succeeding, the screen navigates to `/garage/[vehicleId]`, which shows the new photo.
+5. If the PATCH fails, the screen behaves exactly as UC-VEDIT-1 step 5's failure case (inline error, no navigation, pending photo pick preserved).
+6. If the PATCH succeeds but the photo upload fails, the screen shows an inline error ("Details saved, but the photo couldn't be uploaded. Try again.") and does not navigate — the Owner's non-photo changes are already saved, but they stay on the edit screen to retry the photo specifically.
 
 ---
 
@@ -125,18 +136,21 @@ All fields are optional. At least one must be present (400 if body is empty or a
 ### Layout
 
 - Top bar: "Edit Vehicle" heading with a back-arrow that cancels (navigates to detail)
+- Photo zone: current photo (or an empty placeholder), reusing Add Vehicle's `photoZone` component — click to pick a replacement; an `×` appears once a replacement is picked, to discard that pending pick
 - Form fields: Nickname (optional), Make, Model, Year, Mileage — all pre-filled from the initial GET
 - Bottom bar: Cancel button (secondary) + Save button (primary)
-- Save button shows a loading state while the PATCH is in flight
+- Save button shows a loading state while the PATCH (and, if a photo was picked, the photo POST) is in flight
 - Validation errors shown inline below each field
 
 ### Data flow
 
-1. Mount → `GET /vehicles/:vehicleId` → populate form state
+1. Mount → `GET /vehicles/:vehicleId` → populate form state and the photo zone's current photo
 2. Submit → `PATCH /vehicles/:vehicleId` with `{ field: newValue }` for every field the user touched
-3. 200 → `router.push('/garage/[vehicleId]')`
-4. 4xx → show inline error message below the form
-5. 403/404 on initial fetch → render not-found state
+3. If a new photo was picked → `POST /vehicles/:vehicleId/photo` (multipart), only after the PATCH succeeds
+4. Both succeed → `router.push('/garage/[vehicleId]')`
+5. PATCH fails (4xx) → show inline error message below the form; pending photo pick is preserved
+6. PATCH succeeds but the photo POST fails → show an inline error specific to the photo; do not navigate (the field changes are already saved)
+7. 403/404 on initial fetch → render not-found state
 
 ### Form field rules (client-side validation mirrors API)
 
@@ -196,8 +210,14 @@ update(vehicleId: string, data: UpdateVehicleInput): Promise<DomainVehicle>;
 - [ ] Inline validation errors appear for invalid inputs
 - [ ] 403/404 on initial fetch renders not-found state with link to `/garage`
 - [ ] API error on save renders inline error below the form
+- [ ] Photo zone shows the Vehicle's current photo when set, else an empty placeholder
+- [ ] Picking a new photo shows a local preview and an `×` to discard the pending pick (reverting to the current photo, without calling the API)
+- [ ] Saving with a newly-picked photo calls `PATCH` then `POST /vehicles/:vehicleId/photo`, and navigates to detail only once both succeed
+- [ ] Saving with no new photo picked never calls `POST /vehicles/:vehicleId/photo`
+- [ ] A photo upload failure after a successful PATCH shows an inline photo-specific error and does not navigate away
 - [ ] E2E test: happy path — edit make/model, save, redirected to detail with updated values
 - [ ] E2E test: cancel — no change persisted, detail screen shown
+- [ ] E2E test: change photo — pick a new photo, save, detail screen shows the new photo
 
 ---
 
@@ -210,12 +230,15 @@ update(vehicleId: string, data: UpdateVehicleInput): Promise<DomainVehicle>;
 | Pre-fill from `GET /vehicles/:vehicleId` | Reuse the existing detail endpoint to populate the edit form | Avoids a duplicate endpoint; the detail response already carries all editable fields |
 | `updateVehicleSchema = createVehicleSchema.partial()` | Zod `.partial()` on the create schema | Keeps validation rules in one place; partial() makes every field optional while preserving transforms |
 | Redirect to detail on save | `router.push('/garage/[vehicleId]')` after 200 | Immediate confirmation that the update was applied; Owner sees the saved state right away |
+| Photo change ships on the edit screen, not a separate detail-screen flow (supersedes this file's earlier "Out of scope" cut) | Reuses the existing `POST /vehicles/:vehicleId/photo` endpoint (already built for Add Vehicle's create-with-photo path and already unit-tested on the API); the edit screen calls it as a second request after the PATCH succeeds | The API has no endpoint that accepts both the JSON field patch and a multipart photo in one request — `PATCH /vehicles/:vehicleId` is JSON-only. Two sequential requests from the same Save action is the smallest change that reuses both existing endpoints without adding a combined-multipart-PATCH endpoint that nothing else needs |
+| No "remove photo to none" affordance | The `×` on a freshly-picked preview only discards *that pending pick*, reverting to the currently-saved photo (or the empty placeholder if there was none) — it never calls the API | There is no API endpoint to clear an existing photo back to null; adding one is out of scope here since the Owner asked for the ability to *change* the photo, not remove it |
+| Photo POST fires only after the PATCH succeeds, not in parallel | Sequential, not `Promise.all` | Keeps the two requests' error states unambiguous — if the PATCH fails, nothing about the photo has been attempted yet, so the pending pick is simply preserved for a retry after fixing the field errors |
 
 ---
 
 ## Out of scope (V2+)
 
-- Photo edit/replace on the edit screen — photo upload exists on the detail screen via a separate flow
+- Removing an existing photo back to "none" — see the Decisions table above
 - Mileage decrease validation ("mileage must not be lower than the last log entry") — V2 guard
 
 ## Related specs

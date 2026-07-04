@@ -1,7 +1,7 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete Vehicle (UC-MOB-VEH-4) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator (see Decisions)
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete Vehicle (UC-MOB-VEH-4) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator; Change Vehicle Photo on Edit Vehicle (UC-MOB-VEH-6) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator (see Decisions)
 **Last updated:** 2026-07-04
 
 ---
@@ -13,7 +13,7 @@ Vehicle screens on mobile cover: Vehicle Detail, Add Vehicle, Edit Vehicle, and 
 Mobile-specific differences:
 - All reads come from local SQLite via `VehicleRepository`.
 - Write operations (create, update, delete) apply to local SQLite and are queued in the outbox. The UI responds immediately; sync to the API happens in the background.
-- Vehicle photos are displayed when available (fetched URL from API response cached locally). Photo upload is supported on Add Vehicle (UC-MOB-VEH-2) and is offline-durable: the picked photo is copied to stable local storage and its upload is queued in the same outbox as the Vehicle create, surviving an app kill/restart while offline (see this file's Decisions and ADR 0027's 2026-07-03 "offline-durable photo upload" update). Editing an existing Vehicle's photo (from Edit Vehicle or Vehicle Detail) is not yet supported on mobile.
+- Vehicle photos are displayed when available (fetched URL from API response cached locally). Photo upload is supported on Add Vehicle (UC-MOB-VEH-2) and Edit Vehicle (UC-MOB-VEH-6), both offline-durable: the picked photo is copied to stable local storage and its upload is queued in the same outbox as the Vehicle create/update, surviving an app kill/restart while offline (see this file's Decisions, ADR 0027's 2026-07-03 "offline-durable photo upload" update, and its 2026-07-04 update extending the same mechanism to Edit Vehicle).
 
 Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-mobile-vehicle-detail.html) · [`revlog-mobile-add-vehicle.html`](../../designs/mobile/revlog-mobile-add-vehicle.html) · [`revlog-mobile-edit-vehicle.html`](../../designs/mobile/revlog-mobile-edit-vehicle.html)
 
@@ -56,7 +56,7 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 
 1. Edit Vehicle screen pre-fills with current Vehicle data from local SQLite.
 2. Owner modifies fields and taps `[Save]`.
-3. App validates and writes the update to local SQLite; adds `UPDATE_VEHICLE` outbox entry.
+3. App validates and writes the update to local SQLite; adds `UPDATE_VEHICLE` outbox entry (payload includes a stable local photo reference if the Owner also changed the photo — see UC-MOB-VEH-6).
 4. Navigates back to Vehicle Detail with updated data.
 
 ---
@@ -87,6 +87,21 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 
 ---
 
+### UC-MOB-VEH-6 — Owner changes an existing Vehicle's photo
+
+**Actor:** Owner
+**Precondition:** Owner is on the Edit Vehicle screen.
+**Milestones:** [V1](../../milestones/v1.md)
+
+1. The photo zone at the top of Edit Vehicle shows the Vehicle's current photo (`photoUrl`, whether a real CDN url or a not-yet-synced local `file://` reference) if one exists, otherwise the same empty "Add a photo" placeholder Add Vehicle uses.
+2. Owner taps it and picks a replacement from the device's photo library (`expo-image-picker`, library only — no camera capture, same as Add Vehicle). The zone shows the new pick immediately, with a remove-selection control that discards the pending pick and reverts to the previous photo (or the placeholder) without touching local storage or the outbox.
+3. Owner taps `[Save]`.
+4. App copies the picked photo into stable local storage keyed by the Vehicle's id (`persistVehiclePhoto`, the same helper Add Vehicle uses); writes the field changes plus the stable photo reference to local SQLite and an `UPDATE_VEHICLE` outbox entry, atomically. The Vehicle's `photoUrl` updates to the new local path immediately, so Vehicle Detail and Garage show it before the entry has synced.
+5. SyncService's `UPDATE_VEHICLE` handler `PATCH`es the field changes, then — since a photo reference is present — uploads it via `POST /vehicles/:vehicleId/photo`. The local file is deleted once the upload succeeds or is permanently rejected (kept for a retryable failure, so a later retry can still find it); if it's never attempted or comes up short, `photoUrl` still holds the local file until then.
+6. The next successful `reconcile()` replaces the local `photoUrl` with the server's confirmed one, the same way Add Vehicle's photo already does.
+
+---
+
 ## Acceptance Criteria
 
 - [x] Vehicle Detail reads from local SQLite — renders without network
@@ -97,6 +112,9 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - [x] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
 - [x] Add Vehicle: a picked photo persists to local storage and uploads via the outbox, surviving an app kill/restart while offline
 - [x] All form validation rules match the web spec (year range, required fields, mileage non-negative) — both Add and Edit Vehicle validate via the shared `createVehicleSchema`
+- [x] Edit Vehicle: photo zone shows the current photo (or placeholder), lets the Owner pick a replacement, and discards a pending pick without calling the outbox
+- [x] Edit Vehicle: a picked replacement photo persists to local storage keyed by the Vehicle's id and uploads via the same `UPDATE_VEHICLE` outbox entry as the field changes, surviving an app kill/restart while offline
+- [x] Edit Vehicle: saving without picking a new photo never touches photo storage or adds a `photo` field to the outbox payload
 
 ---
 
@@ -128,12 +146,16 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | `createVehicleSchema`'s `nickname` field widened to accept `null`, not just `undefined` | Found while wiring `CREATE_VEHICLE`'s outbox payload: every mobile outbox payload (`CreateVehicleData`/`UpdateVehicleData`) types `nickname` as `string \| null` and always sends the key, so a blank nickname serializes as `"nickname": null` — which the schema rejected with a 400 before this fix, silently breaking the common no-nickname case for both Add and the already-shipped Edit Vehicle | See ADR 0027's 2026-07-03 "`POST /vehicles` accepts a client-supplied `id`" update for the full incident writeup. Pure widening (`null`, `undefined`, and a real string all still collapse to the same transformed output), so no web-side behaviour changes |
 | A picked photo shows on Garage and Vehicle Detail immediately, before the create has synced (supersedes an earlier pass that deferred this — see this file's history) | `VehicleRepository.create()` stores the stable local file path directly in `photoUrl` instead of `null`; no separate "pending photo" field, no UI changes on either screen | Asked directly, the earlier pass's "the Add Vehicle screen's own preview already covers it" reasoning was wrong — the Owner expects to see it on the screen they land on next, not just the one they picked it on. See ADR 0027's 2026-07-03 "local photo preview" update for why reusing `photoUrl` (rather than a second local column) is safe here specifically |
 | Garage re-reads local SQLite via `useFocusEffect`, not `useEffect` (mirrors Vehicle Detail's own identical fix) | `useGarageViewModel`'s fetch effect now re-runs on every focus, same `[vehicleRepository, lastSyncedAt]` dependency as before | Found via manual testing: a Vehicle created via Add Vehicle (`replace()` to its Detail screen, then `back()` to Garage) never appeared until some unrelated sync completed, because native-stack doesn't remount Garage on `back()` and its old mount-effect had already run. Garage was never given the same `useFocusEffect` fix Vehicle Detail got when this exact class of bug was first found — see ADR 0027's 2026-07-03 update |
+| Edit Vehicle's photo change (UC-MOB-VEH-6) reuses Add Vehicle's exact mechanism: bundled into the same `UPDATE_VEHICLE` outbox entry, not a second entry type | `VehicleRepository.update()` gains an optional `photo` parameter mirroring `create()`'s; the outbox payload gains an optional `photo` field; `outboxHandlers.ts`'s `UPDATE_VEHICLE` handler uploads it via `setVehiclePhotoUri` after the field `PATCH` succeeds | Same reasoning as the "Photo upload is bundled into `CREATE_VEHICLE`" row above, applied to update: no second entry type means no new "photo still pending" local field to carry through `reconcile()`, and reusing `photoUrl` for the local preview (below) means there is nothing in between "fully local" and "fully confirmed" for `reconcile()` to get wrong here either. See ADR 0027's 2026-07-04 update |
+| Edit Vehicle's photo upload is a second, sequential API call after the field `PATCH`, not bundled into one request | `PATCH /vehicles/:vehicleId` is JSON-only; `POST /vehicles/:vehicleId/photo` (already built and unit-tested for Add Vehicle's create-with-photo path) is the only endpoint that accepts the file. The handler awaits the `PATCH`, then — only if a photo reference is present — awaits the photo `POST` | Mirrors the web Edit Vehicle screen's identical two-request shape (see `docs/specs/garage/edit-vehicle.md`'s Decisions), for the same reason: no combined multipart-PATCH endpoint exists, and adding one for a single caller isn't justified |
+| A permanent (4xx) failure of either the field `PATCH` or the photo `POST` deletes the local photo file and drops the whole `UPDATE_VEHICLE` entry | The handler's single `try/catch` wraps both calls; any permanent failure logs, deletes the local file (if present), and re-throws so `flushOutbox()` marks the entry `failed` | A `failed` entry is never retried (no V1 retry-backoff mechanism — see this ADR's V2+ items), so if the `PATCH` itself is rejected outright, nothing will ever attempt the photo upload either; keeping the file around after that point would only orphan it, the same reasoning `delete()`'s existing photo cleanup already established |
+| No local "remove photo to none" affordance on Edit Vehicle, mirroring the web decision | The remove-selection control only discards a *pending, not-yet-saved* pick, reverting to the previously-shown photo (real or placeholder) — it never enqueues anything | There is no API endpoint to clear an existing photo back to null; the Owner asked for the ability to change the photo, not remove it — same scope line as `docs/specs/garage/edit-vehicle.md`'s Decisions |
 
 ---
 
 ## Out of scope
 
-- Editing an existing Vehicle's photo (from Edit Vehicle or Vehicle Detail) → Add Vehicle only for now; needs its own step once those screens' photo affordances are designed
+- Removing an existing Vehicle's photo back to "none", on either Add or Edit Vehicle → no API support for it; see Decisions above
 - Camera capture on Add Vehicle's photo picker → library picker only, matching the web app's plain file input (see Decisions above)
 - Vehicle makes/models/years reference dataset → tracked in web V1 milestone; same deferral applies to mobile
 - Insurance display/edit on mobile Vehicle Detail → needs its own spec (see Decisions above)
