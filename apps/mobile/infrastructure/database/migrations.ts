@@ -44,7 +44,10 @@ export function runMigrations(db: SQLiteDatabase): void {
       mileage INTEGER,
       item_count INTEGER NOT NULL,
       media_count INTEGER NOT NULL,
-      total_cost TEXT
+      total_cost TEXT,
+      notes TEXT,
+      items_json TEXT NOT NULL DEFAULT '[]',
+      detail_fetched INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE INDEX IF NOT EXISTS log_entries_vehicle_id ON log_entries (vehicle_id);

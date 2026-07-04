@@ -51,4 +51,18 @@ export const logEntriesTable = sqliteTable('log_entries', {
   itemCount: integer('item_count').notNull(),
   mediaCount: integer('media_count').notNull(),
   totalCost: text('total_cost'),
+  // Detail-cache columns (ADR 0027's 2026-07-04 update) — GET
+  // /vehicles/:vehicleId only ever returns LogEntrySummary, never notes or
+  // item rows, so Edit Log Entry's pre-fill needs its own local cache,
+  // populated by create()/update() immediately or by a bounded pull phase
+  // (LogEntryRepository.applyDetail) for entries first seen via sync.
+  notes: text('notes'),
+  // JSON-serialized CreateLogEntryItemData[] — a column, not a second
+  // table: Store<T> has no join support, and item counts are small (see
+  // the ADR update's reasoning).
+  itemsJson: text('items_json').notNull(),
+  // Distinguishes "confirmed empty" (notes: null, itemsJson: '[]' is a real
+  // state for a minimal entry) from "detail never fetched yet" — see the
+  // ADR update.
+  detailFetched: integer('detail_fetched', { mode: 'boolean' }).notNull().default(false),
 });

@@ -8,8 +8,11 @@ import {
   type OutboxRepository,
   type OutboxEntry,
 } from '@/domain/repositories/OutboxRepository';
-import { createLogEntryRepository, type LogEntryRepository } from '@/domain/repositories/LogEntryRepository';
-import type { LogEntrySummary } from '@maintenance-log/api-client';
+import {
+  createLogEntryRepository,
+  type LogEntryRepository,
+  type LocalLogEntry,
+} from '@/domain/repositories/LogEntryRepository';
 
 interface DatabaseContextValue {
   isReady: boolean;
@@ -44,8 +47,8 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
       );
       const outboxRepository = createOutboxRepository(createSQLiteStore<OutboxEntry>(db, outboxTable));
       const logEntryRepository = createLogEntryRepository(
-        createSQLiteStore<LogEntrySummary & { vehicleId: string }>(db, logEntriesTable),
-        createOutboxWriter<LogEntrySummary & { vehicleId: string }>(db, logEntriesTable),
+        createSQLiteStore<LocalLogEntry>(db, logEntriesTable),
+        createOutboxWriter<LocalLogEntry>(db, logEntriesTable),
       );
       setValue({ isReady: true, vehicleRepository, outboxRepository, logEntryRepository });
     });
