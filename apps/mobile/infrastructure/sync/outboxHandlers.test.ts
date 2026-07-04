@@ -7,6 +7,7 @@ jest.mock('@maintenance-log/api-client', () => ({
   createVehicle: jest.fn(),
   createVehicleWithPhotoUri: jest.fn(),
   updateVehicle: jest.fn(),
+  setVehiclePhotoUri: jest.fn(),
   deleteVehicle: jest.fn(),
 }));
 jest.mock('@/infrastructure/storage/photoStorage', () => ({
@@ -14,12 +15,13 @@ jest.mock('@/infrastructure/storage/photoStorage', () => ({
   openVehiclePhotoFile: jest.fn(),
 }));
 
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle, deleteVehicle } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle } from '@maintenance-log/api-client';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
 
 const mockCreateVehicle = createVehicle as jest.MockedFunction<typeof createVehicle>;
 const mockCreateVehicleWithPhotoUri = createVehicleWithPhotoUri as jest.MockedFunction<typeof createVehicleWithPhotoUri>;
 const mockUpdateVehicle = updateVehicle as jest.MockedFunction<typeof updateVehicle>;
+const mockSetVehiclePhotoUri = setVehiclePhotoUri as jest.MockedFunction<typeof setVehiclePhotoUri>;
 const mockDeleteVehicle = deleteVehicle as jest.MockedFunction<typeof deleteVehicle>;
 const mockDeleteVehiclePhoto = deleteVehiclePhoto as jest.MockedFunction<typeof deleteVehiclePhoto>;
 const mockOpenVehiclePhotoFile = openVehiclePhotoFile as jest.MockedFunction<typeof openVehiclePhotoFile>;
@@ -40,6 +42,7 @@ const createPayloadWithPhoto = { ...createPayload, photo: stablePhoto };
 const fakeOpenedFile = { name: 'v1.jpg', type: 'image/jpeg', bytes: jest.fn() } as any;
 
 const payload = { vehicleId: 'v1', nickname: 'Blackbird', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 };
+const payloadWithPhoto = { ...payload, photo: stablePhoto };
 
 describe('outboxHandlers.CREATE_VEHICLE', () => {
   afterEach(() => jest.clearAllMocks());
@@ -154,6 +157,74 @@ describe('outboxHandlers.UPDATE_VEHICLE', () => {
     const handlers = createOutboxHandlers(fakeClient);
 
     await expect(handlers.UPDATE_VEHICLE!(payload)).rejects.toBe(notFound);
+  });
+
+  it('does not call setVehiclePhotoUri when no photo is present', async () => {
+    mockUpdateVehicle.mockResolvedValue(undefined);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await handlers.UPDATE_VEHICLE!(payload);
+
+    expect(mockSetVehiclePhotoUri).not.toHaveBeenCalled();
+  });
+
+  it('when a photo is present, PATCHes the fields then opens a File handle and uploads via setVehiclePhotoUri', async () => {
+    mockUpdateVehicle.mockResolvedValue(undefined);
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
+    mockSetVehiclePhotoUri.mockResolvedValue({ photoUrl: 'https://cdn.example.com/v1.jpg' });
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await handlers.UPDATE_VEHICLE!(payloadWithPhoto);
+
+    expect(mockUpdateVehicle).toHaveBeenCalledWith(fakeClient, 'v1', {
+      nickname: 'Blackbird',
+      make: 'Honda',
+      model: 'CB650R',
+      year: 2020,
+      mileage: 5000,
+    });
+    expect(mockOpenVehiclePhotoFile).toHaveBeenCalledWith(stablePhoto.uri);
+    expect(mockSetVehiclePhotoUri).toHaveBeenCalledWith(fakeClient, 'v1', fakeOpenedFile);
+  });
+
+  it('deletes the local photo file after a successful upload', async () => {
+    mockUpdateVehicle.mockResolvedValue(undefined);
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
+    mockSetVehiclePhotoUri.mockResolvedValue({ photoUrl: 'https://cdn.example.com/v1.jpg' });
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await handlers.UPDATE_VEHICLE!(payloadWithPhoto);
+
+    expect(mockDeleteVehiclePhoto).toHaveBeenCalledWith(stablePhoto.uri);
+  });
+
+  it('deletes the local photo file after a permanent (4xx) failure of the field PATCH', async () => {
+    mockUpdateVehicle.mockRejectedValue(new ApiError(400, { error: 'Validation error' }));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.UPDATE_VEHICLE!(payloadWithPhoto)).rejects.toBeInstanceOf(ApiError);
+    expect(mockDeleteVehiclePhoto).toHaveBeenCalledWith(stablePhoto.uri);
+    expect(mockSetVehiclePhotoUri).not.toHaveBeenCalled();
+  });
+
+  it('deletes the local photo file after a permanent (4xx) failure of the photo upload', async () => {
+    mockUpdateVehicle.mockResolvedValue(undefined);
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
+    mockSetVehiclePhotoUri.mockRejectedValue(new ApiError(400, { error: 'Invalid input' }));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.UPDATE_VEHICLE!(payloadWithPhoto)).rejects.toBeInstanceOf(ApiError);
+    expect(mockDeleteVehiclePhoto).toHaveBeenCalledWith(stablePhoto.uri);
+  });
+
+  it('keeps the local photo file after a retryable failure, for the next flush attempt to find', async () => {
+    mockUpdateVehicle.mockResolvedValue(undefined);
+    mockOpenVehiclePhotoFile.mockReturnValue(fakeOpenedFile);
+    mockSetVehiclePhotoUri.mockRejectedValue(new ApiError(500, {}));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.UPDATE_VEHICLE!(payloadWithPhoto)).rejects.toBeInstanceOf(RetryableOutboxError);
+    expect(mockDeleteVehiclePhoto).not.toHaveBeenCalled();
   });
 });
 

@@ -68,7 +68,14 @@ export interface VehicleRepository {
   // Applies `data` to the local row and enqueues an UPDATE_VEHICLE outbox
   // entry, atomically (OutboxWriter<T> — see ADR 0027's 2026-07-03 update).
   // No-op if the Vehicle isn't known locally.
-  update(vehicleId: string, data: UpdateVehicleData): Promise<void>;
+  //
+  // If `photo` is given (UC-MOB-VEH-6), it's persisted to stable local
+  // storage keyed by `vehicleId` — same helper, same reasoning as create()'s
+  // `photo` parameter — before the outbox entry is written, and the row's
+  // `photoUrl` updates to that stable path immediately. See ADR 0027's
+  // 2026-07-04 "offline-durable photo upload extended to Edit Vehicle"
+  // update.
+  update(vehicleId: string, data: UpdateVehicleData, photo?: PickedPhoto): Promise<void>;
   // UC-MOB-VEH-4: deletes the local row -- cascading to Log Entries via the
   // schema's ON DELETE CASCADE foreign key (infrastructure/database/
   // schema.ts, enforced by openDatabase()'s `PRAGMA foreign_keys = ON`) --
@@ -144,11 +151,18 @@ export function createVehicleRepository(
       return id;
     },
 
-    async update(vehicleId: string, data: UpdateVehicleData): Promise<void> {
+    async update(vehicleId: string, data: UpdateVehicleData, photo?: PickedPhoto): Promise<void> {
       const row = await findRow(vehicleId);
       if (!row) return;
-      const updated: LocalVehicle = { ...row, ...data };
-      await outboxWriter.save(updated, 'UPDATE_VEHICLE', { vehicleId, ...data });
+
+      // Same reasoning as create()'s photoUrl handling: the stable local
+      // path renders immediately (Image treats file:// like https://), and
+      // the next reconcile() overwrites it with the server's confirmed url.
+      const stablePhoto = photo ? await persistVehiclePhoto(vehicleId, photo) : undefined;
+      const updated: LocalVehicle = { ...row, ...data, ...(stablePhoto ? { photoUrl: stablePhoto.uri } : {}) };
+      const outboxPayload: Record<string, unknown> = { vehicleId, ...data };
+      if (stablePhoto) outboxPayload.photo = stablePhoto;
+      await outboxWriter.save(updated, 'UPDATE_VEHICLE', outboxPayload);
     },
 
     async delete(vehicleId: string): Promise<void> {

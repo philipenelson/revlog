@@ -327,6 +327,45 @@ describe('VehicleRepository', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
+  it('update persists a picked replacement photo locally and includes the stable reference in the outbox payload', async () => {
+    const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+    const pickedPhoto = { uri: 'file:///tmp/picker-cache/abc.jpg', name: 'photo.jpg', type: 'image/jpeg' };
+    const stablePhoto = { uri: 'file:///documents/vehicle-photos/v1.jpg', name: 'photo.jpg', type: 'image/jpeg' };
+    mockPersistVehiclePhoto.mockResolvedValue(stablePhoto);
+
+    await repo.update(
+      'v1',
+      { nickname: 'Widowmaker', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 },
+      pickedPhoto,
+    );
+
+    expect(mockPersistVehiclePhoto).toHaveBeenCalledWith('v1', pickedPhoto);
+    expect(save).toHaveBeenCalledWith(
+      // photoUrl is the stable local file, not the row's previous value --
+      // Garage/Vehicle Detail render it immediately, before the update has
+      // even reached the server. reconcile() overwrites it with the real
+      // url once confirmed.
+      expect.objectContaining({ photoUrl: stablePhoto.uri }),
+      'UPDATE_VEHICLE',
+      expect.objectContaining({ photo: stablePhoto }),
+    );
+  });
+
+  it('update does not touch photo storage when no photo is given', async () => {
+    const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.update('v1', { nickname: 'Widowmaker', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 });
+
+    expect(mockPersistVehiclePhoto).not.toHaveBeenCalled();
+    const [updatedRow, , payload] = save.mock.calls[0]!;
+    expect((updatedRow as { photoUrl: string | null }).photoUrl).toBe(vehicleA.photoUrl);
+    expect(payload).not.toHaveProperty('photo');
+  });
+
   it('delete removes the local row and enqueues a DELETE_VEHICLE outbox entry atomically', async () => {
     const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
     const { writer, remove } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
