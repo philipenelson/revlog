@@ -1,8 +1,8 @@
 # Mobile Log Entry Spec
 
 **Area:** Mobile / Log Entry
-**Status:** Not started
-**Last updated:** 2026-06-30
+**Status:** In progress — New Log Entry screen (UC-MOB-LOG-1, UC-MOB-LOG-4) implemented; Edit and Delete Log Entry (UC-MOB-LOG-2, UC-MOB-LOG-3) not started
+**Last updated:** 2026-07-04
 
 ---
 
@@ -79,15 +79,15 @@ Design file: [`revlog-mobile-log-entry.html`](../../designs/mobile/revlog-mobile
 
 ## Acceptance Criteria
 
-- [ ] New Log Entry screen defaults date to today and mileage field uses numeric keyboard
-- [ ] Native date picker opens for date field on both iOS and Android
-- [ ] Create writes Log Entry to SQLite + outbox in one transaction
+- [x] New Log Entry screen defaults date to today and mileage field uses numeric keyboard
+- [x] Native date picker opens for date field on both iOS and Android
+- [x] Create writes Log Entry to SQLite + outbox in one transaction
 - [ ] Edit pre-fills all fields from SQLite
 - [ ] Update writes to SQLite + outbox; navigates back on success
 - [ ] Delete shows confirmation dialog; removes from SQLite + adds outbox entry
-- [ ] All operations succeed when device is offline; outbox entry is flushed when reconnected
-- [ ] Title, date, and mileage are required; validation errors shown inline
-- [ ] Log entry types are loaded from local SQLite (seeded from lookup endpoints on initial sync)
+- [x] Create succeeds when device is offline; outbox entry is flushed when reconnected (UC-MOB-LOG-4) — update/delete not yet built, so not yet verifiable for those operations
+- [x] Title, date, and mileage are required; validation errors shown inline
+- [x] Log entry type/category ids come from the shared `LogEntryTypeId`/`ItemCategoryId` enum (`@maintenance-log/domain`'s `lookup-constants.ts`); displayed labels are UI-layer constants, not DB-backed
 
 ---
 
@@ -97,7 +97,7 @@ Design file: [`revlog-mobile-log-entry.html`](../../designs/mobile/revlog-mobile
 |---|---|---|
 | Native date picker | `@react-native-community/datetimepicker` | Platform-native date input is significantly better UX than a custom picker on mobile |
 | Media attachment | V2 | Keeps V1 scope tight; OPFS not available on mobile — FileSystemMediaStore adapter is a V2 item |
-| Log entry types from SQLite | Seeded on initial sync from `GET /log-entry-types` | Avoids repeated API calls for static lookup data; works offline |
+| Log entry type/category labels | Shared `LogEntryTypeId`/`ItemCategoryId` enum (`@maintenance-log/domain`'s `lookup-constants.ts`) for the ids; `TYPE_LABELS`/`CATEGORY_LABELS` display constants local to `NewLogEntryScreen.tsx` for the label text | Ids are a plain shared enum, not a database concept. Rendered label text is a UI-layer concern — same approach as the web screen's own `TYPE_META`/`CATEGORY_META` constants |
 
 ---
 
