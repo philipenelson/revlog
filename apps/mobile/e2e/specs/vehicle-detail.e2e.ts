@@ -96,7 +96,7 @@ describe('Vehicle Detail screen', () => {
     await openVehicleDetail(user, vehicleId);
     await $(byTestId('vehicle-detail-add-log-entry-btn')).click();
 
-    await $(byTestId('placeholder-new-log-entry')).waitForDisplayed({ timeout: 15000 });
+    await $(byTestId('new-log-entry-title-input')).waitForDisplayed({ timeout: 15000 });
   });
 
   it('the Edit icon navigates to Edit Vehicle', async () => {
@@ -134,7 +134,7 @@ describe('Vehicle Detail screen', () => {
     await expect($(byTestId('vehicle-detail-stat-total-spent'))).toHaveText('—', { containing: true });
 
     await $(byTestId('vehicle-detail-empty-history-cta')).click();
-    await $(byTestId('placeholder-new-log-entry')).waitForDisplayed({ timeout: 15000 });
+    await $(byTestId('new-log-entry-title-input')).waitForDisplayed({ timeout: 15000 });
   });
 
   it('shows the locked state for a vehicle with a pending transfer and disables its actions', async () => {
