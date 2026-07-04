@@ -72,7 +72,7 @@ describe('Vehicle Detail screen', () => {
     await $(byTestId('garage-add-fab')).waitForDisplayed({ timeout: 15000 });
   });
 
-  it('tapping a log entry card navigates to Edit Log Entry', async () => {
+  it('tapping a log entry card navigates to Edit Log Entry, pre-filled', async () => {
     const user = await createVerifiedUser('e2e-vdetail-nav-entry');
     const accessToken = await loginViaApi(user);
     const vehicleId = await createVehicleViaApi(accessToken, { make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 });
@@ -85,7 +85,8 @@ describe('Vehicle Detail screen', () => {
     await openVehicleDetail(user, vehicleId);
     await $(byTestId(`log-entry-card-${entryId}`)).click();
 
-    await $(byTestId('placeholder-edit-log-entry')).waitForDisplayed({ timeout: 15000 });
+    await $(byTestId('edit-log-entry-title-input')).waitForDisplayed({ timeout: 15000 });
+    await expect($(byTestId('edit-log-entry-title-input'))).toHaveValue('Oil & filter change');
   });
 
   it('the [+ Log entry] action navigates to New Log Entry', async () => {
