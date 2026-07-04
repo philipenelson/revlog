@@ -1,4 +1,4 @@
-import { listVehicles, getVehicle, type HttpClient, type LogEntrySummary } from '@maintenance-log/api-client';
+import { listVehicles, getVehicle, getLogEntry, type HttpClient, type LogEntrySummary } from '@maintenance-log/api-client';
 import type { VehicleRepository } from '@/domain/repositories/VehicleRepository';
 import type { LogEntryRepository } from '@/domain/repositories/LogEntryRepository';
 import type { OutboxRepository } from '@/domain/repositories/OutboxRepository';
@@ -46,7 +46,11 @@ export function createSyncService({
   // stats/transferPending/logEntries are sourced (ADR 0027's 2026-07-03
   // update). Log Entries from every Vehicle are reconciled in one call
   // after the loop, matching the "single-collection replace" shape
-  // LogEntryRepository already offers.
+  // LogEntryRepository already offers. Phase 3 (ADR 0027's 2026-07-04
+  // update): for whichever entries reconcile() reports as not yet
+  // detail-fetched, fetch full detail (notes + items) via GET
+  // /vehicles/:vehicleId/log/:entryId and cache it locally — this is what
+  // lets Edit Log Entry pre-fill purely from SQLite.
   async function pull(): Promise<void> {
     const vehicles = await listVehicles(client);
     await vehicleRepository.reconcile(vehicles);
@@ -78,7 +82,37 @@ export function createSyncService({
       }
     }
 
-    await logEntryRepository.reconcile(allLogEntries);
+    const needsDetail = await logEntryRepository.reconcile(allLogEntries);
+
+    // Bounded, not per-entry-per-pull: only entries reconcile() has never
+    // cached full detail for (new this pull, or a prior fetch never
+    // completed) get fetched — see ADR 0027's 2026-07-04 update for why this
+    // differs from phase 2's unconditional per-vehicle refetch.
+    const vehicleIdByEntryId = new Map(allLogEntries.map((entry) => [entry.id, entry.vehicleId]));
+    for (const entryId of needsDetail) {
+      const vehicleId = vehicleIdByEntryId.get(entryId);
+      if (!vehicleId) continue;
+      try {
+        const full = await getLogEntry(client, vehicleId, entryId);
+        await logEntryRepository.applyDetail(entryId, {
+          notes: full.notes,
+          items: full.items.map((item) => ({
+            categoryId: item.categoryId,
+            description: item.description,
+            quantity: item.quantity !== null ? Number(item.quantity) : null,
+            unitCost: item.unitCost !== null ? Number(item.unitCost) : null,
+          })),
+        });
+      } catch (err) {
+        // detailFetched stays false, so the next pull's reconcile() will
+        // report this id again — a transient failure self-heals instead of
+        // permanently losing this entry's detail.
+        logger.warn('sync: failed to fetch log entry detail, will retry next pull', {
+          entryId,
+          err: String(err),
+        });
+      }
+    }
   }
 
   // Per ADR 0027: pending entries in created_at order, one at a time. No

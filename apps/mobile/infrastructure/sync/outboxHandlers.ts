@@ -1,4 +1,4 @@
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, createLogEntry, ApiError, type HttpClient } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, createLogEntry, updateLogEntry, deleteLogEntry, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
 import { logger } from '@/infrastructure/logging/logger';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
@@ -52,6 +52,29 @@ interface CreateLogEntryOutboxPayload {
     quantity: number | null;
     unitCost: number | null;
   }>;
+}
+
+// Mirrors LogEntryRepository.UpdateLogEntryData plus vehicleId/entryId for
+// the URL — same reasoning as CreateLogEntryOutboxPayload above.
+interface UpdateLogEntryOutboxPayload {
+  vehicleId: string;
+  entryId: string;
+  typeId: string;
+  title: string;
+  date: string;
+  mileage: number;
+  notes: string | null;
+  items: Array<{
+    categoryId: string;
+    description: string;
+    quantity: number | null;
+    unitCost: number | null;
+  }>;
+}
+
+interface DeleteLogEntryOutboxPayload {
+  vehicleId: string;
+  entryId: string;
 }
 
 // A 4xx (validation, 403, 404) means the mutation itself is rejected —
@@ -156,6 +179,48 @@ export function createOutboxHandlers(client: HttpClient): Record<string, OutboxH
         }
         logger.warn('outbox: CREATE_LOG_ENTRY rejected by the API, dropping local change', {
           vehicleId,
+          err: String(err),
+        });
+        throw err;
+      }
+    },
+
+    UPDATE_LOG_ENTRY: async (payload) => {
+      const { vehicleId, entryId, items, ...data } = payload as UpdateLogEntryOutboxPayload;
+      try {
+        await updateLogEntry(client, vehicleId, entryId, {
+          ...data,
+          time: null, // not collected on mobile -- see docs/specs/mobile-app/log-entry.md
+          items: items.map((item, sortOrder) => ({ ...item, sortOrder })),
+        });
+      } catch (err) {
+        if (isRetryable(err)) {
+          throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
+        }
+        logger.warn('outbox: UPDATE_LOG_ENTRY rejected by the API, dropping local change', {
+          vehicleId,
+          entryId,
+          err: String(err),
+        });
+        throw err;
+      }
+    },
+
+    DELETE_LOG_ENTRY: async (payload) => {
+      const { vehicleId, entryId } = payload as DeleteLogEntryOutboxPayload;
+      try {
+        await deleteLogEntry(client, vehicleId, entryId);
+      } catch (err) {
+        if (isRetryable(err)) {
+          throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
+        }
+        // A 404 here means the entry is already gone server-side (e.g.
+        // deleted from another device) -- the local delete already reached
+        // its intended end state either way, same reasoning as
+        // DELETE_VEHICLE's handler above.
+        logger.warn('outbox: DELETE_LOG_ENTRY rejected by the API, dropping local change', {
+          vehicleId,
+          entryId,
           err: String(err),
         });
         throw err;

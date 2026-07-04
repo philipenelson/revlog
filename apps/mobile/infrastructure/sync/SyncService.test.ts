@@ -1,5 +1,5 @@
 import type { HttpClient } from '@maintenance-log/api-client';
-import type { VehicleDetail, VehicleSummary } from '@maintenance-log/api-client';
+import type { VehicleDetail, VehicleSummary, LogEntrySummary } from '@maintenance-log/api-client';
 import type { VehicleRepository } from '@/domain/repositories/VehicleRepository';
 import type { LogEntryRepository } from '@/domain/repositories/LogEntryRepository';
 import type { OutboxEntry, OutboxRepository } from '@/domain/repositories/OutboxRepository';
@@ -9,12 +9,14 @@ jest.mock('@maintenance-log/api-client', () => ({
   ...jest.requireActual('@maintenance-log/api-client'),
   listVehicles: jest.fn(),
   getVehicle: jest.fn(),
+  getLogEntry: jest.fn(),
 }));
 
-import { listVehicles, getVehicle } from '@maintenance-log/api-client';
+import { listVehicles, getVehicle, getLogEntry, type LogEntryDetail } from '@maintenance-log/api-client';
 
 const mockListVehicles = listVehicles as jest.MockedFunction<typeof listVehicles>;
 const mockGetVehicle = getVehicle as jest.MockedFunction<typeof getVehicle>;
+const mockGetLogEntry = getLogEntry as jest.MockedFunction<typeof getLogEntry>;
 
 const fakeClient = {} as HttpClient;
 
@@ -31,7 +33,30 @@ function fakeVehicleRepository(): jest.Mocked<VehicleRepository> {
 }
 
 function fakeLogEntryRepository(): jest.Mocked<LogEntryRepository> {
-  return { findByVehicleId: jest.fn(async (_vehicleId: string) => []), create: jest.fn(), reconcile: jest.fn() };
+  return {
+    findByVehicleId: jest.fn(async (_vehicleId: string) => []),
+    findById: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    reconcile: jest.fn(async (_entries: Array<LogEntrySummary & { vehicleId: string }>) => [] as string[]),
+    applyDetail: jest.fn(),
+  };
+}
+
+function logEntryDetail(overrides: Partial<LogEntryDetail> = {}): LogEntryDetail {
+  return {
+    id: 'v1-e1',
+    typeId: 'MAINTENANCE',
+    title: 'Oil change',
+    date: '2026-06-28',
+    time: null,
+    mileage: 4200,
+    notes: null,
+    items: [],
+    media: [],
+    ...overrides,
+  };
 }
 
 function fakeOutboxRepository(entries: OutboxEntry[]): jest.Mocked<OutboxRepository> {
@@ -221,6 +246,104 @@ describe('SyncService.pull', () => {
       { ...staleEntry, vehicleId: 'v1' },
       expect.objectContaining({ id: 'v2-e1', vehicleId: 'v2' }),
     ]);
+  });
+
+  it("fetches full detail for entries reconcile() reports as not yet cached, and applies notes/items", async () => {
+    mockListVehicles.mockResolvedValue([vehicle]);
+    mockGetVehicle.mockResolvedValue(
+      vehicleDetail({
+        logEntries: [
+          {
+            id: 'v1-e1',
+            typeId: 'MAINTENANCE',
+            title: 'Oil change',
+            date: '2026-06-28',
+            time: null,
+            mileage: 4200,
+            itemCount: 1,
+            mediaCount: 0,
+            totalCost: '40.00',
+          },
+        ],
+      }),
+    );
+    mockGetLogEntry.mockResolvedValue(
+      logEntryDetail({
+        notes: 'Full synthetic 10W-40',
+        items: [{ id: 'i1', categoryId: 'PART', description: 'Oil filter', quantity: '1', unitCost: '40.00' }],
+      }),
+    );
+    const logEntryRepository = fakeLogEntryRepository();
+    logEntryRepository.reconcile.mockResolvedValue(['v1-e1']);
+    const service = createSyncService({
+      client: fakeClient,
+      vehicleRepository: fakeVehicleRepository(),
+      logEntryRepository,
+      outboxRepository: fakeOutboxRepository([]),
+      handlers: {},
+    });
+
+    await service.pull();
+
+    expect(mockGetLogEntry).toHaveBeenCalledWith(fakeClient, 'v1', 'v1-e1');
+    expect(logEntryRepository.applyDetail).toHaveBeenCalledWith('v1-e1', {
+      notes: 'Full synthetic 10W-40',
+      items: [{ categoryId: 'PART', description: 'Oil filter', quantity: 1, unitCost: 40 }],
+    });
+  });
+
+  it('does not fetch detail for entries reconcile() reports as already cached', async () => {
+    mockListVehicles.mockResolvedValue([vehicle]);
+    mockGetVehicle.mockResolvedValue(vehicleDetail());
+    const logEntryRepository = fakeLogEntryRepository();
+    logEntryRepository.reconcile.mockResolvedValue([]);
+    const service = createSyncService({
+      client: fakeClient,
+      vehicleRepository: fakeVehicleRepository(),
+      logEntryRepository,
+      outboxRepository: fakeOutboxRepository([]),
+      handlers: {},
+    });
+
+    await service.pull();
+
+    expect(mockGetLogEntry).not.toHaveBeenCalled();
+    expect(logEntryRepository.applyDetail).not.toHaveBeenCalled();
+  });
+
+  it('logs and continues (leaving detailFetched false for a future retry) when a detail fetch fails', async () => {
+    mockListVehicles.mockResolvedValue([vehicle]);
+    mockGetVehicle.mockResolvedValue(
+      vehicleDetail({
+        logEntries: [
+          {
+            id: 'v1-e1',
+            typeId: 'MAINTENANCE',
+            title: 'Oil change',
+            date: '2026-06-28',
+            time: null,
+            mileage: 4200,
+            itemCount: 1,
+            mediaCount: 0,
+            totalCost: '40.00',
+          },
+        ],
+      }),
+    );
+    mockGetLogEntry.mockRejectedValue(new Error('network error'));
+    const logEntryRepository = fakeLogEntryRepository();
+    logEntryRepository.reconcile.mockResolvedValue(['v1-e1']);
+    const service = createSyncService({
+      client: fakeClient,
+      vehicleRepository: fakeVehicleRepository(),
+      logEntryRepository,
+      outboxRepository: fakeOutboxRepository([]),
+      handlers: {},
+    });
+
+    await expect(service.pull()).resolves.toBeUndefined();
+
+    expect(logEntryRepository.applyDetail).not.toHaveBeenCalled();
   });
 });
 
