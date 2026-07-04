@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useCallback, type KeyboardEvent } from "react";
-import { BackArrowIcon } from "@/application/components/icons";
+import { useEffect, useCallback, useRef, type KeyboardEvent } from "react";
+import { BackArrowIcon, CameraIcon } from "@/application/components/icons";
 import { FormField } from "@/application/components/FormField";
 import { useEditVehicleViewModel } from "./useEditVehicleViewModel";
 import styles from "./edit-vehicle.module.css";
 
 export function EditVehicleScreen() {
   const vm = useEditVehicleViewModel();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (vm.loadState === "not-found") return <NotFoundState />;
   if (vm.loadState === "error") return <ErrorState />;
@@ -30,6 +31,67 @@ export function EditVehicleScreen() {
             <div className={styles.loadingSkeleton} data-testid="loading-skeleton" />
           ) : (
             <form onSubmit={vm.handleSubmit} noValidate data-testid="edit-vehicle-form">
+              <div className={styles.photoField}>
+                <label className={styles.fieldLabel}>
+                  Photo
+                  <span className={styles.optional}> (optional)</span>
+                </label>
+                <div className={styles.photoZone} data-testid="photo-zone">
+                  {vm.hasPendingPhotoPick ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- data: URL from FileReader; next/image does not support data: URIs */}
+                      <img
+                        src={vm.photoPreviewUrl!}
+                        alt="Vehicle preview"
+                        className={styles.photoPreview}
+                      />
+                      <button
+                        type="button"
+                        className={styles.photoRemoveBtn}
+                        onClick={() => vm.removePhoto(fileInputRef.current)}
+                        aria-label="Remove selected photo"
+                        data-testid="remove-photo-btn"
+                      >
+                        ×
+                      </button>
+                    </>
+                  ) : vm.photoPreviewUrl ? (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className={styles.photoZoneInput}
+                        onChange={vm.handlePhotoChange}
+                        data-testid="photo-input"
+                        aria-label="Change vehicle photo"
+                      />
+                      {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded photo served by local Express */}
+                      <img
+                        src={vm.photoPreviewUrl}
+                        alt="Vehicle photo"
+                        className={styles.photoPreview}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className={styles.photoZoneInput}
+                        onChange={vm.handlePhotoChange}
+                        data-testid="photo-input"
+                        aria-label="Upload vehicle photo"
+                      />
+                      <CameraIcon className={styles.photoZoneIcon} />
+                      <span className={styles.photoZoneLabel}>Click to upload a photo</span>
+                      <span className={styles.photoZoneSub}>JPG, PNG, WebP — max 5 MB</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
               <FormField label="Nickname" id="fNickname" optional classes={styles}>
                 <input
                   id="fNickname"

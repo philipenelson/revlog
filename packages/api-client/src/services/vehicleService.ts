@@ -91,6 +91,33 @@ export async function updateVehicle(
   await client.patch(`/vehicles/${vehicleId}`, payload);
 }
 
+export interface SetVehiclePhotoResponse {
+  photoUrl: string | null;
+}
+
+export async function setVehiclePhoto(
+  client: HttpClient,
+  vehicleId: string,
+  photo: File,
+): Promise<SetVehiclePhotoResponse> {
+  const fd = new FormData();
+  fd.append('photo', photo);
+  return client.post<SetVehiclePhotoResponse>(`/vehicles/${vehicleId}/photo`, fd);
+}
+
+// React-Native-shaped sibling of setVehiclePhoto, matching
+// createVehicleWithPhotoUri's relationship to createVehicleWithPhoto —
+// see this file's UploadableFile doc comment for why.
+export async function setVehiclePhotoUri(
+  client: HttpClient,
+  vehicleId: string,
+  photo: UploadableFile,
+): Promise<SetVehiclePhotoResponse> {
+  const fd = new FormData();
+  fd.append('photo', photo as unknown as Blob);
+  return client.post<SetVehiclePhotoResponse>(`/vehicles/${vehicleId}/photo`, fd);
+}
+
 export async function deleteVehicle(client: HttpClient, vehicleId: string): Promise<void> {
   await client.delete(`/vehicles/${vehicleId}`);
 }

@@ -28,6 +28,20 @@ function stubPatchOk(override: object = {}) {
   }).as("patchVehicle");
 }
 
+function stubPhotoOk(photoUrl = "http://localhost:3001/uploads/vehicles/new-photo.jpg") {
+  cy.intercept("POST", `**/vehicles/${VEHICLE_ID}/photo`, {
+    statusCode: 200,
+    body: { photoUrl },
+  }).as("uploadPhoto");
+}
+
+function selectPhotoFile() {
+  cy.get('[data-testid="photo-input"]').selectFile(
+    { contents: Cypress.Buffer.from("fake-image-bytes"), fileName: "bike.jpg", mimeType: "image/jpeg" },
+    { force: true },
+  );
+}
+
 function signIn(beforeVisit: () => void = () => {}) {
   cy.setCookie("refreshToken", "e2e-edit-vehicle-session");
 
@@ -249,6 +263,117 @@ describe("Edit Vehicle screen — /garage/[vehicleId]/edit", () => {
       cy.visit(`/garage/${VEHICLE_ID}/edit`);
       cy.wait("@refresh");
       cy.contains("Something went wrong").should("be.visible");
+    });
+  });
+
+  describe("photo change", () => {
+    it("shows an empty placeholder when the vehicle has no photo", () => {
+      signIn(stubDetailOk);
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+
+      cy.get('[data-testid="photo-zone"]').find("img").should("not.exist");
+      cy.get('[data-testid="remove-photo-btn"]').should("not.exist");
+    });
+
+    it("shows the current photo when the vehicle has one", () => {
+      signIn(() => stubDetailOk({ photoUrl: "http://localhost:3001/uploads/vehicles/current.jpg" }));
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+
+      cy.get('[data-testid="photo-zone"]').find("img").should("have.attr", "src").and("include", "current.jpg");
+      // No pending pick yet — nothing to discard.
+      cy.get('[data-testid="remove-photo-btn"]').should("not.exist");
+    });
+
+    it("shows a local preview and a remove-selection control once a replacement is picked", () => {
+      signIn(stubDetailOk);
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+
+      selectPhotoFile();
+
+      cy.get('[data-testid="photo-zone"]').find("img").should("be.visible");
+      cy.get('[data-testid="remove-photo-btn"]').should("be.visible");
+    });
+
+    it("discards the pending pick without calling the API when removed", () => {
+      cy.intercept("POST", `**/vehicles/${VEHICLE_ID}/photo`).as("uploadPhoto");
+      signIn(stubDetailOk);
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+
+      selectPhotoFile();
+      cy.get('[data-testid="remove-photo-btn"]').click();
+
+      cy.get('[data-testid="photo-zone"]').find("img").should("not.exist");
+      cy.get('[data-testid="remove-photo-btn"]').should("not.exist");
+      cy.get("@uploadPhoto.all").should("have.length", 0);
+    });
+
+    it("uploads the picked photo after a successful save and navigates to detail", () => {
+      signIn(stubDetailOk);
+      stubPatchOk();
+      stubPhotoOk();
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+
+      selectPhotoFile();
+      cy.get('[data-testid="save-btn"]').click();
+
+      cy.wait("@patchVehicle");
+      cy.wait("@uploadPhoto").then(({ request }) => {
+        expect(request.headers["content-type"]).to.include("multipart/form-data");
+      });
+      cy.url().should("include", `/garage/${VEHICLE_ID}`);
+      cy.url().should("not.include", "/edit");
+    });
+
+    it("never calls the photo endpoint when no new photo was picked", () => {
+      cy.intercept("POST", `**/vehicles/${VEHICLE_ID}/photo`).as("uploadPhoto");
+      signIn(stubDetailOk);
+      stubPatchOk({ make: "Yamaha" });
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+
+      cy.get('[data-testid="make-input"]').clear().type("Yamaha");
+      cy.get('[data-testid="save-btn"]').click();
+
+      cy.wait("@patchVehicle");
+      cy.get("@uploadPhoto.all").should("have.length", 0);
+    });
+
+    it("shows an inline photo error and stays on the screen when the upload fails after a successful save", () => {
+      signIn(stubDetailOk);
+      stubPatchOk();
+      cy.intercept("POST", `**/vehicles/${VEHICLE_ID}/photo`, {
+        statusCode: 500,
+        body: { error: "Internal server error" },
+      }).as("uploadPhotoError");
+      stubEditVehicleAuthRefresh();
+      cy.visit(`/garage/${VEHICLE_ID}/edit`);
+      cy.wait("@refresh");
+      cy.wait("@getVehicle");
+
+      selectPhotoFile();
+      cy.get('[data-testid="save-btn"]').click();
+
+      cy.wait("@patchVehicle");
+      cy.wait("@uploadPhotoError");
+      cy.get('[data-testid="submit-error"]').should("contain", "couldn't be uploaded");
+      cy.url().should("include", "/edit");
     });
   });
 
