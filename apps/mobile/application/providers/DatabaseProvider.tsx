@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
+import type { UserProfile } from '@maintenance-log/api-client';
 import { openDatabase } from '@/infrastructure/database/openDatabase';
 import { createSQLiteStore, createOutboxWriter } from '@/infrastructure/database/SQLiteStore';
-import { vehiclesTable, outboxTable, logEntriesTable } from '@/infrastructure/database/schema';
+import { vehiclesTable, outboxTable, logEntriesTable, userProfileTable } from '@/infrastructure/database/schema';
 import { createVehicleRepository, type VehicleRepository, type LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import {
   createOutboxRepository,
@@ -13,12 +14,16 @@ import {
   type LogEntryRepository,
   type LocalLogEntry,
 } from '@/domain/repositories/LogEntryRepository';
+import { createProfileRepository, type ProfileRepository } from '@/domain/repositories/ProfileRepository';
 
 interface DatabaseContextValue {
   isReady: boolean;
   vehicleRepository: VehicleRepository | null;
   outboxRepository: OutboxRepository | null;
   logEntryRepository: LogEntryRepository | null;
+  // Optional so the many viewmodel-test useDatabase() mocks that predate the
+  // profile cache keep type-checking; the real provider always supplies it.
+  profileRepository?: ProfileRepository | null;
 }
 
 const DatabaseContext = createContext<DatabaseContextValue | null>(null);
@@ -34,6 +39,7 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
     vehicleRepository: null,
     outboxRepository: null,
     logEntryRepository: null,
+    profileRepository: null,
   });
 
   useEffect(() => {
@@ -50,7 +56,8 @@ export function DatabaseProvider({ children }: PropsWithChildren) {
         createSQLiteStore<LocalLogEntry>(db, logEntriesTable),
         createOutboxWriter<LocalLogEntry>(db, logEntriesTable),
       );
-      setValue({ isReady: true, vehicleRepository, outboxRepository, logEntryRepository });
+      const profileRepository = createProfileRepository(createSQLiteStore<UserProfile>(db, userProfileTable));
+      setValue({ isReady: true, vehicleRepository, outboxRepository, logEntryRepository, profileRepository });
     });
 
     return () => {

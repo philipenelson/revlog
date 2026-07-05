@@ -26,7 +26,7 @@ const SyncContext = createContext<SyncContextValue | null>(null);
 // while unauthenticated or before the local database is ready.
 export function SyncProvider({ children }: PropsWithChildren) {
   const { session } = useAuth();
-  const { isReady, vehicleRepository, outboxRepository, logEntryRepository } = useDatabase();
+  const { isReady, vehicleRepository, outboxRepository, logEntryRepository, profileRepository } = useDatabase();
   const netInfo = useNetInfo();
   const isOnline = netInfo.isConnected ?? true;
 
@@ -64,6 +64,7 @@ export function SyncProvider({ children }: PropsWithChildren) {
       logEntryRepository,
       outboxRepository,
       handlers: createOutboxHandlers(tokenHttpClient),
+      profileRepository: profileRepository ?? undefined,
     });
 
     try {

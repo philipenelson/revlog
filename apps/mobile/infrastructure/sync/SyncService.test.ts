@@ -1,8 +1,9 @@
 import type { HttpClient } from '@maintenance-log/api-client';
-import type { VehicleDetail, VehicleSummary, LogEntrySummary } from '@maintenance-log/api-client';
+import type { VehicleDetail, VehicleSummary, LogEntrySummary, UserProfile } from '@maintenance-log/api-client';
 import type { VehicleRepository } from '@/domain/repositories/VehicleRepository';
 import type { LogEntryRepository } from '@/domain/repositories/LogEntryRepository';
 import type { OutboxEntry, OutboxRepository } from '@/domain/repositories/OutboxRepository';
+import type { ProfileRepository } from '@/domain/repositories/ProfileRepository';
 import { createSyncService, RetryableOutboxError } from './SyncService';
 
 jest.mock('@maintenance-log/api-client', () => ({
@@ -10,13 +11,15 @@ jest.mock('@maintenance-log/api-client', () => ({
   listVehicles: jest.fn(),
   getVehicle: jest.fn(),
   getLogEntry: jest.fn(),
+  getCurrentUser: jest.fn(),
 }));
 
-import { listVehicles, getVehicle, getLogEntry, type LogEntryDetail } from '@maintenance-log/api-client';
+import { listVehicles, getVehicle, getLogEntry, getCurrentUser, type LogEntryDetail } from '@maintenance-log/api-client';
 
 const mockListVehicles = listVehicles as jest.MockedFunction<typeof listVehicles>;
 const mockGetVehicle = getVehicle as jest.MockedFunction<typeof getVehicle>;
 const mockGetLogEntry = getLogEntry as jest.MockedFunction<typeof getLogEntry>;
+const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
 
 const fakeClient = {} as HttpClient;
 
@@ -108,6 +111,48 @@ function entry(id: string, createdAt: number, type = 'CREATE_VEHICLE'): OutboxEn
 
 describe('SyncService.pull', () => {
   afterEach(() => jest.clearAllMocks());
+
+  const userProfile: UserProfile = { id: 'u1', fullName: 'Philip Russo', email: 'p@example.com', role: 'OWNER' };
+
+  function fakeProfileRepository(): jest.Mocked<ProfileRepository> {
+    return { get: jest.fn(), save: jest.fn() };
+  }
+
+  it('fetches the current user profile and caches it when a profileRepository is provided', async () => {
+    mockListVehicles.mockResolvedValue([]);
+    mockGetCurrentUser.mockResolvedValue(userProfile);
+    const profileRepository = fakeProfileRepository();
+    const service = createSyncService({
+      client: fakeClient,
+      vehicleRepository: fakeVehicleRepository(),
+      logEntryRepository: fakeLogEntryRepository(),
+      outboxRepository: fakeOutboxRepository([]),
+      handlers: {},
+      profileRepository,
+    });
+
+    await service.pull();
+
+    expect(mockGetCurrentUser).toHaveBeenCalledWith(fakeClient);
+    expect(profileRepository.save).toHaveBeenCalledWith(userProfile);
+  });
+
+  it('keeps the cached profile (no throw, no save) when the profile fetch fails', async () => {
+    mockListVehicles.mockResolvedValue([]);
+    mockGetCurrentUser.mockRejectedValue(new Error('network error'));
+    const profileRepository = fakeProfileRepository();
+    const service = createSyncService({
+      client: fakeClient,
+      vehicleRepository: fakeVehicleRepository(),
+      logEntryRepository: fakeLogEntryRepository(),
+      outboxRepository: fakeOutboxRepository([]),
+      handlers: {},
+      profileRepository,
+    });
+
+    await expect(service.pull()).resolves.toBeUndefined();
+    expect(profileRepository.save).not.toHaveBeenCalled();
+  });
 
   it('fetches vehicles from the API and reconciles them locally', async () => {
     mockListVehicles.mockResolvedValue([vehicle]);

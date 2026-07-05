@@ -26,6 +26,17 @@ export const vehiclesTable = sqliteTable('vehicles', {
   pendingTransferRecipientEmail: text('pending_transfer_recipient_email'),
 });
 
+// Offline cache of the signed-in user's profile (GET /users/me, ADR 0033).
+// Single row: ProfileRepository.save() replaces the whole table so a
+// different user's login never leaves a stale row behind. Property names
+// match UserProfile so Store<T> can address them by key.
+export const userProfileTable = sqliteTable('user_profile', {
+  id: text('id').primaryKey(),
+  fullName: text('full_name').notNull(),
+  email: text('email').notNull(),
+  role: text('role').notNull(),
+});
+
 // Outbox schema per ADR 0027 (id doubles as the idempotency key).
 export const outboxTable = sqliteTable('outbox', {
   id: text('id').primaryKey(),

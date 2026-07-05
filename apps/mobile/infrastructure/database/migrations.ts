@@ -87,6 +87,13 @@ export function runMigrations(db: SQLiteDatabase): void {
     );
 
     CREATE INDEX IF NOT EXISTS log_entries_vehicle_id ON log_entries (vehicle_id);
+
+    CREATE TABLE IF NOT EXISTS user_profile (
+      id TEXT PRIMARY KEY NOT NULL,
+      full_name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL
+    );
   `);
 
   applyColumnMigrations(db);

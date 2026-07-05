@@ -1,7 +1,8 @@
-import { listVehicles, getVehicle, getLogEntry, type HttpClient, type LogEntrySummary } from '@maintenance-log/api-client';
+import { listVehicles, getVehicle, getLogEntry, getCurrentUser, type HttpClient, type LogEntrySummary } from '@maintenance-log/api-client';
 import type { VehicleRepository } from '@/domain/repositories/VehicleRepository';
 import type { LogEntryRepository } from '@/domain/repositories/LogEntryRepository';
 import type { OutboxRepository } from '@/domain/repositories/OutboxRepository';
+import type { ProfileRepository } from '@/domain/repositories/ProfileRepository';
 import { logger } from '@/infrastructure/logging/logger';
 
 // Thrown by an outbox handler to mean "this failed for a retryable reason
@@ -23,6 +24,9 @@ interface SyncServiceDeps {
   logEntryRepository: LogEntryRepository;
   outboxRepository: OutboxRepository;
   handlers: Record<string, OutboxHandler>;
+  // Optional: pull() caches the current user's profile (GET /users/me) when
+  // present, for the offline-first Settings Account section (ADR 0033).
+  profileRepository?: ProfileRepository;
 }
 
 export interface SyncService {
@@ -37,6 +41,7 @@ export function createSyncService({
   logEntryRepository,
   outboxRepository,
   handlers,
+  profileRepository,
 }: SyncServiceDeps): SyncService {
   // Phased parent-then-child pull (ADR 0027's 2026-07-02 update). Phase 1:
   // GET /vehicles (list) and reconcile — this is the only phase that can
@@ -52,6 +57,18 @@ export function createSyncService({
   // /vehicles/:vehicleId/log/:entryId and cache it locally — this is what
   // lets Edit Log Entry pre-fill purely from SQLite.
   async function pull(): Promise<void> {
+    // Current-user profile (GET /users/me) for the Settings Account section.
+    // Independent of vehicles; a failure keeps the last-known cached profile
+    // (offline-first stale-over-empty, ADR 0033) rather than aborting the
+    // whole pull.
+    if (profileRepository) {
+      try {
+        await profileRepository.save(await getCurrentUser(client));
+      } catch (err) {
+        logger.warn('sync: failed to fetch user profile, keeping cached', { err: String(err) });
+      }
+    }
+
     const vehicles = await listVehicles(client);
     await vehicleRepository.reconcile(vehicles);
 
