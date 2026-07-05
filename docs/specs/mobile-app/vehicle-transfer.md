@@ -1,7 +1,7 @@
 # Mobile Vehicle Transfer Spec
 
 **Area:** Mobile / Vehicle Transfer
-**Status:** In progress
+**Status:** Implemented and unit-tested; Appium E2E specs written, not run against a live simulator this session
 **Last updated:** 2026-07-05
 
 ---
@@ -74,14 +74,14 @@ Design file: [`revlog-mobile-vehicle-transfer.html`](../../designs/mobile/revlog
 
 ## Acceptance Criteria
 
-- [ ] `[⋮]` menu on Vehicle Detail offers `[Transfer vehicle]` and `[Delete vehicle]` when unlocked; disabled together with Edit/Share/Log entry when a transfer is pending
-- [ ] Initiate Transfer screen validates recipient email (required, valid format) via the shared `initiateTransferSchema`
-- [ ] Submission writes `transferPending: true` to local SQLite and queues an `INITIATE_TRANSFER` outbox entry
-- [ ] Vehicle Detail shows locked state when transfer is pending
-- [ ] `[Cancel transfer]` shows a confirmation dialog, then clears pending state in SQLite (screen unlocks immediately, no navigation) and queues a `CANCEL_TRANSFER` outbox entry
-- [ ] After accepted transfer, Vehicle is removed from local SQLite on next sync
-- [ ] After declined transfer, Vehicle is unlocked on next sync
-- [ ] `[Share report]` button is disabled during pending transfer (same rule as web)
+- [x] `[⋮]` menu on Vehicle Detail offers `[Transfer vehicle]` and `[Delete vehicle]` when unlocked; disabled together with Edit/Share/Log entry when a transfer is pending
+- [x] Initiate Transfer screen validates recipient email (required, valid format) via the shared `initiateTransferSchema`
+- [x] Submission writes `transferPending: true` to local SQLite and queues an `INITIATE_TRANSFER` outbox entry
+- [x] Vehicle Detail shows locked state when transfer is pending
+- [x] `[Cancel transfer]` shows a confirmation dialog, then clears pending state in SQLite (screen unlocks immediately, no navigation) and queues a `CANCEL_TRANSFER` outbox entry
+- [x] After accepted transfer, Vehicle is removed from local SQLite on next sync (already covered by `VehicleRepository.reconcile()`'s existing full-replace semantics — no new code needed for this bullet)
+- [x] After declined transfer, Vehicle is unlocked on next sync (already covered by `VehicleRepository.applyDetail()`'s existing per-vehicle refresh — no new code needed for this bullet)
+- [x] `[Share report]` button is disabled during pending transfer (same rule as web)
 
 ---
 
