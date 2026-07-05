@@ -23,9 +23,10 @@ const SyncContext = createContext<SyncContextValue | null>(null);
 // Mounted inside DatabaseProvider (needs repositories) and AuthProvider
 // (needs the session) in app/_layout.tsx. Triggers a full sync (flush then
 // pull, per ADR 0027) on mount, on reconnect, and on app foreground — never
-// while unauthenticated or before the local database is ready.
+// while unauthenticated, before the local database is ready, or during a
+// token-less offline session (ADR 0036).
 export function SyncProvider({ children }: PropsWithChildren) {
-  const { session } = useAuth();
+  const { session, isOffline } = useAuth();
   const { isReady, vehicleRepository, outboxRepository, logEntryRepository, profileRepository } = useDatabase();
   const netInfo = useNetInfo();
   const isOnline = netInfo.isConnected ?? true;
@@ -55,7 +56,9 @@ export function SyncProvider({ children }: PropsWithChildren) {
   }
 
   async function performSync(): Promise<void> {
-    if (!isReady || !vehicleRepository || !outboxRepository || !logEntryRepository || !session) return;
+    // An offline session has no valid access token — every request would 401.
+    // Sync waits until AuthProvider's foreground upgrade mints real tokens.
+    if (!isReady || !vehicleRepository || !outboxRepository || !logEntryRepository || !session || isOffline) return;
 
     setSyncStatus('syncing');
     const service = createSyncService({
@@ -79,13 +82,14 @@ export function SyncProvider({ children }: PropsWithChildren) {
     setPendingCount((await outboxRepository.listPending()).length);
   }
 
-  // On mount, and whenever the database becomes ready or the signed-in user
-  // changes (covers login/logout — not every session refresh, which keeps
-  // the same user.id).
+  // On mount, and whenever the database becomes ready, the signed-in user
+  // changes (covers login/logout — not every session refresh, which keeps the
+  // same user.id), or an offline session upgrades to online (isOffline flips
+  // false while user.id is unchanged, so it needs its own dependency).
   useEffect(() => {
     void runFullSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, session?.user.id]);
+  }, [isReady, session?.user.id, isOffline]);
 
   // On reconnect.
   useEffect(() => {
@@ -101,7 +105,7 @@ export function SyncProvider({ children }: PropsWithChildren) {
     });
     return () => subscription.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, session?.user.id]);
+  }, [isReady, session?.user.id, isOffline]);
 
   const value: SyncContextValue = { isOnline, pendingCount, syncStatus, lastSyncedAt, refresh: runFullSync };
 

@@ -88,6 +88,31 @@ describe('SyncProvider', () => {
     expect(latestValue!.lastSyncedAt).toBeNull();
   });
 
+  it('does not sync during a token-less offline session', async () => {
+    // Signed in, DB ready, online — but isOffline gates it: an offline session
+    // has no valid access token, so every request would 401 (ADR 0036).
+    setReady(fakeSession);
+    mockUseAuth.mockReturnValue({
+      session: fakeSession,
+      isRestoring: false,
+      isOffline: true,
+      hasStoredCredentials: true,
+      setSession: jest.fn(),
+      clearSession: jest.fn(),
+    });
+    const runFullSync = jest.fn(async () => {});
+    mockCreateSyncService.mockReturnValue({ pull: jest.fn(), flushOutbox: jest.fn(), runFullSync });
+
+    await render(
+      <SyncProvider>
+        <Probe />
+      </SyncProvider>,
+    );
+
+    expect(runFullSync).not.toHaveBeenCalled();
+    expect(latestValue!.lastSyncedAt).toBeNull();
+  });
+
   it('sets syncStatus to error when the sync fails, without throwing', async () => {
     setReady(fakeSession);
     const runFullSync = jest.fn(async () => {
