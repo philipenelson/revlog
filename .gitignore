@@ -52,7 +52,8 @@ coverage
 # Docker
 docker/postgres-data
 /_readme_old.md
-/apps/api/uploads/vehicles/dd79828b-07f7-463f-ac72-e542e6ff80d2.jpeg
+# API media uploads (runtime storage) -- never committed
+/apps/api/uploads/
 /.claire/worktrees/agent-a910572fa8bc10354/apps/web/src/lib/media/MediaStoreProvider.tsx
 /skills-lock.json
 /apps/web/cypress/screenshots/
