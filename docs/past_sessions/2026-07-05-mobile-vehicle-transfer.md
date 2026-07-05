@@ -9,7 +9,7 @@
 
 Implement the mobile side of the vehicle transfer feature: an Owner can initiate a transfer from Vehicle Detail, cancel a pending one, and see the locked state while a transfer is pending. The web/API side of vehicle transfer already shipped on 2026-06-30 (`docs/past_sessions/2026-06-30-vehicle-transfer.md`); the mobile spec (`docs/specs/mobile-app/vehicle-transfer.md`) existed but its screen was still a placeholder (`ScreenPlaceholder`). Spec: `docs/specs/mobile-app/vehicle-transfer.md`, `docs/specs/mobile-app/vehicle.md`.
 
-Along the way, a real bug was found and diagnosed (not fixed this session, by agreement): a stale local dev SQLite install missing the `notes`/`items_json`/`detail_fetched` columns added to `log_entries` in an earlier session causes every sync to fail with `table log_entries has no column named notes`, since `migrations.ts` only ever runs `CREATE TABLE IF NOT EXISTS`, never `ALTER TABLE`. Tracked for a follow-up session.
+Along the way, a real bug was found: a stale local dev SQLite install missing the `notes`/`items_json`/`detail_fetched` columns added to `log_entries` in an earlier session causes every sync to fail with `table log_entries has no column named notes`, since `migrations.ts` only ever ran `CREATE TABLE IF NOT EXISTS`, never `ALTER TABLE`. Diagnosed and fixed later in this same session (see below).
 
 ---
 
@@ -22,7 +22,7 @@ Along the way, a real bug was found and diagnosed (not fixed this session, by ag
 | Self-transfer check is server-side only on mobile | Initiate Transfer validates email format only (`initiateTransferSchema`); a self-transfer attempt is caught by the API's existing 400, surfaced as a generic submit error if it happens synchronously, otherwise reverted on the next sync | Mobile's `Session` (`packages/api-client`) carries only `{ id, accountId, role }` — no email to compare the recipient field against locally. Adding it is a real option (thread it through login/refresh + `AuthProvider`) but broader than this feature |
 | Cancel transfer ships on Vehicle Detail, not a dedicated screen | `[Cancel transfer]` button + confirmation dialog live in `useVehicleDetailViewModel`; no navigation on success, just a local re-read so the screen unlocks immediately | UC-MOB-TRANSFER-3's precondition was always "Owner is on Vehicle Detail" — there's no other screen it would make sense to launch from |
 | `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox payloads are plain `{ vehicleId, recipientEmail }` / `{ vehicleId }` | Mirrors every other outbox payload shape in `outboxHandlers.ts` | No new convention needed |
-| Log entries sync bug diagnosed, not fixed | Root-caused to `migrations.ts`'s `CREATE TABLE IF NOT EXISTS`-only strategy missing a real column-migration path | Explicitly deferred to a follow-up session by agreement — out of scope for this feature |
+| Log entries sync bug: keep hand-written DDL, add idempotent `ALTER TABLE` column migrations | `applyColumnMigrations()` in `migrations.ts` checks `PRAGMA table_info()` per table and adds exactly the columns a stale install is missing, after the existing `CREATE TABLE IF NOT EXISTS` block | The "just clear your local db" reasoning `migrations.ts` shipped with was wrong in practice — this was a real, reproducible sync failure, not a theoretical dev inconvenience. See ADR 0026's 2026-07-05 update |
 
 ---
 
@@ -59,15 +59,22 @@ Along the way, a real bug was found and diagnosed (not fixed this session, by ag
 - `edit-vehicle.e2e.ts`: delete-confirmation tests removed (moved to vehicle-detail.e2e.ts)
 - Registered in `wdio.shared.conf.ts`
 
+### Log entries sync bugfix (`fix(mobile): idempotent ALTER TABLE column migrations for stale local DBs` — 5d927ba)
+
+- **`apps/mobile/infrastructure/database/migrations.ts`** — `applyColumnMigrations()` runs after the existing `CREATE TABLE IF NOT EXISTS` block, adding any of the seven known `vehicles`/`log_entries` columns a given local install is still missing, via `ALTER TABLE ... ADD COLUMN`
+- **`migrations.test.ts`** (new) — idempotency on an up-to-date install, adding the specific missing columns on a stale one (both `log_entries` and `vehicles`), and CREATE TABLE running before the column check
+- **`docs/adr/0026-mobile-local-database.md`** — 2026-07-05 update: corrects the ADR's "Schema management" section (it claimed Drizzle handled migrations; the code has always been hand-written DDL) and records this decision
+
 ---
 
 ## Verification
 
-- `pnpm --filter @maintenance-log/mobile test`: **219/219 pass**
+- `pnpm --filter @maintenance-log/mobile test`: **223/223 pass**
 - `tsc --noEmit -p apps/mobile`: 0 errors
 - `tsc --noEmit` against `apps/mobile/e2e/tsconfig.json`: 0 errors
 - No inline `style={{}}` or raw hex values introduced (grepped manually; `eslint` wasn't runnable in this environment)
 - Appium E2E specs written and typecheck cleanly, but were **not run against a live simulator** this session (no device/simulator available) — same "written, not live-verified" status this repo's other recent mobile E2E work has shipped with
+- The migration fix itself is also unverified against a real on-device stale SQLite file this session (covered by `migrations.test.ts`'s fake, not an actual `expo-sqlite` database) — worth a manual on-device check next time a simulator is available
 
 ---
 
@@ -75,5 +82,4 @@ Along the way, a real bug was found and diagnosed (not fixed this session, by ag
 
 - **In-app transfer acceptance** (`/transfers/[token]` deep link on mobile) — V2, per `docs/specs/mobile-app/vehicle-transfer.md`'s existing Out of scope
 - **Adding email to the mobile `Session`** — would let the client-side "not your own email" check actually run; deliberately deferred, see Decisions above
-- **The log_entries sync bug** (stale local schema missing `notes`/`items_json`/`detail_fetched`) — diagnosed this session, fix deferred to a follow-up by agreement with the user
 - **Live Appium run** — no simulator/device was available in this environment
