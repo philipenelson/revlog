@@ -94,7 +94,7 @@ Two entry points:
 - [ ] Settings shows a biometric toggle only when hardware is available; on enables (after a biometry check), off disables.
 - [ ] With biometric enabled, a cold start routes to login and auto-presents biometry; success signs in, "Use password instead" falls back to the form.
 - [ ] A foreground while offline silently upgrades to a real session on success; a `401` clears stale credentials and routes to login.
-- [ ] The biometric prompt is stubbed behind `EXPO_PUBLIC_E2E` so the Appium unlock flow is deterministic.
+- [ ] The biometric *prompt* is stubbed behind `EXPO_PUBLIC_E2E` (availability stays real) so the Appium unlock flow is deterministic without diverting the rest of the suite.
 
 ---
 
@@ -110,7 +110,7 @@ Two entry points:
 | Biometric library | `expo-local-authentication` | Standard Expo choice; hardware/enrolment queries + OS prompt. |
 | Enrolment | One-time post-login prompt + Settings toggle | Reaches every user incl. existing accounts on a new device; Onboarding screen is an unbuilt placeholder. |
 | Biometric unlock location | On the login screen (auto-prompt) | Fewer surfaces; password + biometric in one place; offline biometric unlock reuses the login path. |
-| E2E | Test-seam stub behind `EXPO_PUBLIC_E2E` | OS biometric modal isn't reliably drivable in Appium; keeps the flow deterministic. |
+| E2E | Stub `authenticate()` behind `EXPO_PUBLIC_E2E`; keep `isAvailable()` real | OS biometric modal isn't drivable in Appium, but forcing availability would divert every UI login into the enrolment prompt; the biometric spec enrols on the simulator instead. |
 
 ---
 

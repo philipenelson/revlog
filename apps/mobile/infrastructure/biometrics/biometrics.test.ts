@@ -61,10 +61,11 @@ describe('E2E seam (EXPO_PUBLIC_E2E=1)', () => {
     process.env.EXPO_PUBLIC_E2E = '1';
   });
 
-  it('reports available without touching the native module', async () => {
-    expect(await biometrics.isAvailable()).toBe(true);
-    expect(mockHasHardware).not.toHaveBeenCalled();
-    expect(mockIsEnrolled).not.toHaveBeenCalled();
+  it('still resolves availability from the real capability (so the rest of the suite is unaffected)', async () => {
+    mockHasHardware.mockResolvedValue(false);
+    mockIsEnrolled.mockResolvedValue(false);
+    expect(await biometrics.isAvailable()).toBe(false);
+    expect(mockHasHardware).toHaveBeenCalled();
   });
 
   it('authenticates successfully without presenting the native prompt', async () => {

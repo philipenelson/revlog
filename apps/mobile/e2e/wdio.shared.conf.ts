@@ -18,6 +18,9 @@ export const config: Omit<Options.Testrunner, 'capabilities'> = {
     './specs/add-vehicle.e2e.ts',
     './specs/vehicle-transfer.e2e.ts',
     './specs/settings.e2e.ts',
+    // Last: enrols a simulator biometric that would otherwise turn the
+    // post-login enrolment prompt on for later specs; its after-hook unenrols.
+    './specs/biometric.e2e.ts',
   ],
   maxInstances: 1,
   logLevel: 'warn',

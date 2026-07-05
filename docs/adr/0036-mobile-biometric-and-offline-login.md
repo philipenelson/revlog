@@ -70,7 +70,7 @@ Tokens are still cleared on every cold start; the app still never *silently* res
 
 ### Testing: E2E test-seam
 
-The biometric prompt is an OS-native modal Appium cannot reliably drive. Behind `EXPO_PUBLIC_E2E === '1'`, `biometrics.isAvailable()` returns `true` and `biometrics.authenticate()` resolves success, so the Appium flow (enable → restart → auto-unlock → Garage) runs deterministically on both platforms. The "Use password instead" fallback is a plain button and needs no seam. All unlock/offline logic is additionally unit-tested in `useSignIn` and the viewmodels (humble-object pattern).
+The biometric prompt is an OS-native modal Appium cannot reliably drive. Behind `EXPO_PUBLIC_E2E === '1'`, only `biometrics.authenticate()` is stubbed to resolve success — the un-drivable part — so the unlock flow is deterministic. `biometrics.isAvailable()` is left **real**: the rest of the E2E suite never enrols a biometric, so it sees biometrics as unavailable and its login flows are unchanged, while the biometric spec enrols one on the simulator (Appium `mobile: enrollBiometric`) to turn availability on. This keeps the flag-on build and the existing specs coexisting in one build. The password form is always present as the fallback and needs no seam. All unlock/offline logic is additionally unit-tested in `useSignIn` and the viewmodels (humble-object pattern).
 
 ## Status
 
