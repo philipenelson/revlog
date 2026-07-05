@@ -1,7 +1,7 @@
 # Mobile Mechanic Printout Spec
 
 **Area:** Mobile / Exports
-**Status:** In progress
+**Status:** Implemented
 **Last updated:** 2026-07-05
 
 ---
@@ -64,13 +64,13 @@ Design file: [`revlog-mobile-mechanic-printout.html`](../../designs/mobile/revlo
 
 ## Acceptance Criteria
 
-- [ ] `[Share report]` button is disabled when a Vehicle Transfer is pending
-- [ ] On open, the screen fetches current token state and shows Generate vs Share/Revoke accordingly
-- [ ] `[Generate link]` calls `POST /vehicles/:vehicleId/report-token` and shows the result URL
-- [ ] `[Share]` opens the OS native share sheet with the share URL
-- [ ] `[Revoke]` shows a confirmation dialog before calling `DELETE /vehicles/:vehicleId/report-token`
-- [ ] After revoke, screen returns to the "Generate link" state
-- [ ] A network failure on fetch, generate, or revoke surfaces an error state rather than crashing
+- [x] `[Share report]` button is disabled when a Vehicle Transfer is pending
+- [x] On open, the screen fetches current token state and shows Generate vs Share/Revoke accordingly
+- [x] `[Generate link]` calls `POST /vehicles/:vehicleId/report-token` and shows the result URL
+- [x] `[Share]` opens the OS native share sheet with the share URL
+- [x] `[Revoke]` shows a confirmation dialog before calling `DELETE /vehicles/:vehicleId/report-token`
+- [x] After revoke, screen returns to the "Generate link" state
+- [x] A network failure on fetch, generate, or revoke surfaces an error state rather than crashing
 
 ---
 
