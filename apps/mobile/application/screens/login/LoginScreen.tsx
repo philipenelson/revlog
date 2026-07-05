@@ -82,6 +82,17 @@ export function LoginScreen() {
           <Text style={styles.primaryButtonLabel}>{vm.isSubmitting ? 'Signing in…' : 'Sign in'}</Text>
         </Pressable>
 
+        {vm.biometricAvailable && (
+          <Pressable
+            style={({ pressed }) => [styles.biometricButton, pressed && styles.biometricButtonActive]}
+            onPress={vm.onBiometricUnlock}
+            testID="login-biometric-btn"
+            accessibilityRole="button"
+          >
+            <Text style={styles.biometricButtonLabel}>Unlock with biometrics</Text>
+          </Pressable>
+        )}
+
         <Pressable style={styles.linkRow} onPress={vm.onForgotPassword} testID="login-forgot-password-link">
           <Text style={styles.linkAction}>Forgot password?</Text>
         </Pressable>
@@ -179,6 +190,22 @@ const styles = StyleSheet.create({
   },
   primaryButtonLabel: {
     color: colors.neutral[900],
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+  },
+  biometricButton: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.teal[500],
+    paddingVertical: spacing[4],
+    alignItems: 'center',
+    marginTop: spacing[3],
+  },
+  biometricButtonActive: {
+    backgroundColor: colors.neutral[700],
+  },
+  biometricButtonLabel: {
+    color: colors.teal[300],
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold,
   },

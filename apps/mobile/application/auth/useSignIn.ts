@@ -34,7 +34,11 @@ export function useSignIn(): (credentials: LoginInput) => Promise<SignInResult> 
         // not paper over offline; a 5xx is a service problem. Mirrors the
         // network-vs-response split of online-required logout (ADR 0034).
         if (err instanceof ApiError) {
-          return { status: err.status >= 500 ? 'serviceError' : 'invalidCredentials' };
+          if (err.status >= 500) {
+            logger.error('online login failed with a server error', { status: err.status });
+            return { status: 'serviceError' };
+          }
+          return { status: 'invalidCredentials' };
         }
         // No response at all (network down / timeout) — try the stored creds.
         return signInOffline(credentials, setSession);

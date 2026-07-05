@@ -104,11 +104,12 @@ describe('useSignIn — online', () => {
     expect(mockGet).not.toHaveBeenCalled();
   });
 
-  it('returns serviceError on a 5xx', async () => {
+  it('returns serviceError and logs on a 5xx', async () => {
     const { signIn } = await setup();
     mockLogin.mockRejectedValue(new ApiError(503, {}));
 
     expect(await signIn(credentials)).toEqual({ status: 'serviceError' });
+    expect(logger.error).toHaveBeenCalledWith('online login failed with a server error', { status: 503 });
   });
 });
 
