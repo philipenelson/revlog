@@ -48,7 +48,7 @@ domain/
 
 Repositories are the ONLY place that touches the `LocalDatabase` port. ViewModels call repositories, never `LocalDatabase` directly. Repositories own the logic of "write to SQLite + enqueue outbox entry in a single transaction."
 
-Services from `packages/api-client` are NOT called from viewmodels. They are used only by `SyncService` in the infrastructure layer.
+Services from `packages/api-client` are not called from viewmodels **for syncable application data** (vehicles, log entries) — that data goes through repositories so reads and writes stay offline-first. **Online-only operations that are never persisted locally (auth, report tokens) may call api-client services directly with `tokenHttpClient`, mirroring the web viewmodels** — see `useLoginViewModel` and `useRegisterViewModel`.
 
 ### `infrastructure/` — adapters, transport, sync, storage
 
@@ -71,7 +71,7 @@ infrastructure/
 
 ## Offline-first rules (non-negotiable)
 
-The app is fully offline-first. These rules apply without exception:
+The app is fully offline-first. These rules govern *syncable application data* (vehicles, log entries) — the entities the user must be able to read and mutate offline. Online-only operations that are never persisted locally (auth, report tokens) are outside their scope and call api-client services directly, as the web does. For syncable data the rules apply without exception:
 
 1. **All reads come from local SQLite.** ViewModels never call the API to display data. They call repositories, which read from `SQLiteLocalDatabase`.
 
@@ -79,7 +79,7 @@ The app is fully offline-first. These rules apply without exception:
 
 3. **SyncService owns all network I/O.** It flushes the outbox to the API and pulls fresh data. Nothing outside `SyncService` initiates API calls for data sync.
 
-4. **Token HttpClient is not a data access layer.** `TokenHttpClient` is used only by `SyncService` (sync) and `AuthProvider` (token refresh). It is not used for reading or writing application data.
+4. **Token HttpClient is not a local data access layer.** `TokenHttpClient` never reads or writes *syncable* application data (vehicles, log entries) — that always goes through repositories and the outbox. It is used by `SyncService` (sync), `AuthProvider` (token refresh), and viewmodels performing online-only operations that are never persisted locally (login, register, report tokens).
 
 ---
 
