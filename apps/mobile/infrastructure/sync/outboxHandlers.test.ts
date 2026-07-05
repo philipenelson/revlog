@@ -9,6 +9,8 @@ jest.mock('@maintenance-log/api-client', () => ({
   updateVehicle: jest.fn(),
   setVehiclePhotoUri: jest.fn(),
   deleteVehicle: jest.fn(),
+  initiateTransfer: jest.fn(),
+  cancelTransfer: jest.fn(),
   createLogEntry: jest.fn(),
   updateLogEntry: jest.fn(),
   deleteLogEntry: jest.fn(),
@@ -18,7 +20,7 @@ jest.mock('@/infrastructure/storage/photoStorage', () => ({
   openVehiclePhotoFile: jest.fn(),
 }));
 
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, createLogEntry, updateLogEntry, deleteLogEntry } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, initiateTransfer, cancelTransfer, createLogEntry, updateLogEntry, deleteLogEntry } from '@maintenance-log/api-client';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
 
 const mockCreateVehicle = createVehicle as jest.MockedFunction<typeof createVehicle>;
@@ -26,6 +28,8 @@ const mockCreateVehicleWithPhotoUri = createVehicleWithPhotoUri as jest.MockedFu
 const mockUpdateVehicle = updateVehicle as jest.MockedFunction<typeof updateVehicle>;
 const mockSetVehiclePhotoUri = setVehiclePhotoUri as jest.MockedFunction<typeof setVehiclePhotoUri>;
 const mockDeleteVehicle = deleteVehicle as jest.MockedFunction<typeof deleteVehicle>;
+const mockInitiateTransfer = initiateTransfer as jest.MockedFunction<typeof initiateTransfer>;
+const mockCancelTransfer = cancelTransfer as jest.MockedFunction<typeof cancelTransfer>;
 const mockCreateLogEntry = createLogEntry as jest.MockedFunction<typeof createLogEntry>;
 const mockUpdateLogEntry = updateLogEntry as jest.MockedFunction<typeof updateLogEntry>;
 const mockDeleteLogEntry = deleteLogEntry as jest.MockedFunction<typeof deleteLogEntry>;
@@ -266,6 +270,82 @@ describe('outboxHandlers.DELETE_VEHICLE', () => {
     const handlers = createOutboxHandlers(fakeClient);
 
     await expect(handlers.DELETE_VEHICLE!({ vehicleId: 'v1' })).rejects.toBe(notFound);
+  });
+});
+
+describe('outboxHandlers.INITIATE_TRANSFER', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('calls initiateTransfer with the vehicleId and recipientEmail', async () => {
+    mockInitiateTransfer.mockResolvedValue({ id: 't1', status: 'PENDING', recipientEmail: 'buyer@example.com', expiresAt: '2026-07-12T00:00:00.000Z' });
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await handlers.INITIATE_TRANSFER!({ vehicleId: 'v1', recipientEmail: 'buyer@example.com' });
+
+    expect(mockInitiateTransfer).toHaveBeenCalledWith(fakeClient, 'v1', 'buyer@example.com');
+  });
+
+  it('wraps a 5xx ApiError as retryable', async () => {
+    mockInitiateTransfer.mockRejectedValue(new ApiError(500, {}));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(
+      handlers.INITIATE_TRANSFER!({ vehicleId: 'v1', recipientEmail: 'buyer@example.com' }),
+    ).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('wraps a raw network failure as retryable', async () => {
+    mockInitiateTransfer.mockRejectedValue(new TypeError('Network request failed'));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(
+      handlers.INITIATE_TRANSFER!({ vehicleId: 'v1', recipientEmail: 'buyer@example.com' }),
+    ).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('lets a 4xx ApiError (e.g. "cannot transfer to yourself") propagate as permanent, not wrapped', async () => {
+    const badRequest = new ApiError(400, { error: 'Cannot transfer to yourself' });
+    mockInitiateTransfer.mockRejectedValue(badRequest);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(
+      handlers.INITIATE_TRANSFER!({ vehicleId: 'v1', recipientEmail: 'buyer@example.com' }),
+    ).rejects.toBe(badRequest);
+  });
+});
+
+describe('outboxHandlers.CANCEL_TRANSFER', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('calls cancelTransfer with the vehicleId', async () => {
+    mockCancelTransfer.mockResolvedValue(undefined);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await handlers.CANCEL_TRANSFER!({ vehicleId: 'v1' });
+
+    expect(mockCancelTransfer).toHaveBeenCalledWith(fakeClient, 'v1');
+  });
+
+  it('wraps a 5xx ApiError as retryable', async () => {
+    mockCancelTransfer.mockRejectedValue(new ApiError(500, {}));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.CANCEL_TRANSFER!({ vehicleId: 'v1' })).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('wraps a raw network failure as retryable', async () => {
+    mockCancelTransfer.mockRejectedValue(new TypeError('Network request failed'));
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.CANCEL_TRANSFER!({ vehicleId: 'v1' })).rejects.toBeInstanceOf(RetryableOutboxError);
+  });
+
+  it('lets a 4xx ApiError propagate as permanent, not wrapped', async () => {
+    const notFound = new ApiError(404, { error: 'No pending transfer for this vehicle' });
+    mockCancelTransfer.mockRejectedValue(notFound);
+    const handlers = createOutboxHandlers(fakeClient);
+
+    await expect(handlers.CANCEL_TRANSFER!({ vehicleId: 'v1' })).rejects.toBe(notFound);
   });
 });
 

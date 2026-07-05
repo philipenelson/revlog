@@ -1,4 +1,4 @@
-import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, createLogEntry, updateLogEntry, deleteLogEntry, ApiError, type HttpClient } from '@maintenance-log/api-client';
+import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, initiateTransfer, cancelTransfer, createLogEntry, updateLogEntry, deleteLogEntry, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
 import { logger } from '@/infrastructure/logging/logger';
 import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
@@ -32,6 +32,15 @@ interface UpdateVehicleOutboxPayload {
 }
 
 interface DeleteVehicleOutboxPayload {
+  vehicleId: string;
+}
+
+interface InitiateTransferOutboxPayload {
+  vehicleId: string;
+  recipientEmail: string;
+}
+
+interface CancelTransferOutboxPayload {
   vehicleId: string;
 }
 
@@ -158,6 +167,48 @@ export function createOutboxHandlers(client: HttpClient): Record<string, OutboxH
         // its intended end state either way, so this is logged and dropped
         // the same as any other permanent rejection, not retried.
         logger.warn('outbox: DELETE_VEHICLE rejected by the API, dropping local change', {
+          vehicleId,
+          err: String(err),
+        });
+        throw err;
+      }
+    },
+
+    INITIATE_TRANSFER: async (payload) => {
+      const { vehicleId, recipientEmail } = payload as InitiateTransferOutboxPayload;
+      try {
+        await initiateTransfer(client, vehicleId, recipientEmail);
+      } catch (err) {
+        if (isRetryable(err)) {
+          throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
+        }
+        // A permanent rejection here (e.g. "cannot transfer to yourself",
+        // or another transfer already pending -- see docs/specs/mobile-app/
+        // vehicle-transfer.md's Decisions) leaves the local optimistic lock
+        // in place; the next successful sync's applyDetail() corrects
+        // transferPending back to false, same server-wins policy as every
+        // other permanent outbox failure.
+        logger.warn('outbox: INITIATE_TRANSFER rejected by the API, dropping local change', {
+          vehicleId,
+          err: String(err),
+        });
+        throw err;
+      }
+    },
+
+    CANCEL_TRANSFER: async (payload) => {
+      const { vehicleId } = payload as CancelTransferOutboxPayload;
+      try {
+        await cancelTransfer(client, vehicleId);
+      } catch (err) {
+        if (isRetryable(err)) {
+          throw new RetryableOutboxError(err instanceof Error ? err.message : 'network error');
+        }
+        // A 404 here means there's no pending transfer server-side any more
+        // (e.g. already accepted/declined/expired) -- the local unlock
+        // already reached its intended end state either way, same
+        // reasoning as DELETE_VEHICLE's/DELETE_LOG_ENTRY's handlers above.
+        logger.warn('outbox: CANCEL_TRANSFER rejected by the API, dropping local change', {
           vehicleId,
           err: String(err),
         });
