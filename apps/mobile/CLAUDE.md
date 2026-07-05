@@ -138,7 +138,7 @@ pnpm --filter @maintenance-log/mobile test
 
 Always use `expo-secure-store` via `infrastructure/storage/secureStorage.ts` for auth tokens. Never store tokens in `AsyncStorage`, `MMKV`, or module-level variables that survive re-renders.
 
-The `TokenHttpClient` reads tokens from secure storage and injects `Authorization: Bearer <accessToken>` on authenticated requests. On token refresh calls (`POST /auth/refresh`), it also injects `Refresh-Token: <refreshToken>` as a header. This is the only client-side auth mechanism.
+The `TokenHttpClient` reads tokens from secure storage and injects `Authorization: Bearer <accessToken>` on authenticated requests. On the refresh call (`POST /auth/refresh`) it injects `Refresh-Token: <refreshToken>` instead; on logout (`POST /auth/logout`) it injects *both* (Bearer to authenticate, Refresh-Token so the server can revoke it — ADR 0034). This is the only client-side auth mechanism.
 
 ---
 

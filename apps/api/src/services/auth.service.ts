@@ -167,4 +167,15 @@ export class AuthService {
       account: { id: account.id, status: account.status },
     };
   }
+
+  // Revoke a refresh token (mobile logout, ADR 0034). Idempotent: an
+  // unknown/absent token is a no-op success — logout must never fail because
+  // the token was already gone, and it never discloses whether one existed.
+  async logout(rawToken: string): Promise<void> {
+    const record = await this.refreshTokenRepo.findByTokenHash(hashRefreshToken(rawToken));
+    if (record) {
+      await this.refreshTokenRepo.deleteById(record.id);
+      logger.info({ userId: record.userId }, 'user logged out');
+    }
+  }
 }

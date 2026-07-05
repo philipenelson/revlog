@@ -8,6 +8,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 const REFRESH_LEAD_MS = 30_000;
 
 const isRefreshPath = (path: string) => path === '/auth/refresh';
+const isLogoutPath = (path: string) => path === '/auth/logout';
 
 interface Session {
   accessToken: string;
@@ -69,8 +70,11 @@ function buildHeaders(path: string, body: unknown): Headers {
   headers.set('X-Client-Platform', 'mobile');
   if (isRefreshPath(path)) {
     if (session?.refreshToken) headers.set('Refresh-Token', session.refreshToken);
-  } else if (session?.accessToken) {
-    headers.set('Authorization', `Bearer ${session.accessToken}`);
+  } else {
+    if (session?.accessToken) headers.set('Authorization', `Bearer ${session.accessToken}`);
+    // Logout is authenticated AND must present the refresh token so the
+    // server can revoke it (ADR 0034).
+    if (isLogoutPath(path) && session?.refreshToken) headers.set('Refresh-Token', session.refreshToken);
   }
   return headers;
 }
@@ -83,8 +87,11 @@ function serializeBody(body: unknown): BodyInit_ | undefined {
 
 async function request<T>(path: string, method: string, body?: unknown, options?: RequestOptions): Promise<T> {
   // Proactive refresh before the request, not after a 401 — mirrors web's
-  // authRequestInterceptor. Skipped for the refresh call itself.
-  if (!isRefreshPath(path) && session && needsRefresh(session)) {
+  // authRequestInterceptor. Skipped for the refresh call itself, and for
+  // logout: refreshing would rotate the very token we're about to revoke,
+  // and a refresh that fails offline clears the session — which would defeat
+  // online-required logout's "stay signed in when offline" contract (ADR 0034).
+  if (!isRefreshPath(path) && !isLogoutPath(path) && session && needsRefresh(session)) {
     try {
       await refreshOnce();
     } catch {

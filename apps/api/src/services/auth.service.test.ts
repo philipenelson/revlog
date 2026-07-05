@@ -465,3 +465,51 @@ describe('AuthService.refresh', () => {
     expect(storedData.tokenHash).toBe(expectedHash);
   });
 });
+
+describe('AuthService.logout', () => {
+  let userRepo: IUserRepository;
+  let refreshTokenRepo: IRefreshTokenRepository;
+  let accountRepo: IAccountRepository;
+  let service: AuthService;
+
+  const RAW_TOKEN = 'd'.repeat(64);
+
+  const mockRecord: DomainRefreshToken = {
+    id: 'rt-logout',
+    userId: mockVerifiedUser.id,
+    tokenHash: 'stored-hash',
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    createdAt: fixedNow,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userRepo = makeFakeUserRepo();
+    refreshTokenRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(mockRecord) });
+    accountRepo = makeFakeAccountRepo();
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+  });
+
+  it('revokes the matching refresh token by id', async () => {
+    await service.logout(RAW_TOKEN);
+
+    expect(refreshTokenRepo.findByTokenHash).toHaveBeenCalledOnce();
+    expect(refreshTokenRepo.deleteById).toHaveBeenCalledWith('rt-logout');
+  });
+
+  it('hashes the raw token before looking it up — never queries with the raw value', async () => {
+    const { createHash } = await import('crypto');
+    await service.logout(RAW_TOKEN);
+
+    const expectedHash = createHash('sha256').update(RAW_TOKEN).digest('hex');
+    expect(refreshTokenRepo.findByTokenHash).toHaveBeenCalledWith(expectedHash);
+  });
+
+  it('is a no-op (no throw, no delete) when the token is unknown or absent — idempotent', async () => {
+    refreshTokenRepo = makeFakeRefreshTokenRepo({ findByTokenHash: vi.fn().mockResolvedValue(null) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.logout(RAW_TOKEN)).resolves.toBeUndefined();
+    expect(refreshTokenRepo.deleteById).not.toHaveBeenCalled();
+  });
+});

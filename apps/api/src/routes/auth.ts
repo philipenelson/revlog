@@ -1,6 +1,7 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
 import { registerSchema, loginSchema } from '@maintenance-log/domain';
 import type { AuthService } from '../services/auth.service';
+import { authenticate } from '../middleware/auth';
 
 const REFRESH_COOKIE = 'refreshToken';
 const REFRESH_COOKIE_OPTIONS = {
@@ -94,6 +95,23 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
       const result = await authService.refresh(token);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
       res.status(200).json(sessionResponseBody(result, req));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Online-required logout (ADR 0034): revoke the caller's refresh token
+  // server-side. Behind `authenticate`, but idempotent — an absent/unknown
+  // refresh token still returns 204. Refresh token source mirrors /refresh:
+  // web cookie or (mobile) Refresh-Token header.
+  router.post('/logout', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.cookies?.[REFRESH_COOKIE] ?? req.headers['refresh-token'];
+    try {
+      if (typeof token === 'string' && token) {
+        await authService.logout(token);
+      }
+      res.clearCookie(REFRESH_COOKIE, REFRESH_COOKIE_OPTIONS);
+      res.status(204).end();
     } catch (err) {
       next(err);
     }

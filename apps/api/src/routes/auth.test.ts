@@ -4,13 +4,17 @@ import cookieParser from 'cookie-parser';
 import supertest from 'supertest';
 import { createAuthRouter } from './auth';
 import { AppError, errorMiddleware } from '../middleware/error';
+import { signAccessToken } from '../lib/tokens';
 import type { AuthService } from '../services/auth.service';
 
-const mockAuthService: Pick<AuthService, 'register' | 'verifyEmail' | 'login' | 'refresh'> = {
+process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
+
+const mockAuthService: Pick<AuthService, 'register' | 'verifyEmail' | 'login' | 'refresh' | 'logout'> = {
   register: vi.fn(),
   verifyEmail: vi.fn(),
   login: vi.fn(),
   refresh: vi.fn(),
+  logout: vi.fn(),
 };
 
 function buildApp() {
@@ -409,6 +413,69 @@ describe('POST /auth/refresh', () => {
     const res = await supertest(buildApp())
       .post('/auth/refresh')
       .set('Cookie', ['refreshToken=valid-raw-token']);
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('POST /auth/logout', () => {
+  let authHeader: string;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const { token } = await signAccessToken({ sub: 'user-1', accountId: 'acc-1', role: 'OWNER' });
+    authHeader = `Bearer ${token}`;
+  });
+
+  it('returns 401 and does not touch the service when unauthenticated', async () => {
+    const res = await supertest(buildApp())
+      .post('/auth/logout')
+      .set('Refresh-Token', 'c'.repeat(64));
+
+    expect(res.status).toBe(401);
+    expect(mockAuthService.logout).not.toHaveBeenCalled();
+  });
+
+  it('returns 204 and revokes the refresh token from the Refresh-Token header (mobile)', async () => {
+    (mockAuthService.logout as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const res = await supertest(buildApp())
+      .post('/auth/logout')
+      .set('Authorization', authHeader)
+      .set('Refresh-Token', 'c'.repeat(64));
+
+    expect(res.status).toBe(204);
+    expect(mockAuthService.logout).toHaveBeenCalledWith('c'.repeat(64));
+  });
+
+  it('revokes the refresh token from the cookie (web)', async () => {
+    (mockAuthService.logout as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const res = await supertest(buildApp())
+      .post('/auth/logout')
+      .set('Authorization', authHeader)
+      .set('Cookie', ['refreshToken=web-raw-token']);
+
+    expect(res.status).toBe(204);
+    expect(mockAuthService.logout).toHaveBeenCalledWith('web-raw-token');
+  });
+
+  it('still returns 204 when no refresh token is present, without calling the service (idempotent)', async () => {
+    const res = await supertest(buildApp())
+      .post('/auth/logout')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(204);
+    expect(mockAuthService.logout).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockAuthService.logout as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp())
+      .post('/auth/logout')
+      .set('Authorization', authHeader)
+      .set('Refresh-Token', 'c'.repeat(64));
 
     expect(res.status).toBe(500);
   });

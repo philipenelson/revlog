@@ -15,6 +15,11 @@ export function refreshSession(client: HttpClient): Promise<Session> {
   return client.post<Session>('/auth/refresh');
 }
 
+/** Revoke the caller's refresh token server-side (online-required logout, ADR 0034). Returns 204. */
+export function logout(client: HttpClient): Promise<void> {
+  return client.post<void>('/auth/logout');
+}
+
 export function verifyEmail(client: HttpClient, token: string): Promise<Session> {
   return client.get<Session>(`/auth/verify-email?token=${encodeURIComponent(token)}`);
 }
