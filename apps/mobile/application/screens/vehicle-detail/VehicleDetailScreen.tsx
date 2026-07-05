@@ -1,6 +1,16 @@
-import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { LogEntrySummary } from '@maintenance-log/api-client';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
 import { VehicleGlyph } from '@/application/components/VehicleGlyph';
@@ -76,6 +86,52 @@ function LockIcon() {
     <Svg width={16} height={16} viewBox="0 0 20 20" fill="none" aria-hidden>
       <Rect x={4.5} y={9} width={11} height={8} rx={1.5} stroke={colors.warning[500]} strokeWidth={1.5} />
       <Path d="M6.5 9V6.5a3.5 3.5 0 017 0V9" stroke={colors.warning[500]} strokeWidth={1.5} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function MoreIcon({ disabled }: { disabled: boolean }) {
+  const color = disabled ? colors.neutral[400] : colors.neutral[200];
+  return (
+    <Svg width={16} height={16} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <Circle cx={10} cy={4} r={1.6} fill={color} />
+      <Circle cx={10} cy={10} r={1.6} fill={color} />
+      <Circle cx={10} cy={16} r={1.6} fill={color} />
+    </Svg>
+  );
+}
+
+function TransferIcon() {
+  return (
+    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <Path
+        d="M4 12a8 8 0 0114-5.3M20 4v5h-5"
+        stroke={colors.neutral[200]}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M20 12a8 8 0 01-14 5.3M4 20v-5h5"
+        stroke={colors.neutral[200]}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function TrashIcon({ size = 13 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 14 14" fill="none" aria-hidden>
+      <Path
+        d="M2 4h10M5 4V2.5h4V4M5.5 6.5v4M8.5 6.5v4M3 4l.7 7.5A1 1 0 004.7 13h4.6a1 1 0 001-.95L11 4"
+        stroke={colors.danger[500]}
+        strokeWidth={1.3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
@@ -161,8 +217,27 @@ export function VehicleDetailScreen() {
           <Pressable onPress={vm.onEdit} disabled={locked} hitSlop={8} testID="vehicle-detail-edit-btn">
             <EditIcon disabled={locked} />
           </Pressable>
+          <Pressable onPress={vm.openMenu} disabled={locked} hitSlop={8} testID="vehicle-detail-menu-btn">
+            <MoreIcon disabled={locked} />
+          </Pressable>
         </View>
       </View>
+
+      <Modal transparent animationType="fade" visible={vm.menuOpen} onRequestClose={vm.closeMenu}>
+        <Pressable style={styles.menuBackdrop} onPress={vm.closeMenu} testID="vehicle-detail-menu-backdrop">
+          <View style={styles.menuBox} testID="vehicle-detail-menu">
+            <Pressable style={styles.menuItem} onPress={vm.onTransfer} testID="vehicle-detail-menu-transfer">
+              <TransferIcon />
+              <Text style={styles.menuItemLabel}>Transfer vehicle</Text>
+            </Pressable>
+            <View style={styles.menuDivider} />
+            <Pressable style={styles.menuItem} onPress={vm.openDeleteDialog} testID="vehicle-detail-menu-delete">
+              <TrashIcon />
+              <Text style={styles.menuItemLabelDanger}>Delete vehicle</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
 
       <FlatList
         data={vm.logEntries}
@@ -247,11 +322,127 @@ export function VehicleDetailScreen() {
               </Pressable>
             </View>
 
+            {locked && (
+              <Pressable
+                style={styles.cancelTransferBtn}
+                onPress={vm.openCancelTransferDialog}
+                testID="vehicle-detail-cancel-transfer-btn"
+              >
+                <Text style={styles.cancelTransferBtnLabel}>Cancel transfer</Text>
+              </Pressable>
+            )}
+
             <Text style={styles.sectionTitle}>Service History</Text>
           </>
         }
         ListEmptyComponent={<EmptyHistory onAddLogEntry={vm.onAddLogEntry} />}
       />
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={vm.deleteDialogOpen}
+        onRequestClose={vm.closeDeleteDialog}
+        testID="vehicle-detail-delete-dialog"
+      >
+        <View style={styles.dialogWrapper}>
+          <Pressable
+            style={styles.dialogBackdrop}
+            onPress={vm.closeDeleteDialog}
+            testID="vehicle-detail-delete-dialog-backdrop"
+          />
+          <View style={styles.dialogBox}>
+            <View style={styles.dialogIconDanger}>
+              <TrashIcon size={20} />
+            </View>
+            <Text style={styles.dialogTitle} testID="vehicle-detail-delete-dialog-title">
+              Delete {vm.displayName}?
+            </Text>
+            <Text style={styles.dialogBody}>
+              This will permanently delete the vehicle and all its log entries. This cannot be undone.
+            </Text>
+            {vm.deleteError && (
+              <Text style={styles.dialogError} accessibilityRole="alert" testID="vehicle-detail-delete-error">
+                {vm.deleteError}
+              </Text>
+            )}
+            <View style={styles.dialogActions}>
+              <Pressable
+                style={styles.dialogBtnCancel}
+                onPress={vm.closeDeleteDialog}
+                disabled={vm.isDeleting}
+                testID="vehicle-detail-delete-dialog-cancel-btn"
+              >
+                <Text style={styles.dialogBtnCancelLabel}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.dialogBtnConfirmDanger}
+                onPress={vm.handleDelete}
+                disabled={vm.isDeleting}
+                testID="vehicle-detail-delete-dialog-confirm-btn"
+              >
+                <Text style={styles.dialogBtnConfirmLabel}>{vm.isDeleting ? 'Deleting…' : 'Delete'}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={vm.cancelTransferDialogOpen}
+        onRequestClose={vm.closeCancelTransferDialog}
+        testID="vehicle-detail-cancel-transfer-dialog"
+      >
+        <View style={styles.dialogWrapper}>
+          <Pressable
+            style={styles.dialogBackdrop}
+            onPress={vm.closeCancelTransferDialog}
+            testID="vehicle-detail-cancel-transfer-dialog-backdrop"
+          />
+          <View style={styles.dialogBox}>
+            <View style={styles.dialogIcon}>
+              <LockIcon />
+            </View>
+            <Text style={styles.dialogTitle} testID="vehicle-detail-cancel-transfer-dialog-title">
+              Cancel this transfer request?
+            </Text>
+            <Text style={styles.dialogBody}>
+              The recipient will be notified and {vm.displayName} will be unlocked immediately.
+            </Text>
+            {vm.cancelTransferError && (
+              <Text
+                style={styles.dialogError}
+                accessibilityRole="alert"
+                testID="vehicle-detail-cancel-transfer-error"
+              >
+                {vm.cancelTransferError}
+              </Text>
+            )}
+            <View style={styles.dialogActions}>
+              <Pressable
+                style={styles.dialogBtnCancel}
+                onPress={vm.closeCancelTransferDialog}
+                disabled={vm.isCancellingTransfer}
+                testID="vehicle-detail-cancel-transfer-dialog-dismiss-btn"
+              >
+                <Text style={styles.dialogBtnCancelLabel}>Keep transfer</Text>
+              </Pressable>
+              <Pressable
+                style={styles.dialogBtnConfirm}
+                onPress={vm.handleCancelTransfer}
+                disabled={vm.isCancellingTransfer}
+                testID="vehicle-detail-cancel-transfer-dialog-confirm-btn"
+              >
+                <Text style={styles.dialogBtnConfirmLabel}>
+                  {vm.isCancellingTransfer ? 'Cancelling…' : 'Cancel transfer'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -510,6 +701,158 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[6],
   },
   emptyHistoryButtonLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.neutral[900],
+  },
+  menuBackdrop: {
+    flex: 1,
+    alignItems: 'flex-end',
+    paddingTop: 64,
+    paddingRight: spacing[5],
+  },
+  menuBox: {
+    width: 200,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[500],
+    backgroundColor: colors.neutral[700],
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[4],
+  },
+  menuItemLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.neutral[200],
+  },
+  menuItemLabelDanger: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.danger[500],
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: colors.neutral[600],
+  },
+  cancelTransferBtn: {
+    alignItems: 'center',
+    marginHorizontal: spacing[5],
+    marginTop: spacing[3],
+    paddingVertical: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.danger[500],
+    borderRadius: radius.md,
+  },
+  cancelTransferBtnLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.danger[500],
+  },
+  dialogWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing[6],
+  },
+  dialogBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.neutral[900],
+    opacity: 0.8,
+  },
+  dialogBox: {
+    width: '100%',
+    padding: spacing[6],
+    borderWidth: 1,
+    borderColor: colors.neutral[500],
+    borderRadius: radius.xl,
+    backgroundColor: colors.neutral[700],
+  },
+  dialogIcon: {
+    alignSelf: 'center',
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.warning[500],
+    borderRadius: radius.md,
+    backgroundColor: colors.neutral[600],
+    marginBottom: spacing[4],
+  },
+  dialogIconDanger: {
+    alignSelf: 'center',
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.danger[500],
+    borderRadius: radius.md,
+    backgroundColor: colors.neutral[600],
+    marginBottom: spacing[4],
+  },
+  dialogTitle: {
+    fontFamily: fontFamily.displaySemibold,
+    fontSize: fontSize.lg,
+    color: colors.neutral[50],
+    textAlign: 'center',
+    marginBottom: spacing[2],
+  },
+  dialogBody: {
+    fontSize: fontSize.sm,
+    color: colors.neutral[200],
+    lineHeight: fontSize.sm * 1.5,
+    textAlign: 'center',
+  },
+  dialogError: {
+    marginTop: spacing[3],
+    fontSize: fontSize.xs,
+    color: colors.danger[500],
+    textAlign: 'center',
+  },
+  dialogActions: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    marginTop: spacing[6],
+  },
+  dialogBtnCancel: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.neutral[400],
+    borderRadius: radius.md,
+  },
+  dialogBtnCancelLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.neutral[200],
+  },
+  dialogBtnConfirm: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    borderRadius: radius.md,
+    backgroundColor: colors.teal[500],
+  },
+  dialogBtnConfirmDanger: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    borderRadius: radius.md,
+    backgroundColor: colors.danger[500],
+  },
+  dialogBtnConfirmLabel: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
     color: colors.neutral[900],
