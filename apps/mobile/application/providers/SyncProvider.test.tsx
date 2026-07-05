@@ -40,7 +40,7 @@ function Probe() {
 }
 
 function setReady(session: Session | null) {
-  mockUseAuth.mockReturnValue({ session, isRestoring: false, setSession: jest.fn(), clearSession: jest.fn() });
+  mockUseAuth.mockReturnValue({ session, isRestoring: false, isOffline: false, hasStoredCredentials: false, setSession: jest.fn(), clearSession: jest.fn() });
   mockUseDatabase.mockReturnValue({
     isReady: true,
     vehicleRepository: fakeVehicleRepository,
@@ -147,7 +147,7 @@ describe('SyncProvider', () => {
   });
 
   it('reflects netinfo connectivity as isOnline', async () => {
-    mockUseAuth.mockReturnValue({ session: null, isRestoring: false, setSession: jest.fn(), clearSession: jest.fn() });
+    mockUseAuth.mockReturnValue({ session: null, isRestoring: false, isOffline: false, hasStoredCredentials: false, setSession: jest.fn(), clearSession: jest.fn() });
     mockUseDatabase.mockReturnValue({
       isReady: false,
       vehicleRepository: null,

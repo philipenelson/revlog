@@ -4,7 +4,8 @@ import type { Session } from '@maintenance-log/api-client';
 import type { LoginInput } from '@maintenance-log/domain';
 import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { credentialStore, type StoredCredential } from '@/infrastructure/storage/credentialStore';
+import { credentialStore } from '@/infrastructure/storage/credentialStore';
+import { buildOfflineSession, credentialForStore } from '@/application/auth/offlineSession';
 import { logger } from '@/infrastructure/logging/logger';
 
 // The single sign-in path shared by the login screen (typed credentials) and
@@ -17,18 +18,6 @@ export type SignInResult =
   | { status: 'invalidCredentials' }
   | { status: 'offlineUnavailable' }
   | { status: 'serviceError' };
-
-// Rebuild a token-less Session from stored identity. The empty accessToken is
-// the offline marker: AuthProvider surfaces it as isOffline and SyncProvider
-// defers network I/O until a real session replaces it.
-export function buildOfflineSession(stored: StoredCredential): Session {
-  return {
-    accessToken: '',
-    accessTokenExpiresAt: new Date(0).toISOString(),
-    user: { id: stored.userId, accountId: stored.accountId, role: stored.role },
-    account: { id: stored.accountId, status: stored.accountStatus },
-  };
-}
 
 export function useSignIn(): (credentials: LoginInput) => Promise<SignInResult> {
   const { setSession } = useAuth();
@@ -72,14 +61,7 @@ async function signInOffline(
 // login into the offline branch, so it is swallowed (and logged) here.
 async function captureCredential(credentials: LoginInput, session: Session): Promise<void> {
   try {
-    await credentialStore.save({
-      email: credentials.email,
-      password: credentials.password,
-      userId: session.user.id,
-      accountId: session.account.id,
-      role: session.user.role,
-      accountStatus: session.account.status,
-    });
+    await credentialStore.save(credentialForStore(credentials, session));
   } catch (err) {
     logger.warn('failed to persist credentials for offline login', { err: String(err) });
   }

@@ -63,6 +63,8 @@ describe('useSettingsViewModel', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session: {} as any,
       isRestoring: false,
+      isOffline: false,
+      hasStoredCredentials: false,
       setSession: jest.fn(),
       clearSession,
     });

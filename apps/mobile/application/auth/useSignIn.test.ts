@@ -46,7 +46,14 @@ const storedCredential = {
 
 async function setup() {
   const setSession = jest.fn();
-  mockUseAuth.mockReturnValue({ session: null, isRestoring: false, setSession, clearSession: jest.fn() });
+  mockUseAuth.mockReturnValue({
+    session: null,
+    isRestoring: false,
+    isOffline: false,
+    hasStoredCredentials: false,
+    setSession,
+    clearSession: jest.fn(),
+  });
   const { result } = await renderHook(() => useSignIn());
   return { signIn: result.current, setSession };
 }
