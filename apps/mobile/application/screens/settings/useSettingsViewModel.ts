@@ -1,10 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { ApiError, logout as logoutRequest, type UserProfile } from '@maintenance-log/api-client';
 import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
+import { preferences } from '@/infrastructure/storage/preferences';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, localeLabel, type AppLocale } from '@/domain/locale';
 import { logger } from '@/infrastructure/logging/logger';
 
 const LEGAL_URLS = {
@@ -22,6 +24,15 @@ export interface SettingsViewModel {
   onOpenPrivacy: () => void;
   onOpenCookies: () => void;
   onOpenSupport: () => void;
+  // Language selector (ADR 0035) — persists a locale preference; no string
+  // translation yet (that's the later i18n effort).
+  locale: AppLocale;
+  localeLabel: string;
+  supportedLocales: ReadonlyArray<{ code: AppLocale; label: string }>;
+  languageDialogOpen: boolean;
+  openLanguageDialog: () => void;
+  closeLanguageDialog: () => void;
+  onSelectLanguage: (locale: AppLocale) => void;
   // Logout confirmation dialog (state-driven, matching the app's other
   // confirmations — e.g. Delete Vehicle — rather than a native Alert).
   logoutDialogOpen: boolean;
@@ -39,6 +50,8 @@ export function useSettingsViewModel(): SettingsViewModel {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [locale, setLocale] = useState<AppLocale>(DEFAULT_LOCALE);
+  const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
 
   // Offline-first read from the local cache (populated by SyncService's
   // GET /users/me pull, ADR 0033). Re-read on focus so a background sync's
@@ -50,6 +63,25 @@ export function useSettingsViewModel(): SettingsViewModel {
       void profileRepository.get().then(setProfile);
     }, [profileRepository]),
   );
+
+  // Load the persisted language once on mount (device preference, ADR 0035).
+  useEffect(() => {
+    void preferences.getLocale().then(setLocale);
+  }, []);
+
+  function openLanguageDialog(): void {
+    setLanguageDialogOpen(true);
+  }
+
+  function closeLanguageDialog(): void {
+    setLanguageDialogOpen(false);
+  }
+
+  function onSelectLanguage(next: AppLocale): void {
+    setLocale(next);
+    void preferences.setLocale(next);
+    setLanguageDialogOpen(false);
+  }
 
   function openLogoutDialog(): void {
     setLogoutError(null);
@@ -96,6 +128,13 @@ export function useSettingsViewModel(): SettingsViewModel {
     onOpenPrivacy: () => void Linking.openURL(LEGAL_URLS.privacy),
     onOpenCookies: () => void Linking.openURL(LEGAL_URLS.cookies),
     onOpenSupport: () => void Linking.openURL(SUPPORT_URL),
+    locale,
+    localeLabel: localeLabel(locale),
+    supportedLocales: SUPPORTED_LOCALES,
+    languageDialogOpen,
+    openLanguageDialog,
+    closeLanguageDialog,
+    onSelectLanguage,
     logoutDialogOpen,
     openLogoutDialog,
     closeLogoutDialog,

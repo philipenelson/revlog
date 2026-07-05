@@ -46,6 +46,28 @@ function LinkRow({ label, onPress, testID }: { label: string; onPress: () => voi
   );
 }
 
+function ValueRow({ label, value, onPress, testID }: { label: string; value: string; onPress: () => void; testID: string }) {
+  return (
+    <Pressable style={styles.row} onPress={onPress} testID={testID}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <View style={styles.rowRight}>
+        <Text style={styles.rowTrailing} testID={`${testID}-value`}>
+          {value}
+        </Text>
+        <RowChevron />
+      </View>
+    </Pressable>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <Path d="M4 10.5l4 4 8-9" stroke={colors.teal[400]} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 export function SettingsScreen() {
   const vm = useSettingsViewModel();
 
@@ -69,6 +91,16 @@ export function SettingsScreen() {
           <DisplayRow value={vm.profile?.email ?? '—'} label="Email" testID="settings-account-email" />
         </View>
 
+        <SectionLabel>Preferences</SectionLabel>
+        <View style={styles.listGroup}>
+          <ValueRow
+            label="Language"
+            value={vm.localeLabel}
+            onPress={vm.openLanguageDialog}
+            testID="settings-language"
+          />
+        </View>
+
         <SectionLabel>Legal</SectionLabel>
         <View style={styles.listGroup}>
           <LinkRow label="Terms of Service" onPress={vm.onOpenTerms} testID="settings-legal-terms" />
@@ -90,6 +122,41 @@ export function SettingsScreen() {
           <Text style={styles.logoutLabel}>Log out</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={vm.languageDialogOpen}
+        onRequestClose={vm.closeLanguageDialog}
+        testID="settings-language-dialog"
+      >
+        <View style={styles.dialogWrapper}>
+          <Pressable
+            style={styles.dialogBackdrop}
+            onPress={vm.closeLanguageDialog}
+            testID="settings-language-dialog-backdrop"
+          />
+          <View style={styles.dialogBox}>
+            <Text style={styles.dialogTitle}>Language</Text>
+            {vm.supportedLocales.map((option) => {
+              const selected = option.code === vm.locale;
+              return (
+                <Pressable
+                  key={option.code}
+                  style={styles.languageOption}
+                  onPress={() => vm.onSelectLanguage(option.code)}
+                  testID={`settings-language-option-${option.code}`}
+                >
+                  <Text style={selected ? styles.languageOptionLabelSelected : styles.languageOptionLabel}>
+                    {option.label}
+                  </Text>
+                  {selected ? <CheckIcon /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         transparent
@@ -208,6 +275,32 @@ const styles = StyleSheet.create({
   },
   rowValue: {
     fontSize: fontSize.base,
+    color: colors.neutral[50],
+  },
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  rowTrailing: {
+    fontSize: fontSize.sm,
+    color: colors.neutral[300],
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[600],
+  },
+  languageOptionLabel: {
+    fontSize: fontSize.base,
+    color: colors.neutral[100],
+  },
+  languageOptionLabelSelected: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
     color: colors.neutral[50],
   },
   rowSublabel: {

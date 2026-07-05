@@ -22,14 +22,20 @@ jest.mock('@maintenance-log/api-client', () => ({
   ...jest.requireActual('@maintenance-log/api-client'),
   logout: jest.fn(),
 }));
+jest.mock('@/infrastructure/storage/preferences', () => ({
+  preferences: { getLocale: jest.fn(), setLocale: jest.fn() },
+}));
 
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useAuth } from '@/application/providers/AuthProvider';
+import { preferences } from '@/infrastructure/storage/preferences';
 
 const mockUseDatabase = useDatabase as jest.MockedFunction<typeof useDatabase>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockLogout = logout as jest.MockedFunction<typeof logout>;
 const mockReplace = router.replace as jest.Mock;
+const mockGetLocale = preferences.getLocale as jest.MockedFunction<typeof preferences.getLocale>;
+const mockSetLocale = preferences.setLocale as jest.MockedFunction<typeof preferences.setLocale>;
 
 const profile: UserProfile = { id: 'u1', fullName: 'Philip Russo', email: 'p@example.com', role: 'OWNER' };
 
@@ -61,6 +67,8 @@ describe('useSettingsViewModel', () => {
       clearSession,
     });
     jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as unknown as boolean);
+    mockGetLocale.mockResolvedValue('en');
+    mockSetLocale.mockResolvedValue(undefined);
     setDatabase();
   });
 
@@ -90,6 +98,40 @@ describe('useSettingsViewModel', () => {
     expect(Linking.openURL).toHaveBeenCalledWith('https://revlog.dev/privacy');
     expect(Linking.openURL).toHaveBeenCalledWith('https://revlog.dev/cookies');
     expect(Linking.openURL).toHaveBeenCalledWith('https://revlog.dev');
+  });
+
+  it('loads the persisted language on mount and exposes its label', async () => {
+    mockGetLocale.mockResolvedValue('pt-BR');
+
+    const { result } = await renderHook(() => useSettingsViewModel());
+
+    await waitFor(() => expect(result.current.locale).toBe('pt-BR'));
+    expect(result.current.localeLabel).toBe('Português (Brasil)');
+  });
+
+  it('selecting a language persists it, updates the label, and closes the dialog', async () => {
+    const { result } = await renderHook(() => useSettingsViewModel());
+    await waitFor(() => expect(result.current.locale).toBe('en'));
+
+    await act(async () => {
+      result.current.openLanguageDialog();
+    });
+    expect(result.current.languageDialogOpen).toBe(true);
+
+    await act(async () => {
+      result.current.onSelectLanguage('es');
+    });
+
+    expect(mockSetLocale).toHaveBeenCalledWith('es');
+    expect(result.current.locale).toBe('es');
+    expect(result.current.localeLabel).toBe('Español');
+    expect(result.current.languageDialogOpen).toBe(false);
+  });
+
+  it('exposes the supported locales for the picker', async () => {
+    const { result } = await renderHook(() => useSettingsViewModel());
+
+    expect(result.current.supportedLocales.map((l) => l.code)).toEqual(['en', 'pt-BR', 'es']);
   });
 
   it('opens and closes the logout confirmation dialog', async () => {
