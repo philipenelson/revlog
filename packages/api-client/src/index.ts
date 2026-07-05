@@ -2,6 +2,7 @@ export * from './HttpClient';
 export * from './errors';
 export * from './types';
 export * from './services/authService';
+export * from './services/userService';
 export * from './services/vehicleService';
 export * from './services/logEntryService';
 export * from './services/reportService';

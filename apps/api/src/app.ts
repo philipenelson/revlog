@@ -24,6 +24,7 @@ import { PrismaInsuranceRepository } from './repositories/insurance.repository';
 import { PrismaNewsletterRepository } from './repositories/newsletter.repository';
 import { PrismaVehicleReportTokenRepository } from './repositories/vehicle-report-token.repository';
 import { AuthService } from './services/auth.service';
+import { UserService } from './services/user.service';
 import { VehicleService } from './services/vehicle.service';
 import { VehicleTransferService } from './services/vehicle-transfer.service';
 import { AccountService } from './services/account.service';
@@ -32,6 +33,7 @@ import { InsuranceService } from './services/insurance.service';
 import { NewsletterService } from './services/newsletter.service';
 import { VehicleReportService } from './services/vehicle-report.service';
 import { createAuthRouter } from './routes/auth';
+import { createUsersRouter } from './routes/users';
 import { createVehicleRouter } from './routes/vehicles';
 import { createTransferRouter } from './routes/transfers';
 import { createOnboardingRouter } from './routes/onboarding';
@@ -59,6 +61,7 @@ export function createApp(): Express {
   const newsletterRepo = new PrismaNewsletterRepository(prisma);
   const vehicleReportTokenRepo = new PrismaVehicleReportTokenRepository(prisma);
   const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail });
+  const userService = new UserService(userRepo);
   const vehicleService = new VehicleService(vehicleRepo, accountRepo);
   const transferService = new VehicleTransferService(transferRepo, vehicleRepo, userRepo, {
     sendTransferNotification: sendTransferNotificationEmail,
@@ -102,6 +105,7 @@ export function createApp(): Express {
   });
 
   app.use('/auth', createAuthRouter(authService));
+  app.use('/users', createUsersRouter(userService));
   app.use('/vehicles', createVehicleRouter(vehicleService, transferService));
   app.use('/transfers', createTransferRouter(transferService));
   app.use('/vehicles/:vehicleId/insurance', createInsuranceRouter(insuranceService));

@@ -16,6 +16,16 @@ export interface Session {
   refreshToken?: string;
 }
 
+/* ── User ───────────────────────────────────────────────────────── */
+
+/** Public profile returned by `GET /users/me` — never carries secrets (ADR 0033). */
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+}
+
 /* ── Vehicles ───────────────────────────────────────────────────── */
 
 export interface VehicleSummary {
