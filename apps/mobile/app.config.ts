@@ -29,6 +29,15 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-secure-store',
+    [
+      // Biometric unlock (ADR 0036). Sets NSFaceIDUsageDescription (iOS) and
+      // adds USE_BIOMETRIC / USE_FINGERPRINT (Android). Requires prebuild —
+      // not available in Expo Go, same as expo-sqlite's SQLCipher flag below.
+      'expo-local-authentication',
+      {
+        faceIDPermission: 'Allow Revlog to unlock with Face ID.',
+      },
+    ],
     'expo-font',
     '@react-native-community/datetimepicker',
     [
