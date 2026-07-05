@@ -125,51 +125,7 @@ describe('Edit Vehicle screen', () => {
     await expect($(byTestId('edit-vehicle-make-input'))).toBeDisplayed();
   });
 
-  // UC-MOB-VEH-4.
-  it('deletes the vehicle after confirming, returning to an empty Garage', async () => {
-    const user = await createVerifiedUser('e2e-editvehicle-delete');
-    const accessToken = await loginViaApi(user);
-    const vehicleId = await createVehicleViaApi(accessToken, {
-      nickname: 'Blackbird',
-      make: 'Honda',
-      model: 'CB650R',
-      year: 2019,
-      mileage: 4200,
-    });
-
-    await openEditVehicle(user, vehicleId);
-
-    await $(byTestId('edit-vehicle-delete-btn')).click();
-    await $(byTestId('edit-vehicle-delete-dialog-confirm-btn')).waitForDisplayed({ timeout: 10000 });
-    // testID on the leaf Text, not the Modal container -- iOS doesn't
-    // aggregate nested text for toHaveText() otherwise.
-    await expect($(byTestId('edit-vehicle-delete-dialog-title'))).toHaveText('Blackbird', { containing: true });
-    await $(byTestId('edit-vehicle-delete-dialog-confirm-btn')).click();
-
-    // This account's only Vehicle -- an empty Garage is the deletion signal,
-    // same 25s rationale as the Cancel-stack regression test above (a local
-    // delete + dismissTo() lands on top of Garage's own useFocusEffect
-    // refetch and first-sync cost).
-    await $(byTestId('garage-empty-title')).waitForDisplayed({ timeout: 25000 });
-  });
-
-  it('cancelling the delete confirmation keeps the vehicle and stays on Edit Vehicle', async () => {
-    const user = await createVerifiedUser('e2e-editvehicle-delete-cancel');
-    const accessToken = await loginViaApi(user);
-    const vehicleId = await createVehicleViaApi(accessToken, {
-      make: 'Yamaha',
-      model: 'MT-07',
-      year: 2022,
-      mileage: 1000,
-    });
-
-    await openEditVehicle(user, vehicleId);
-
-    await $(byTestId('edit-vehicle-delete-btn')).click();
-    await $(byTestId('edit-vehicle-delete-dialog-cancel-btn')).waitForDisplayed({ timeout: 10000 });
-    await $(byTestId('edit-vehicle-delete-dialog-cancel-btn')).click();
-
-    await $(byTestId('edit-vehicle-delete-dialog-cancel-btn')).waitForDisplayed({ timeout: 5000, reverse: true });
-    await expect($(byTestId('edit-vehicle-make-input'))).toBeDisplayed();
-  });
+  // UC-MOB-VEH-4's delete confirmation moved to Vehicle Detail's [⋮] menu --
+  // see vehicle-detail.e2e.ts for its coverage (docs/specs/mobile-app/
+  // vehicle.md's Decisions).
 });

@@ -155,5 +155,91 @@ describe('Vehicle Detail screen', () => {
     // Tapping the disabled action must not navigate anywhere.
     await $(byTestId('vehicle-detail-add-log-entry-btn')).click();
     await expect($(byTestId('vehicle-detail-name'))).toBeDisplayed();
+
+    // The [⋮] menu is disabled together with Edit/Share while locked --
+    // opening it must not surface the menu popover.
+    await $(byTestId('vehicle-detail-menu-btn')).click();
+    await expect($(byTestId('vehicle-detail-menu'))).not.toBeExisting();
+  });
+
+  // UC-MOB-VEH-4 -- moved here from Edit Vehicle's former danger zone, see
+  // docs/specs/mobile-app/vehicle.md's Decisions.
+  it('the [⋮] menu deletes the vehicle after confirming, returning to an empty Garage', async () => {
+    const user = await createVerifiedUser('e2e-vdetail-delete');
+    const accessToken = await loginViaApi(user);
+    const vehicleId = await createVehicleViaApi(accessToken, {
+      nickname: 'Blackbird',
+      make: 'Honda',
+      model: 'CB650R',
+      year: 2019,
+      mileage: 4200,
+    });
+
+    await openVehicleDetail(user, vehicleId);
+
+    await $(byTestId('vehicle-detail-menu-btn')).click();
+    await $(byTestId('vehicle-detail-menu-delete')).waitForDisplayed({ timeout: 10000 });
+    await $(byTestId('vehicle-detail-menu-delete')).click();
+
+    await $(byTestId('vehicle-detail-delete-dialog-confirm-btn')).waitForDisplayed({ timeout: 10000 });
+    // testID on the leaf Text, not the Modal container -- iOS doesn't
+    // aggregate nested text for toHaveText() otherwise.
+    await expect($(byTestId('vehicle-detail-delete-dialog-title'))).toHaveText('Blackbird', { containing: true });
+    await $(byTestId('vehicle-detail-delete-dialog-confirm-btn')).click();
+
+    // This account's only Vehicle -- an empty Garage is the deletion signal,
+    // same 25s rationale as Edit Vehicle's own former delete test used.
+    await $(byTestId('garage-empty-title')).waitForDisplayed({ timeout: 25000 });
+  });
+
+  it('cancelling the delete confirmation keeps the vehicle and stays on Vehicle Detail', async () => {
+    const user = await createVerifiedUser('e2e-vdetail-delete-cancel');
+    const accessToken = await loginViaApi(user);
+    const vehicleId = await createVehicleViaApi(accessToken, { make: 'Yamaha', model: 'MT-07', year: 2022, mileage: 1000 });
+
+    await openVehicleDetail(user, vehicleId);
+
+    await $(byTestId('vehicle-detail-menu-btn')).click();
+    await $(byTestId('vehicle-detail-menu-delete')).waitForDisplayed({ timeout: 10000 });
+    await $(byTestId('vehicle-detail-menu-delete')).click();
+
+    await $(byTestId('vehicle-detail-delete-dialog-cancel-btn')).waitForDisplayed({ timeout: 10000 });
+    await $(byTestId('vehicle-detail-delete-dialog-cancel-btn')).click();
+
+    await $(byTestId('vehicle-detail-delete-dialog-cancel-btn')).waitForDisplayed({ timeout: 5000, reverse: true });
+    await expect($(byTestId('vehicle-detail-name'))).toBeDisplayed();
+  });
+
+  // UC-MOB-TRANSFER-1's entry point.
+  it('the [⋮] menu\'s "Transfer vehicle" navigates to the Initiate Transfer screen', async () => {
+    const user = await createVerifiedUser('e2e-vdetail-nav-transfer');
+    const accessToken = await loginViaApi(user);
+    const vehicleId = await createVehicleViaApi(accessToken, { make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 });
+
+    await openVehicleDetail(user, vehicleId);
+
+    await $(byTestId('vehicle-detail-menu-btn')).click();
+    await $(byTestId('vehicle-detail-menu-transfer')).waitForDisplayed({ timeout: 10000 });
+    await $(byTestId('vehicle-detail-menu-transfer')).click();
+
+    await $(byTestId('vehicle-transfer-email-input')).waitForDisplayed({ timeout: 15000 });
+  });
+
+  // UC-MOB-TRANSFER-3.
+  it('[Cancel transfer] unlocks the vehicle after confirming', async () => {
+    const user = await createVerifiedUser('e2e-vdetail-cancel-transfer');
+    const accessToken = await loginViaApi(user);
+    const vehicleId = await createVehicleViaApi(accessToken, { make: 'KTM', model: 'Duke 390', year: 2021, mileage: 8200 });
+    await initiateTransferViaApi(accessToken, vehicleId, 'alex@example.com');
+
+    await openVehicleDetail(user, vehicleId);
+    await $(byTestId('vehicle-detail-transfer-banner')).waitForDisplayed({ timeout: 15000 });
+
+    await $(byTestId('vehicle-detail-cancel-transfer-btn')).click();
+    await $(byTestId('vehicle-detail-cancel-transfer-dialog-confirm-btn')).waitForDisplayed({ timeout: 10000 });
+    await $(byTestId('vehicle-detail-cancel-transfer-dialog-confirm-btn')).click();
+
+    await $(byTestId('vehicle-detail-transfer-banner')).waitForDisplayed({ timeout: 15000, reverse: true });
+    await $(byTestId('vehicle-detail-stats')).waitForDisplayed({ timeout: 10000 });
   });
 });

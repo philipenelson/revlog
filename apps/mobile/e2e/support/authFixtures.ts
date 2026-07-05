@@ -166,9 +166,10 @@ export async function createLogEntryViaApi(
 
 /**
  * Initiates a Vehicle Transfer -- seeds the transfer-pending locked state
- * on Vehicle Detail (UC-MOB-VEH-5) without a mobile Initiate Transfer
- * screen, which doesn't exist yet (see docs/specs/mobile-app/vehicle.md's
- * Decisions).
+ * on Vehicle Detail (UC-MOB-VEH-5) directly via the API, for specs that
+ * need a pre-existing pending transfer rather than creating one through the
+ * Initiate Transfer screen themselves (see vehicle-transfer.e2e.ts for that
+ * coverage).
  */
 export async function initiateTransferViaApi(
   accessToken: string,
