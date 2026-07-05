@@ -11,7 +11,7 @@ import { useVehicleDetailViewModel } from './useVehicleDetailViewModel';
 jest.mock('expo-router', () => {
   const { useEffect } = require('react');
   return {
-    router: { push: jest.fn(), back: jest.fn() },
+    router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn() },
     useLocalSearchParams: jest.fn(() => ({ vehicleId: 'v1' })),
     useFocusEffect: (effect: () => void) => useEffect(effect),
   };
@@ -26,6 +26,7 @@ const mockUseDatabase = useDatabase as jest.MockedFunction<typeof useDatabase>;
 const mockUseSync = useSync as jest.MockedFunction<typeof useSync>;
 const mockPush = router.push as jest.Mock;
 const mockBack = router.back as jest.Mock;
+const mockDismissTo = router.dismissTo as jest.Mock;
 
 const vehicle: LocalVehicleDetail = {
   id: 'v1',
@@ -54,16 +55,24 @@ const entry: LogEntrySummary = {
   totalCost: '85.00',
 };
 
-function setDatabase(foundVehicle: LocalVehicleDetail | null, entries: LogEntrySummary[] = []) {
+function setDatabase(
+  foundVehicle: LocalVehicleDetail | null,
+  entries: LogEntrySummary[] = [],
+  overrides: { deleteImpl?: () => Promise<void>; cancelTransferImpl?: () => Promise<void> } = {},
+) {
+  const findById = jest.fn(async () => foundVehicle);
+  const del = jest.fn(overrides.deleteImpl ?? (async () => {}));
+  const cancelTransfer = jest.fn(overrides.cancelTransferImpl ?? (async () => {}));
   mockUseDatabase.mockReturnValue({
     isReady: true,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vehicleRepository: { findById: jest.fn(async () => foundVehicle) } as any,
+    vehicleRepository: { findById, delete: del, cancelTransfer } as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     outboxRepository: {} as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     logEntryRepository: { findByVehicleId: jest.fn(async () => entries) } as any,
   });
+  return { findById, delete: del, cancelTransfer };
 }
 
 function setSync(overrides: Partial<ReturnType<typeof useSync>> = {}) {
@@ -164,5 +173,156 @@ describe('useVehicleDetailViewModel', () => {
     });
 
     await waitFor(() => expect(result.current.isRefreshing).toBe(false));
+  });
+
+  it('openMenu/closeMenu toggle menuOpen', async () => {
+    setDatabase(vehicle);
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+
+    await act(async () => {
+      result.current.openMenu();
+    });
+    expect(result.current.menuOpen).toBe(true);
+
+    await act(async () => {
+      result.current.closeMenu();
+    });
+    expect(result.current.menuOpen).toBe(false);
+  });
+
+  it('onTransfer closes the menu and navigates to the transfer screen', async () => {
+    setDatabase(vehicle);
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+    await act(async () => {
+      result.current.openMenu();
+    });
+
+    await act(async () => {
+      result.current.onTransfer();
+    });
+
+    expect(result.current.menuOpen).toBe(false);
+    expect(mockPush).toHaveBeenCalledWith('/garage/v1/transfer');
+  });
+
+  it('openDeleteDialog closes the menu and opens deleteDialogOpen; closeDeleteDialog closes it', async () => {
+    setDatabase(vehicle);
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+    await act(async () => {
+      result.current.openMenu();
+    });
+
+    await act(async () => {
+      result.current.openDeleteDialog();
+    });
+    expect(result.current.menuOpen).toBe(false);
+    expect(result.current.deleteDialogOpen).toBe(true);
+
+    await act(async () => {
+      result.current.closeDeleteDialog();
+    });
+    expect(result.current.deleteDialogOpen).toBe(false);
+  });
+
+  it('deletes via vehicleRepository.delete and dismisses back to Garage on success', async () => {
+    const { delete: del } = setDatabase(vehicle);
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+    await act(async () => {
+      result.current.openDeleteDialog();
+    });
+    await act(async () => {
+      result.current.handleDelete();
+    });
+
+    expect(del).toHaveBeenCalledWith('v1');
+    expect(mockDismissTo).toHaveBeenCalledWith('/garage');
+  });
+
+  it('shows a delete error and keeps the dialog open when the local delete throws', async () => {
+    setDatabase(vehicle, [], {
+      deleteImpl: async () => {
+        throw new Error('disk full');
+      },
+    });
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+    await act(async () => {
+      result.current.openDeleteDialog();
+    });
+    await act(async () => {
+      result.current.handleDelete();
+    });
+
+    expect(result.current.deleteError).toBe("Couldn't delete this vehicle. Try again in a moment.");
+    expect(result.current.deleteDialogOpen).toBe(true);
+    expect(mockDismissTo).not.toHaveBeenCalled();
+  });
+
+  it('openCancelTransferDialog/closeCancelTransferDialog toggle cancelTransferDialogOpen', async () => {
+    setDatabase({ ...vehicle, transferPending: true, pendingTransferRecipientEmail: 'buyer@example.com' });
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+
+    await act(async () => {
+      result.current.openCancelTransferDialog();
+    });
+    expect(result.current.cancelTransferDialogOpen).toBe(true);
+
+    await act(async () => {
+      result.current.closeCancelTransferDialog();
+    });
+    expect(result.current.cancelTransferDialogOpen).toBe(false);
+  });
+
+  it('cancels the transfer, re-reads the vehicle, and closes the dialog on success', async () => {
+    const lockedVehicle = { ...vehicle, transferPending: true, pendingTransferRecipientEmail: 'buyer@example.com' };
+    const { findById, cancelTransfer } = setDatabase(lockedVehicle);
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+    await waitFor(() => expect(result.current.loadState).toBe('loaded'));
+
+    findById.mockResolvedValue({ ...vehicle, transferPending: false, pendingTransferRecipientEmail: null });
+    await act(async () => {
+      result.current.openCancelTransferDialog();
+    });
+    await act(async () => {
+      result.current.handleCancelTransfer();
+    });
+
+    expect(cancelTransfer).toHaveBeenCalledWith('v1');
+    expect(result.current.vehicle?.transferPending).toBe(false);
+    expect(result.current.cancelTransferDialogOpen).toBe(false);
+  });
+
+  it('shows a cancel-transfer error and keeps the dialog open when the local write throws', async () => {
+    const lockedVehicle = { ...vehicle, transferPending: true, pendingTransferRecipientEmail: 'buyer@example.com' };
+    setDatabase(lockedVehicle, [], {
+      cancelTransferImpl: async () => {
+        throw new Error('disk full');
+      },
+    });
+    setSync();
+
+    const { result } = await renderHook(() => useVehicleDetailViewModel());
+    await act(async () => {
+      result.current.openCancelTransferDialog();
+    });
+    await act(async () => {
+      result.current.handleCancelTransfer();
+    });
+
+    expect(result.current.cancelTransferError).toBe("Couldn't cancel the transfer. Try again in a moment.");
+    expect(result.current.cancelTransferDialogOpen).toBe(true);
   });
 });

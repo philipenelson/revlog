@@ -4,7 +4,7 @@ import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository
 import { useEditVehicleViewModel } from './useEditVehicleViewModel';
 
 jest.mock('expo-router', () => ({
-  router: { push: jest.fn(), back: jest.fn(), dismissTo: jest.fn() },
+  router: { push: jest.fn(), back: jest.fn() },
   useLocalSearchParams: jest.fn(() => ({ vehicleId: 'v1' })),
 }));
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
@@ -19,7 +19,6 @@ import * as ImagePicker from 'expo-image-picker';
 const mockUseDatabase = useDatabase as jest.MockedFunction<typeof useDatabase>;
 const mockPush = router.push as jest.Mock;
 const mockBack = router.back as jest.Mock;
-const mockDismissTo = router.dismissTo as jest.Mock;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockRequestPermissions = ImagePicker.requestMediaLibraryPermissionsAsync as jest.MockedFunction<any>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,23 +39,18 @@ const vehicle: LocalVehicleDetail = {
   pendingTransferRecipientEmail: null,
 };
 
-function setDatabase(
-  foundVehicle: LocalVehicleDetail | null,
-  updateImpl?: () => Promise<void>,
-  deleteImpl?: () => Promise<void>,
-) {
+function setDatabase(foundVehicle: LocalVehicleDetail | null, updateImpl?: () => Promise<void>) {
   const update = jest.fn(updateImpl ?? (async () => {}));
-  const del = jest.fn(deleteImpl ?? (async () => {}));
   mockUseDatabase.mockReturnValue({
     isReady: true,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vehicleRepository: { findById: jest.fn(async () => foundVehicle), update, delete: del } as any,
+    vehicleRepository: { findById: jest.fn(async () => foundVehicle), update } as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     outboxRepository: {} as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     logEntryRepository: {} as any,
   });
-  return { update, delete: del };
+  return { update };
 }
 
 describe('useEditVehicleViewModel', () => {
@@ -296,92 +290,5 @@ describe('useEditVehicleViewModel', () => {
 
     expect(mockBack).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith('/garage');
-  });
-
-  it('openDeleteDialog/closeDeleteDialog toggle deleteDialogOpen and clear any prior error', async () => {
-    setDatabase(vehicle);
-
-    const { result } = await renderHook(() => useEditVehicleViewModel());
-    await waitFor(() => expect(result.current.loadState).toBe('ready'));
-
-    await act(async () => {
-      result.current.openDeleteDialog();
-    });
-    expect(result.current.deleteDialogOpen).toBe(true);
-
-    await act(async () => {
-      result.current.closeDeleteDialog();
-    });
-    expect(result.current.deleteDialogOpen).toBe(false);
-  });
-
-  it('deletes via vehicleRepository.delete and dismisses back to Garage on success', async () => {
-    const { delete: del } = setDatabase(vehicle);
-
-    const { result } = await renderHook(() => useEditVehicleViewModel());
-    await waitFor(() => expect(result.current.loadState).toBe('ready'));
-
-    await act(async () => {
-      result.current.openDeleteDialog();
-    });
-    await act(async () => {
-      result.current.handleDelete();
-    });
-
-    expect(del).toHaveBeenCalledWith('v1');
-    // dismissTo(), not back() -- pops both Vehicle Detail and this Edit
-    // screen off the stack so the deleted vehicle's Detail screen isn't
-    // left reachable via a back navigation from Garage.
-    expect(mockDismissTo).toHaveBeenCalledWith('/garage');
-  });
-
-  it('shows a delete error and keeps the dialog open when the local delete throws', async () => {
-    setDatabase(vehicle, undefined, async () => {
-      throw new Error('disk full');
-    });
-
-    const { result } = await renderHook(() => useEditVehicleViewModel());
-    await waitFor(() => expect(result.current.loadState).toBe('ready'));
-
-    await act(async () => {
-      result.current.openDeleteDialog();
-    });
-    await act(async () => {
-      result.current.handleDelete();
-    });
-
-    expect(result.current.deleteError).toBe("Couldn't delete this vehicle. Try again in a moment.");
-    expect(result.current.deleteDialogOpen).toBe(true);
-    expect(mockDismissTo).not.toHaveBeenCalled();
-  });
-
-  it('closeDeleteDialog is a no-op while a delete is in flight', async () => {
-    let resolveDelete!: () => void;
-    setDatabase(
-      vehicle,
-      undefined,
-      () =>
-        new Promise<void>((resolve) => {
-          resolveDelete = resolve;
-        }),
-    );
-
-    const { result } = await renderHook(() => useEditVehicleViewModel());
-    await waitFor(() => expect(result.current.loadState).toBe('ready'));
-
-    await act(async () => {
-      result.current.openDeleteDialog();
-    });
-    await act(async () => {
-      result.current.handleDelete();
-    });
-    await waitFor(() => expect(result.current.isDeleting).toBe(true));
-
-    await act(async () => {
-      result.current.closeDeleteDialog();
-    });
-    expect(result.current.deleteDialogOpen).toBe(true);
-
-    await act(async () => resolveDelete());
   });
 });
