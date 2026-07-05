@@ -1,4 +1,4 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
@@ -99,6 +99,19 @@ export function SettingsScreen() {
             onPress={vm.openLanguageDialog}
             testID="settings-language"
           />
+          {vm.biometricAvailable && (
+            <View style={styles.row}>
+              <Text style={styles.rowLabel}>Unlock with biometrics</Text>
+              <Switch
+                value={vm.biometricEnabled}
+                onValueChange={vm.onToggleBiometric}
+                testID="settings-biometric-toggle"
+                trackColor={{ false: colors.neutral[500], true: colors.teal[500] }}
+                thumbColor={colors.neutral[50]}
+                ios_backgroundColor={colors.neutral[500]}
+              />
+            </View>
+          )}
         </View>
 
         <SectionLabel>Legal</SectionLabel>

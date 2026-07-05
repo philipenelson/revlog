@@ -6,6 +6,8 @@ import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { preferences } from '@/infrastructure/storage/preferences';
+import { biometrics } from '@/infrastructure/biometrics/biometrics';
+import { credentialStore } from '@/infrastructure/storage/credentialStore';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, localeLabel, type AppLocale } from '@/domain/locale';
 import { logger } from '@/infrastructure/logging/logger';
 
@@ -33,6 +35,11 @@ export interface SettingsViewModel {
   openLanguageDialog: () => void;
   closeLanguageDialog: () => void;
   onSelectLanguage: (locale: AppLocale) => void;
+  // Biometric unlock toggle (ADR 0036). Shown only when the device has
+  // biometric hardware AND credentials are stored (both required to unlock).
+  biometricAvailable: boolean;
+  biometricEnabled: boolean;
+  onToggleBiometric: () => void;
   // Logout confirmation dialog (state-driven, matching the app's other
   // confirmations — e.g. Delete Vehicle — rather than a native Alert).
   logoutDialogOpen: boolean;
@@ -52,6 +59,8 @@ export function useSettingsViewModel(): SettingsViewModel {
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [locale, setLocale] = useState<AppLocale>(DEFAULT_LOCALE);
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
 
   // Offline-first read from the local cache (populated by SyncService's
   // GET /users/me pull, ADR 0033). Re-read on focus so a background sync's
@@ -68,6 +77,40 @@ export function useSettingsViewModel(): SettingsViewModel {
   useEffect(() => {
     void preferences.getLocale().then(setLocale);
   }, []);
+
+  // Resolve biometric state once on mount. The toggle only appears when the
+  // hardware is present AND credentials are stored — biometric unlock replays
+  // those credentials, so it's meaningless without them (ADR 0036).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const [available, hasCreds, enabled] = await Promise.all([
+        biometrics.isAvailable(),
+        credentialStore.has(),
+        preferences.getBiometricUnlockEnabled(),
+      ]);
+      if (cancelled) return;
+      setBiometricAvailable(available && hasCreds);
+      setBiometricEnabled(enabled);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Enabling requires a biometry check to confirm the Owner can actually pass
+  // it; disabling is immediate. Stored credentials are left in place either way
+  // (offline typed-login still uses them).
+  async function toggleBiometric(): Promise<void> {
+    if (biometricEnabled) {
+      await preferences.setBiometricUnlockEnabled(false);
+      setBiometricEnabled(false);
+      return;
+    }
+    if (!(await biometrics.authenticate('Enable biometric unlock for Revlog'))) return;
+    await preferences.setBiometricUnlockEnabled(true);
+    setBiometricEnabled(true);
+  }
 
   function openLanguageDialog(): void {
     setLanguageDialogOpen(true);
@@ -135,6 +178,9 @@ export function useSettingsViewModel(): SettingsViewModel {
     openLanguageDialog,
     closeLanguageDialog,
     onSelectLanguage,
+    biometricAvailable,
+    biometricEnabled,
+    onToggleBiometric: () => void toggleBiometric(),
     logoutDialogOpen,
     openLogoutDialog,
     closeLogoutDialog,

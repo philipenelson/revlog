@@ -23,12 +23,25 @@ jest.mock('@maintenance-log/api-client', () => ({
   logout: jest.fn(),
 }));
 jest.mock('@/infrastructure/storage/preferences', () => ({
-  preferences: { getLocale: jest.fn(), setLocale: jest.fn() },
+  preferences: {
+    getLocale: jest.fn(),
+    setLocale: jest.fn(),
+    getBiometricUnlockEnabled: jest.fn(),
+    setBiometricUnlockEnabled: jest.fn(),
+  },
+}));
+jest.mock('@/infrastructure/biometrics/biometrics', () => ({
+  biometrics: { isAvailable: jest.fn(), authenticate: jest.fn() },
+}));
+jest.mock('@/infrastructure/storage/credentialStore', () => ({
+  credentialStore: { has: jest.fn() },
 }));
 
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { preferences } from '@/infrastructure/storage/preferences';
+import { biometrics } from '@/infrastructure/biometrics/biometrics';
+import { credentialStore } from '@/infrastructure/storage/credentialStore';
 
 const mockUseDatabase = useDatabase as jest.MockedFunction<typeof useDatabase>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
@@ -36,6 +49,11 @@ const mockLogout = logout as jest.MockedFunction<typeof logout>;
 const mockReplace = router.replace as jest.Mock;
 const mockGetLocale = preferences.getLocale as jest.MockedFunction<typeof preferences.getLocale>;
 const mockSetLocale = preferences.setLocale as jest.MockedFunction<typeof preferences.setLocale>;
+const mockGetBiometricEnabled = preferences.getBiometricUnlockEnabled as jest.Mock;
+const mockSetBiometricEnabled = preferences.setBiometricUnlockEnabled as jest.Mock;
+const mockIsAvailable = biometrics.isAvailable as jest.Mock;
+const mockAuthenticate = biometrics.authenticate as jest.Mock;
+const mockCredHas = credentialStore.has as jest.Mock;
 
 const profile: UserProfile = { id: 'u1', fullName: 'Philip Russo', email: 'p@example.com', role: 'OWNER' };
 
@@ -71,6 +89,13 @@ describe('useSettingsViewModel', () => {
     jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as unknown as boolean);
     mockGetLocale.mockResolvedValue('en');
     mockSetLocale.mockResolvedValue(undefined);
+    // Biometric defaults: hardware absent, so the toggle stays hidden unless a
+    // test opts in. Tests that exercise the toggle set these explicitly.
+    mockGetBiometricEnabled.mockResolvedValue(false);
+    mockSetBiometricEnabled.mockResolvedValue(undefined);
+    mockIsAvailable.mockResolvedValue(false);
+    mockAuthenticate.mockResolvedValue(false);
+    mockCredHas.mockResolvedValue(false);
     setDatabase();
   });
 
@@ -188,5 +213,87 @@ describe('useSettingsViewModel', () => {
     expect(clearSession).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
     expect(result.current.isLoggingOut).toBe(false);
+  });
+
+  describe('biometric toggle', () => {
+    it('stays hidden when there is no biometric hardware', async () => {
+      mockIsAvailable.mockResolvedValue(false);
+      mockCredHas.mockResolvedValue(true);
+      const { result } = await renderHook(() => useSettingsViewModel());
+
+      await waitFor(() => expect(result.current.profile).toEqual(profile));
+      expect(result.current.biometricAvailable).toBe(false);
+    });
+
+    it('stays hidden when no credentials are stored, even with hardware', async () => {
+      mockIsAvailable.mockResolvedValue(true);
+      mockCredHas.mockResolvedValue(false);
+      const { result } = await renderHook(() => useSettingsViewModel());
+
+      await waitFor(() => expect(result.current.profile).toEqual(profile));
+      expect(result.current.biometricAvailable).toBe(false);
+    });
+
+    it('shows the toggle and reflects the stored enabled state', async () => {
+      mockIsAvailable.mockResolvedValue(true);
+      mockCredHas.mockResolvedValue(true);
+      mockGetBiometricEnabled.mockResolvedValue(true);
+      const { result } = await renderHook(() => useSettingsViewModel());
+
+      await waitFor(() => expect(result.current.biometricAvailable).toBe(true));
+      expect(result.current.biometricEnabled).toBe(true);
+    });
+
+    it('enabling runs a biometry check and persists the preference', async () => {
+      mockIsAvailable.mockResolvedValue(true);
+      mockCredHas.mockResolvedValue(true);
+      mockGetBiometricEnabled.mockResolvedValue(false);
+      mockAuthenticate.mockResolvedValue(true);
+      const { result } = await renderHook(() => useSettingsViewModel());
+      await waitFor(() => expect(result.current.biometricAvailable).toBe(true));
+
+      await act(async () => {
+        result.current.onToggleBiometric();
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(result.current.biometricEnabled).toBe(true));
+      expect(mockAuthenticate).toHaveBeenCalled();
+      expect(mockSetBiometricEnabled).toHaveBeenCalledWith(true);
+    });
+
+    it('does not enable when the biometry check is cancelled', async () => {
+      mockIsAvailable.mockResolvedValue(true);
+      mockCredHas.mockResolvedValue(true);
+      mockGetBiometricEnabled.mockResolvedValue(false);
+      mockAuthenticate.mockResolvedValue(false);
+      const { result } = await renderHook(() => useSettingsViewModel());
+      await waitFor(() => expect(result.current.biometricAvailable).toBe(true));
+
+      await act(async () => {
+        result.current.onToggleBiometric();
+        await Promise.resolve();
+      });
+
+      expect(result.current.biometricEnabled).toBe(false);
+      expect(mockSetBiometricEnabled).not.toHaveBeenCalled();
+    });
+
+    it('disabling turns the preference off immediately without a biometry check', async () => {
+      mockIsAvailable.mockResolvedValue(true);
+      mockCredHas.mockResolvedValue(true);
+      mockGetBiometricEnabled.mockResolvedValue(true);
+      const { result } = await renderHook(() => useSettingsViewModel());
+      await waitFor(() => expect(result.current.biometricEnabled).toBe(true));
+
+      await act(async () => {
+        result.current.onToggleBiometric();
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(result.current.biometricEnabled).toBe(false));
+      expect(mockSetBiometricEnabled).toHaveBeenCalledWith(false);
+      expect(mockAuthenticate).not.toHaveBeenCalled();
+    });
   });
 });
