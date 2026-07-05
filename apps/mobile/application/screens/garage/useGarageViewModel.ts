@@ -13,6 +13,7 @@ export interface GarageViewModel {
   onRefresh: () => void;
   onAddVehicle: () => void;
   onSelectVehicle: (id: string) => void;
+  onOpenSettings: () => void;
 }
 
 export function useGarageViewModel(): GarageViewModel {
@@ -57,5 +58,6 @@ export function useGarageViewModel(): GarageViewModel {
     onRefresh: () => void onRefresh(),
     onAddVehicle: () => router.push('/garage/add'),
     onSelectVehicle: (id: string) => router.push(`/garage/${id}`),
+    onOpenSettings: () => router.push('/settings'),
   };
 }

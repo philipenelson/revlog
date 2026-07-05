@@ -143,4 +143,14 @@ describe('useGarageViewModel', () => {
 
     expect(mockPush).toHaveBeenCalledWith('/garage/v1');
   });
+
+  it('onOpenSettings navigates to /settings', async () => {
+    setDatabase([]);
+    setSync();
+
+    const { result } = await renderHook(() => useGarageViewModel());
+    result.current.onOpenSettings();
+
+    expect(mockPush).toHaveBeenCalledWith('/settings');
+  });
 });

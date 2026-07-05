@@ -5,6 +5,7 @@ import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@main
 import { RevlogMark } from '@/application/components/RevlogMark';
 import { OfflineIndicator } from '@/application/components/OfflineIndicator';
 import { VehicleGlyph } from '@/application/components/VehicleGlyph';
+import { GearIcon } from '@/application/components/GearIcon';
 import { useGarageViewModel } from './useGarageViewModel';
 
 function VehicleCard({ vehicle, onPress }: { vehicle: VehicleSummary; onPress: () => void }) {
@@ -60,8 +61,17 @@ function EmptyState({ onAddVehicle }: { onAddVehicle: () => void }) {
 }
 
 export function GarageScreen() {
-  const { vehicles, isLoading, isOffline, pendingCount, isRefreshing, onRefresh, onAddVehicle, onSelectVehicle } =
-    useGarageViewModel();
+  const {
+    vehicles,
+    isLoading,
+    isOffline,
+    pendingCount,
+    isRefreshing,
+    onRefresh,
+    onAddVehicle,
+    onSelectVehicle,
+    onOpenSettings,
+  } = useGarageViewModel();
 
   const sectionTitle = `My Garage · ${vehicles.length} ${vehicles.length === 1 ? 'vehicle' : 'vehicles'}`;
   // Per ADR 0027: offline OR (online but unsynced changes queued) both
@@ -80,7 +90,19 @@ export function GarageScreen() {
             <Text style={styles.wordmarkLog}>log</Text>
           </View>
         </View>
-        {showOfflineIndicator ? <OfflineIndicator /> : null}
+        <View style={styles.headerActions}>
+          {showOfflineIndicator ? <OfflineIndicator /> : null}
+          <Pressable
+            style={styles.settingsButton}
+            onPress={onOpenSettings}
+            testID="garage-settings-button"
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            hitSlop={8}
+          >
+            <GearIcon size={20} />
+          </Pressable>
+        </View>
       </View>
 
       {showOfflineIndicator ? (
@@ -138,6 +160,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  settingsButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral[600],
   },
   // Two sibling Texts, not nested spans — Android font-measurement bug with
   // mixed custom-font spans in one Text tree (see ADR 0032).
