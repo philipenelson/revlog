@@ -23,6 +23,9 @@ export default function RootLayout() {
                   also renders a header for the group as a whole, doubling
                   up with the nested one. */}
               <Stack.Screen name="garage" options={{ headerShown: false }} />
+              {/* Settings renders its own header (back + title), matching
+                  every other screen in the app — hide the native one. */}
+              <Stack.Screen name="settings" options={{ headerShown: false }} />
             </Stack>
           </SyncProvider>
         </AuthProvider>
