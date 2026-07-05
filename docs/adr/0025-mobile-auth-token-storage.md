@@ -68,6 +68,12 @@ V1 originally restored a session on cold start if valid tokens were found in `ex
 
 This does not change anything else in this ADR: tokens are still written to `expo-secure-store` during an active session, the Keychain/Keystore is still the storage mechanism, and the foreground-refresh behavior below still applies to a session that's still alive in memory (i.e. backgrounded, not killed). A "remember me" opt-in that restores a session across restarts is deferred to V2.
 
+### Update (2026-07-05): credentials (not tokens) persist across cold start
+
+[ADR 0036](0036-mobile-biometric-and-offline-login.md) adds credential-based **offline login** and **biometric unlock**. On a successful online login, the Owner's credentials (email + password) and a small session-identity blob are stored in the Keychain/Keystore via a new `credentialStore` — a **separate carve-out** that, like the DB encryption key, is *not* touched by `secureStorage.clear()` and therefore survives the cold-start token clear above. It is cleared explicitly on logout.
+
+This does **not** weaken the 2026-07-02 update: tokens are still cleared on every cold start, and no session is ever silently restored. Only *credentials* persist, and they merely let the next sign-in happen offline or via biometrics instead of by retyping — every launch still requires an explicit sign-in action. The stored password is plaintext (in the OS-encrypted Keychain/Keystore) because biometric unlock and silent re-auth replay `POST /auth/login`; see ADR 0036 for that tradeoff and the token-less "offline session" it introduces.
+
 ## Status
 
 accepted

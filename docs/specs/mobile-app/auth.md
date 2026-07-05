@@ -112,10 +112,12 @@ Logout is **online-required** — see [ADR 0034](../../adr/0034-auth-logout-and-
 There is no reliable "app is about to be terminated" hook on either platform — a killed app's JS runtime is gone, whether the user swiped it away or the OS evicted it for memory. The only implementable point is on the next cold start, before that start is treated as "signed in."
 
 1. `AuthProvider` mounts and clears any `accessToken`/`refreshToken` present in `expo-secure-store`, regardless of whether they were still valid.
-2. `RootRedirect` sees no session and redirects to Welcome.
+2. `RootRedirect` sees no session and redirects to Welcome (or, once credentials are stored on the device, to the login screen — see below).
 3. Owner must sign in again, every time the app is cold-started.
 
 This does not affect backgrounding without a kill (home button, app switcher) — the app process and its in-memory session survive that, and UC-MOB-AUTH-5's foreground refresh applies as normal. It is only a full process restart that clears the session.
+
+**Amendment (2026-07-05, credential-based offline + biometric login).** This clear still applies to **tokens** — no session is ever silently restored. What now persists across a cold start is the Owner's stored **credentials** (a separate Keychain carve-out, not touched by the token clear), which enable offline login and a biometric fast path. Every launch still requires an explicit sign-in *action* (typing a password or a biometric tap), so the "sign in every launch" contract is unchanged — only *what the sign-in can use* is extended. See [`biometric-offline-login.md`](./biometric-offline-login.md) and [ADR 0036](../../adr/0036-mobile-biometric-and-offline-login.md).
 
 ---
 
@@ -156,4 +158,4 @@ This does not affect backgrounding without a kill (home button, app switcher) �
 
 ## V1 TODO
 
-- **Biometric unlock (Face ID / Touch ID / Android biometrics).** Promoted from V2 into V1 scope. Since every cold start clears the session (UC-MOB-AUTH-7), biometry is the intended fast path back in — unlock with biometrics instead of retyping credentials on each launch. Needs its own spec + ADR (library choice — likely `expo-local-authentication` — enrolment, fallback to password, and how it interacts with the cold-start clear) before implementation. **Not part of the Settings-screen task.**
+- ~~**Biometric unlock (Face ID / Touch ID / Android biometrics).**~~ Now specified and built — see [`biometric-offline-login.md`](./biometric-offline-login.md) and [ADR 0036](../../adr/0036-mobile-biometric-and-offline-login.md). Delivered together with **offline login** (credential-based), since both rest on the same stored-credential mechanism and on how they interact with the cold-start clear (UC-MOB-AUTH-7, amended above). `expo-local-authentication` is the library.
