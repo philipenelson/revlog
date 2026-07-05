@@ -1,11 +1,47 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+// A column added to a table after that table's original CREATE TABLE
+// shipped. CREATE TABLE IF NOT EXISTS below is a no-op for a device that
+// already has the table from before the column existed -- ALTER TABLE is
+// the only way an existing local install ever gets it. See this file's
+// applyColumnMigrations() and ADR 0026's 2026-07-05 update.
+interface ColumnMigration {
+  table: string;
+  column: string;
+  definition: string;
+}
+
+const COLUMN_MIGRATIONS: ColumnMigration[] = [
+  { table: 'vehicles', column: 'total_spent', definition: 'TEXT' },
+  { table: 'vehicles', column: 'last_logged_at', definition: 'TEXT' },
+  { table: 'vehicles', column: 'transfer_pending', definition: 'INTEGER NOT NULL DEFAULT 0' },
+  { table: 'vehicles', column: 'pending_transfer_recipient_email', definition: 'TEXT' },
+  { table: 'log_entries', column: 'notes', definition: 'TEXT' },
+  { table: 'log_entries', column: 'items_json', definition: "TEXT NOT NULL DEFAULT '[]'" },
+  { table: 'log_entries', column: 'detail_fetched', definition: 'INTEGER NOT NULL DEFAULT 0' },
+];
+
+// Idempotent: skips any column PRAGMA table_info already reports, so a
+// fresh install (whose CREATE TABLE below already has every column) runs
+// this as a no-op, and a stale install picks up exactly what it's missing.
+// Every entry here is either nullable or has a literal DEFAULT, both of
+// which SQLite's ADD COLUMN accepts.
+function applyColumnMigrations(db: SQLiteDatabase): void {
+  for (const { table, column, definition } of COLUMN_MIGRATIONS) {
+    const existingColumns = db.getAllSync<{ name: string }>(`PRAGMA table_info(${table})`);
+    const hasColumn = existingColumns.some((c) => c.name === column);
+    if (!hasColumn) {
+      db.execSync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  }
+}
+
 // Hand-written DDL, not drizzle-kit codegen — three tables don't warrant a
-// migration-file pipeline. Runs once, on every openDatabase() call
-// (CREATE TABLE IF NOT EXISTS is idempotent). No ALTER TABLE for the
-// vehicles columns added alongside log_entries: pre-launch, dev-only data,
-// consistent with this file's existing no-pipeline stance — a stale dev
-// install just needs its local DB cleared.
+// migration-file pipeline. CREATE TABLE IF NOT EXISTS runs on every
+// openDatabase() call and is idempotent for tables that don't exist yet;
+// applyColumnMigrations() (below) is what makes it idempotent for columns
+// added to a table that already exists on a given install. See ADR 0026's
+// 2026-07-05 update for why both are needed together.
 export function runMigrations(db: SQLiteDatabase): void {
   db.execSync(`
     CREATE TABLE IF NOT EXISTS vehicles (
@@ -52,4 +88,6 @@ export function runMigrations(db: SQLiteDatabase): void {
 
     CREATE INDEX IF NOT EXISTS log_entries_vehicle_id ON log_entries (vehicle_id);
   `);
+
+  applyColumnMigrations(db);
 }
