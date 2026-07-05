@@ -1,8 +1,8 @@
 # Mobile Vehicle Screens Spec
 
 **Area:** Mobile / Vehicle
-**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5 read-only), Edit Vehicle (UC-MOB-VEH-3), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented, unit-tested, and E2E-verified live; Delete Vehicle (UC-MOB-VEH-4) implemented and unit-tested, its Appium E2E test written but not yet run against a live simulator; Change Vehicle Photo on Edit Vehicle (UC-MOB-VEH-6) implemented and unit-tested — no Appium coverage of the picker interaction itself, see Out of scope (see Decisions)
-**Last updated:** 2026-07-04
+**Status:** In progress — Vehicle Detail (UC-MOB-VEH-1, UC-MOB-VEH-5), Edit Vehicle (UC-MOB-VEH-3), Delete Vehicle (UC-MOB-VEH-4, now entered via Vehicle Detail's `⋮` menu), and Add Vehicle incl. photo upload (UC-MOB-VEH-2) implemented and unit-tested; Change Vehicle Photo on Edit Vehicle (UC-MOB-VEH-6) implemented and unit-tested — no Appium coverage of the picker interaction itself, see Out of scope (see Decisions)
+**Last updated:** 2026-07-05
 
 ---
 
@@ -64,10 +64,10 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 ### UC-MOB-VEH-4 — Owner deletes a Vehicle
 
 **Actor:** Owner
-**Precondition:** Owner is on the Edit Vehicle screen.
+**Precondition:** Owner is on Vehicle Detail; Vehicle has no pending transfer.
 **Milestones:** [V1](../../milestones/v1.md)
 
-1. Owner taps `[Delete vehicle]` in the danger zone.
+1. Owner taps `[⋮]` in the header, then `[Delete vehicle]` in the menu.
 2. App shows confirmation dialog: "Delete [Vehicle name]? This will permanently delete the vehicle and all its log entries. This cannot be undone."
 3. Owner confirms.
 4. App deletes the Vehicle and all related records from local SQLite (cascade); adds `DELETE_VEHICLE` outbox entry.
@@ -78,12 +78,12 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 ### UC-MOB-VEH-5 — Owner views a Vehicle with a pending transfer
 
 **Actor:** Owner
-**Precondition:** A `TRANSFER_VEHICLE` outbox entry has been sent; API has a pending transfer for this Vehicle.
+**Precondition:** A `INITIATE_TRANSFER` outbox entry has been sent; API has a pending transfer for this Vehicle.
 **Milestones:** [V1](../../milestones/v1.md)
 
 1. Vehicle Detail screen shows the Vehicle as locked: "Transfer pending — awaiting [recipient email]'s response."
-2. Add Log Entry and Share Report actions are disabled (Edit and Delete live on screens not yet built).
-3. Owner can cancel the transfer (adds `CANCEL_TRANSFER` outbox entry; Vehicle unlocks locally) — **implemented on `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen, not here**; see this file's Decisions for why.
+2. Add Log Entry, Share Report, Edit, and the `[⋮]` menu (Transfer vehicle / Delete vehicle) are all disabled.
+3. A full-width `[Cancel transfer]` button appears in place of the disabled actions. Owner can cancel the transfer (adds `CANCEL_TRANSFER` outbox entry; Vehicle unlocks locally as soon as the local write succeeds, without waiting for sync) — implemented directly on this screen; see this file's Decisions for why it lives here rather than on `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen.
 
 ---
 
@@ -107,8 +107,8 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - [x] Vehicle Detail reads from local SQLite — renders without network
 - [x] Add Vehicle writes to SQLite + outbox in one transaction; navigates to detail on success
 - [x] Edit Vehicle pre-fills from SQLite; writes update to SQLite + outbox on save
-- [x] Delete Vehicle shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
-- [x] Transfer-pending Vehicle shows locked state; action buttons disabled
+- [x] Delete Vehicle is reached via Vehicle Detail's `[⋮]` menu; shows confirmation dialog; cascade-deletes from SQLite + queues outbox entry
+- [x] Transfer-pending Vehicle shows locked state; action buttons and the `[⋮]` menu disabled; `[Cancel transfer]` available in their place
 - [x] Vehicle photo URL is displayed when cached locally; placeholder shown when absent
 - [x] Add Vehicle: a picked photo persists to local storage and uploads via the outbox, surviving an app kill/restart while offline
 - [x] All form validation rules match the web spec (year range, required fields, mileage non-negative) — both Add and Edit Vehicle validate via the shared `createVehicleSchema`
@@ -130,7 +130,11 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 | Delete cleans up a not-yet-synced local photo file | `VehicleRepository.delete()` calls `deleteVehiclePhoto()` when the row's `photoUrl` is still a local `file://` reference (i.e. picked on Add Vehicle, not yet uploaded); a reconciled remote CDN url is left alone | Without this, deleting a Vehicle created offline with a photo, before its `CREATE_VEHICLE` outbox entry ever syncs, would permanently orphan that file in local storage — nothing else ever cleans it up |
 | Delete navigates via `router.dismissTo('/garage')`, not `back()` or `replace()` | Pops both Vehicle Detail and this Edit screen off the stack in one call, landing on the already-existing Garage instance underneath | Edit Vehicle sits two levels below Garage (Garage → Detail → Edit); `back()` only pops one level, and `replace()` (the pattern Add/Edit Vehicle already use elsewhere in this file) only swaps the *current* screen, leaving the deleted Vehicle's stale Detail screen still reachable via a back navigation from the resulting Garage. `dismissTo()` (expo-router 57, see ADR 0031) is the primitive built for exactly this — pop-to-existing-route — case |
 | Vehicle Detail: insurance not displayed | No insurance row/dialog on mobile Vehicle Detail in V1, unlike the web spec | `revlog-mobile-vehicle-detail.html` has no insurance affordance in either state; no mobile spec has designed insurance edit UX yet. `SyncService` fetches `insurance` per ADR 0027's 2026-07-03 update but discards it — nothing reads it. Revisit as its own spec when mobile insurance UX is designed, rather than bolting a web-parity row onto this screen |
-| Vehicle Detail: transfer-pending is read-only | Detail shows the locked banner (UC-MOB-VEH-5 steps 1–2) but no `[Cancel transfer]` action | Cancelling requires an `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox handler and `transferService` wiring that don't exist yet — `SyncService.flushOutbox()` marks any entry with no registered handler `failed` permanently (see SyncService.ts), so enqueueing `CANCEL_TRANSFER` before its handler exists would silently and permanently no-op the cancellation. That handler pairs naturally with `INITIATE_TRANSFER`, both squarely in `docs/specs/mobile-app/vehicle-transfer.md`'s scope, so the cancel affordance ships there instead |
+| Vehicle Detail: transfer-pending now supports `[Cancel transfer]` (supersedes the "transfer-pending is read-only" deferral below — its blocker, registered `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox handlers, now exists) | A full-width `[Cancel transfer]` button replaces the disabled action row when `transferPending` is true; confirmed via a dialog, then calls `VehicleRepository.cancelTransfer()` | The original deferral's reasoning (`SyncService.flushOutbox()` permanently fails any entry type with no registered handler) no longer applies once the handler exists — same resolution pattern as this file's "Delete Vehicle ships" row below |
+| ~~Vehicle Detail: transfer-pending is read-only~~ (superseded above) | Detail shows the locked banner (UC-MOB-VEH-5 steps 1–2) but no `[Cancel transfer]` action | Cancelling requires an `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox handler and `transferService` wiring that don't exist yet — `SyncService.flushOutbox()` marks any entry with no registered handler `failed` permanently (see SyncService.ts), so enqueueing `CANCEL_TRANSFER` before its handler exists would silently and permanently no-op the cancellation. That handler pairs naturally with `INITIATE_TRANSFER`, both squarely in `docs/specs/mobile-app/vehicle-transfer.md`'s scope — this row originally deferred the cancel affordance there, but it turned out to belong on this screen instead (see the row above) since UC-MOB-TRANSFER-3's precondition was always "Owner is on Vehicle Detail" |
+| Vehicle Detail header gains a `[⋮]` overflow menu for Transfer vehicle and Delete vehicle; Edit and Share stay as direct icons | Header: `[Share icon] [Edit icon] [⋮]`. The menu is a small popover anchored under the icon, listing "Transfer vehicle" and "Delete vehicle" (destructive style). All three icons disable together when `transferPending` is true | Neither the design files nor this spec had ever placed an entry point for Transfer on the unlocked screen — a design gap found while building it, resolved directly with the user rather than guessed. Edit stays a direct icon because it's the action most worth one-tap access even though it's not the *most frequent* tap (Share/Log entry are); Transfer and Delete are rare (typically once per Vehicle's lifetime) and Delete is destructive, both fitting the standard "frequent action direct, rare/destructive actions in overflow" mobile idiom better than adding a fourth header icon or a fourth action-row button |
+| Delete Vehicle moves from Edit Vehicle's danger zone to Vehicle Detail's `[⋮]` menu | UC-MOB-VEH-4's precondition changes from "Owner is on the Edit Vehicle screen" to "Owner is on Vehicle Detail"; Edit Vehicle no longer has a danger zone. The confirmation dialog itself (copy, `handleDelete` behaviour, `router.dismissTo('/garage')` on success) is unchanged, just relocated to `useVehicleDetailViewModel` | Decided together with the `[⋮]` menu row above — once Delete has a menu to live in, keeping a second, separate entry point on Edit Vehicle would be redundant and require the Owner to remember two different places to delete a Vehicle |
+| Mobile's self-transfer check is server-side only, unlike UC-MOB-TRANSFER-1 step 4's original wording ("not the Owner's own email") | The Initiate Transfer screen validates format only (`initiateTransferSchema`, shared with web); a self-transfer attempt is rejected by `POST /vehicles/:vehicleId/transfer`'s existing 400, which the outbox handler treats as a permanent failure — the local optimistic lock reverts on the next successful sync, with a generic "Couldn't send the transfer" submit error shown at write time | Mobile's `Session` (`packages/api-client`'s `Session.user`) carries only `{ id, accountId, role }`, no email — there is nothing to compare the recipient field against locally. Adding email to the session is a real option (thread it through the login/refresh response and `AuthProvider`) but is broader than this feature and was deliberately deferred rather than bundled in here |
 | Vehicle Detail: no type filter / sort control | Service history always renders newest-first, no filter dropdown | Unlike the web spec, this file's Acceptance Criteria and the design file never called for one; keeps V1 scope matched to what's actually specified here |
 | Vehicle Detail: stats sourced from per-vehicle API fetch, not client computation | `stats.totalSpent`/`stats.lastLoggedAt` come from `GET /vehicles/:vehicleId` and are cached locally, not summed from local Log Entries | Mirrors the web spec's "stats computed server-side" decision; avoids a second, possibly-divergent computation living in the mobile client. See ADR 0027's 2026-07-03 update |
 | Edit Vehicle ships without the danger zone | This pass implements only UC-MOB-VEH-3 (pre-fill, validate, save). `revlog-mobile-edit-vehicle.html` designs a Danger zone / delete-vehicle confirmation on the same screen, but that's UC-MOB-VEH-4, a distinct use case with its own outbox entry type (`DELETE_VEHICLE`), cascade semantics, and confirmation dialog | Same reasoning as Vehicle Detail's cancel-transfer deferral: bolting delete onto this pass means shipping a `DELETE_VEHICLE` outbox entry with no registered handler, which `SyncService.flushOutbox()` would mark permanently `failed`. Delete ships as its own step once it has a handler |
@@ -159,7 +163,6 @@ Design files: [`revlog-mobile-vehicle-detail.html`](../../designs/mobile/revlog-
 - Camera capture on Add Vehicle's photo picker → library picker only, matching the web app's plain file input (see Decisions above)
 - Vehicle makes/models/years reference dataset → tracked in web V1 milestone; same deferral applies to mobile
 - Insurance display/edit on mobile Vehicle Detail → needs its own spec (see Decisions above)
-- Cancel transfer action on mobile Vehicle Detail → ships with `docs/specs/mobile-app/vehicle-transfer.md`'s Initiate Transfer screen
 - Type filter / sort control on mobile Service History → not specified for V1
 - Appium E2E run against a live simulator for Delete Vehicle (UC-MOB-VEH-4) → the spec at `apps/mobile/e2e/specs/edit-vehicle.e2e.ts` is written and typechecks, but this pass didn't have a simulator available to run it against a live backend
 - Appium E2E coverage of the photo-picker interaction itself (UC-MOB-VEH-2 and UC-MOB-VEH-6) → `expo-image-picker` hands off to the native OS photo library outside the app's own view hierarchy; no existing Appium helper or mock drives it, and none was added here. This is a pre-existing gap, not new to UC-MOB-VEH-6: Add Vehicle's photo upload (UC-MOB-VEH-2) shipped "E2E-verified live" without it too. Unit tests (`useEditVehicleViewModel.test.ts`, `VehicleRepository.test.ts`, `outboxHandlers.test.ts`) cover the picked-photo path with a mocked picker instead

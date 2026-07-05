@@ -413,4 +413,68 @@ describe('VehicleRepository', () => {
 
     expect(mockDeleteVehiclePhoto).not.toHaveBeenCalled();
   });
+
+  it('initiateTransfer marks the row transferPending and enqueues an INITIATE_TRANSFER outbox entry atomically', async () => {
+    const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.initiateTransfer('v1', 'buyer@example.com');
+
+    expect(save).toHaveBeenCalledWith(
+      {
+        ...vehicleA,
+        ...defaultDetail,
+        sortOrder: 0,
+        transferPending: true,
+        pendingTransferRecipientEmail: 'buyer@example.com',
+      },
+      'INITIATE_TRANSFER',
+      { vehicleId: 'v1', recipientEmail: 'buyer@example.com' },
+    );
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
+  it('initiateTransfer is a no-op when the vehicle does not exist locally', async () => {
+    const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.initiateTransfer('missing', 'buyer@example.com');
+
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('cancelTransfer clears transferPending and enqueues a CANCEL_TRANSFER outbox entry atomically', async () => {
+    const { store } = fakeStore([
+      {
+        ...vehicleA,
+        ...defaultDetail,
+        sortOrder: 0,
+        transferPending: true,
+        pendingTransferRecipientEmail: 'buyer@example.com',
+      },
+    ]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.cancelTransfer('v1');
+
+    expect(save).toHaveBeenCalledWith(
+      { ...vehicleA, ...defaultDetail, sortOrder: 0, transferPending: false, pendingTransferRecipientEmail: null },
+      'CANCEL_TRANSFER',
+      { vehicleId: 'v1' },
+    );
+    expect(store.save).not.toHaveBeenCalled();
+  });
+
+  it('cancelTransfer is a no-op when the vehicle does not exist locally', async () => {
+    const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
+    const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
+    const repo = createVehicleRepository(store, writer);
+
+    await repo.cancelTransfer('missing');
+
+    expect(save).not.toHaveBeenCalled();
+  });
 });

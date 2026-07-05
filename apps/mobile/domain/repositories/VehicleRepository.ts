@@ -82,6 +82,16 @@ export interface VehicleRepository {
   // and enqueues a DELETE_VEHICLE outbox entry, atomically (OutboxWriter<T>).
   // No-op if the Vehicle isn't known locally.
   delete(vehicleId: string): Promise<void>;
+  // UC-MOB-TRANSFER-1: marks the local row transferPending (optimistic lock,
+  // ADR 0027) and enqueues an INITIATE_TRANSFER outbox entry, atomically. No
+  // client-side "not your own email" check -- see docs/specs/mobile-app/
+  // vehicle-transfer.md's Decisions for why that's server-side only on
+  // mobile. No-op if the Vehicle isn't known locally.
+  initiateTransfer(vehicleId: string, recipientEmail: string): Promise<void>;
+  // UC-MOB-TRANSFER-3: clears the local row's transferPending fields and
+  // enqueues a CANCEL_TRANSFER outbox entry, atomically. No-op if the
+  // Vehicle isn't known locally.
+  cancelTransfer(vehicleId: string): Promise<void>;
   // Replaces the local Vehicle list with exactly what the API returned,
   // preserving its order. Called by SyncService.pull()'s phase 1 — see ADR
   // 0027's 2026-07-02 update for the phased parent-then-child sequencing.
@@ -173,6 +183,20 @@ export function createVehicleRepository(
       // alone, nothing to clean up locally for that case.
       if (row.photoUrl?.startsWith('file://')) deleteVehiclePhoto(row.photoUrl);
       await outboxWriter.remove(vehicleId, 'DELETE_VEHICLE', { vehicleId });
+    },
+
+    async initiateTransfer(vehicleId: string, recipientEmail: string): Promise<void> {
+      const row = await findRow(vehicleId);
+      if (!row) return;
+      const updated: LocalVehicle = { ...row, transferPending: true, pendingTransferRecipientEmail: recipientEmail };
+      await outboxWriter.save(updated, 'INITIATE_TRANSFER', { vehicleId, recipientEmail });
+    },
+
+    async cancelTransfer(vehicleId: string): Promise<void> {
+      const row = await findRow(vehicleId);
+      if (!row) return;
+      const updated: LocalVehicle = { ...row, transferPending: false, pendingTransferRecipientEmail: null };
+      await outboxWriter.save(updated, 'CANCEL_TRANSFER', { vehicleId });
     },
 
     async reconcile(vehicles: VehicleSummary[]): Promise<void> {

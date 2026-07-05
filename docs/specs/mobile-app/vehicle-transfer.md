@@ -1,8 +1,8 @@
 # Mobile Vehicle Transfer Spec
 
 **Area:** Mobile / Vehicle Transfer
-**Status:** Not started
-**Last updated:** 2026-06-30
+**Status:** In progress
+**Last updated:** 2026-07-05
 
 ---
 
@@ -24,12 +24,12 @@ Design file: [`revlog-mobile-vehicle-transfer.html`](../../designs/mobile/revlog
 **Precondition:** Owner is on Vehicle Detail for a Vehicle with no pending transfer.
 **Milestones:** [V1](../../milestones/v1.md)
 
-1. Owner taps `[Transfer vehicle]`.
+1. Owner taps `[⋮]` in the header, then `[Transfer vehicle]` in the menu — see `docs/specs/mobile-app/vehicle.md`'s Decisions for why Transfer lives in this menu rather than as its own header icon or action-row button.
 2. App navigates to the Initiate Transfer screen.
 3. Owner enters the recipient's email address and taps `[Send transfer]`.
-4. App validates the email (same rules as web: trim, lowercase, valid format, not the Owner's own email).
+4. App validates the email format (trim, lowercase, valid format — the same `initiateTransferSchema` the web app and API use). It does **not** check "not the Owner's own email" client-side — see this file's Decisions for why that check is server-only on mobile.
 5. On valid: adds `INITIATE_TRANSFER` outbox entry. Vehicle is marked `transferPending: true` in local SQLite.
-6. SyncService sends the outbox entry to `POST /vehicles/:vehicleId/transfers` when online.
+6. SyncService sends the outbox entry to `POST /vehicles/:vehicleId/transfer` when online.
 7. App navigates back to Vehicle Detail. Vehicle is shown as locked (transfer pending).
 
 ---
@@ -41,8 +41,8 @@ Design file: [`revlog-mobile-vehicle-transfer.html`](../../designs/mobile/revlog
 **Milestones:** [V1](../../milestones/v1.md)
 
 1. Vehicle Detail screen shows transfer-pending state: "Transfer pending — awaiting [recipient email]'s response."
-2. Actions disabled: `[+ Log entry]`, `[Edit]`, `[Share report]`, `[Delete]`, `[Transfer vehicle]`.
-3. `[Cancel transfer]` button is available.
+2. Actions disabled: `[+ Log entry]`, `[Share report]`, `[Edit]`, and the `[⋮]` menu (which would otherwise offer `[Transfer vehicle]` / `[Delete vehicle]`).
+3. `[Cancel transfer]` button is available in their place — this is the same screen/use case as `docs/specs/mobile-app/vehicle.md`'s UC-MOB-VEH-5, cross-referenced here for the transfer-specific detail.
 
 ---
 
@@ -55,8 +55,8 @@ Design file: [`revlog-mobile-vehicle-transfer.html`](../../designs/mobile/revlog
 1. Owner taps `[Cancel transfer]` on Vehicle Detail.
 2. App shows confirmation: "Cancel this transfer request?"
 3. Owner confirms.
-4. App clears `transferPending` in local SQLite; adds `CANCEL_TRANSFER` outbox entry.
-5. Vehicle immediately unlocks in the UI. SyncService sends the cancellation to the API.
+4. App clears `transferPending` in local SQLite and re-reads the Vehicle so the screen unlocks immediately (no navigation, no wait for sync); adds `CANCEL_TRANSFER` outbox entry.
+5. SyncService sends the cancellation to the API in the background.
 
 ---
 
@@ -74,10 +74,11 @@ Design file: [`revlog-mobile-vehicle-transfer.html`](../../designs/mobile/revlog
 
 ## Acceptance Criteria
 
-- [ ] Initiate Transfer screen validates recipient email (required, valid, not own email)
-- [ ] Submission writes `transferPending: true` to local SQLite and queues outbox entry
+- [ ] `[⋮]` menu on Vehicle Detail offers `[Transfer vehicle]` and `[Delete vehicle]` when unlocked; disabled together with Edit/Share/Log entry when a transfer is pending
+- [ ] Initiate Transfer screen validates recipient email (required, valid format) via the shared `initiateTransferSchema`
+- [ ] Submission writes `transferPending: true` to local SQLite and queues an `INITIATE_TRANSFER` outbox entry
 - [ ] Vehicle Detail shows locked state when transfer is pending
-- [ ] Cancel clears pending state in SQLite and queues outbox entry
+- [ ] `[Cancel transfer]` shows a confirmation dialog, then clears pending state in SQLite (screen unlocks immediately, no navigation) and queues a `CANCEL_TRANSFER` outbox entry
 - [ ] After accepted transfer, Vehicle is removed from local SQLite on next sync
 - [ ] After declined transfer, Vehicle is unlocked on next sync
 - [ ] `[Share report]` button is disabled during pending transfer (same rule as web)
@@ -90,6 +91,10 @@ Design file: [`revlog-mobile-vehicle-transfer.html`](../../designs/mobile/revlog
 |---|---|---|
 | Acceptance is browser-only | Recipient opens email link in browser | Deep linking not in V1 scope; web already handles acceptance correctly |
 | Optimistic lock on initiate | Mark `transferPending` in SQLite immediately | UX: Owner should see the locked state without waiting for outbox to flush |
+| Cancel transfer ships on Vehicle Detail, not this file's Initiate Transfer screen | `[Cancel transfer]`, its confirmation dialog, and the `CANCEL_TRANSFER` call all live in `useVehicleDetailViewModel`/`VehicleDetailScreen` (`docs/specs/mobile-app/vehicle.md`) | UC-MOB-TRANSFER-3's own precondition was always "Owner is on Vehicle Detail" — cancelling only ever comes up while looking at the locked Vehicle, never from the Initiate Transfer screen (which isn't reachable once a transfer is already pending, since its own entry point in the `[⋮]` menu is disabled). This file specifies the use case; the implementation section of `vehicle.md` is where the code actually is |
+| Transfer vehicle and Delete vehicle share Vehicle Detail's `[⋮]` overflow menu | See `docs/specs/mobile-app/vehicle.md`'s Decisions for the full reasoning (a design gap found while building this screen, resolved directly with the user) | Both are rare, once-per-Vehicle-lifetime actions; Edit and Share keep their direct header icons |
+| Self-transfer check is server-side only on mobile | Initiate Transfer validates email format (`initiateTransferSchema`) but not "is this my own email" — the API's existing 400 catches it, surfaced as a generic submit error, with the local optimistic lock reverting on the next sync | Mobile's `Session` carries no email to compare against (`packages/api-client`'s `Session.user` is `{ id, accountId, role }`). Adding it is a real option but broader than this feature — see `docs/specs/mobile-app/vehicle.md`'s Decisions |
+| `INITIATE_TRANSFER`/`CANCEL_TRANSFER` outbox payloads are `{ vehicleId, recipientEmail }` / `{ vehicleId }` | Mirrors the shape of every other outbox payload in `outboxHandlers.ts` (a plain object matching the API call's parameters) | No new convention needed — same pattern as `UPDATE_VEHICLE`'s `{ vehicleId, ...data }` |
 
 ---
 
