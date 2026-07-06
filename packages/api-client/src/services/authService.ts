@@ -5,6 +5,8 @@ import type {
   RegisterInput,
   VerifyEmailInput,
   ResendVerificationInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
 } from '@maintenance-log/domain';
 
 export function login(client: HttpClient, input: LoginInput): Promise<Session> {
@@ -33,4 +35,14 @@ export function verifyEmail(client: HttpClient, input: VerifyEmailInput): Promis
 /** Re-issue a verification code. Always resolves (server is enumeration-safe, ADR 0037). */
 export function resendVerification(client: HttpClient, input: ResendVerificationInput): Promise<void> {
   return client.post<void>('/auth/verify-email/resend', input);
+}
+
+/** Request a password reset code. Always resolves (server is enumeration-safe, ADR 0038). */
+export function forgotPassword(client: HttpClient, input: ForgotPasswordInput): Promise<void> {
+  return client.post<void>('/auth/forgot-password', input);
+}
+
+/** Reset the password with a 6-digit code; on success the User is auto-signed in (ADR 0038). */
+export function resetPassword(client: HttpClient, input: ResetPasswordInput): Promise<Session> {
+  return client.post<Session>('/auth/reset-password', input);
 }
