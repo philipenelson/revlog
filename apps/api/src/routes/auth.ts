@@ -1,5 +1,12 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { registerSchema, loginSchema, verifyEmailSchema, resendVerificationSchema } from '@maintenance-log/domain';
+import {
+  registerSchema,
+  loginSchema,
+  verifyEmailSchema,
+  resendVerificationSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from '@maintenance-log/domain';
 import type { AuthService } from '../services/auth.service';
 import { authenticate } from '../middleware/auth';
 
@@ -97,6 +104,42 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     try {
       await authService.resendVerification(parsed.data);
       res.status(200).json({ message: 'If that account needs verifying, a new code is on its way.' });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Request a password reset code (ADR 0038). Always 200 regardless of whether
+  // the email is registered — the endpoint must not disclose account state
+  // (enumeration-safe). The service is a no-op for an unknown email.
+  router.post('/forgot-password', async (req: Request, res: Response, next: NextFunction) => {
+    const parsed = forgotPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
+      return;
+    }
+    try {
+      await authService.forgotPassword(parsed.data);
+      res.status(200).json({ message: 'If that account exists, a reset code is on its way.' });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Reset the password with a valid code (ADR 0038). On success the User is
+  // auto-signed in (all prior sessions revoked first) — same cookie/body token
+  // handling as /login and /verify-email. On a bad/expired code the service
+  // throws a 400 with an `invalid_code` / `code_expired` slug.
+  router.post('/reset-password', async (req: Request, res: Response, next: NextFunction) => {
+    const parsed = resetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
+      return;
+    }
+    try {
+      const result = await authService.resetPassword(parsed.data);
+      res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
+      res.status(200).json(sessionResponseBody(result, req));
     } catch (err) {
       next(err);
     }

@@ -64,6 +64,20 @@ const mockVerifiedUser: DomainUser = {
   verificationAttemptsRemaining: null,
 };
 
+// A verified user with a live password-reset code (ADR 0038). Expiry is anchored
+// to real Date.now() for the same reason as the verification fixture above.
+const RESET_CODE = '654321';
+const NEW_PASSWORD = 'BrandNewPass9';
+
+const mockResetUser: DomainUser = {
+  ...mockVerifiedUser,
+  id: 'user-3',
+  email: 'reset@example.com',
+  passwordResetCodeHash: bcrypt.hashSync(RESET_CODE, BCRYPT_ROUNDS_FOR_FIXTURES),
+  passwordResetCodeExpiresAt: new Date(Date.now() + 10 * 60_000),
+  passwordResetAttemptsRemaining: 4,
+};
+
 const mockRefreshTokenRecord: DomainRefreshToken = {
   id: 'rt-1',
   userId: 'user-1',
@@ -107,6 +121,14 @@ function makeFakeAccountRepo(overrides: Partial<IAccountRepository> = {}): IAcco
     findById: vi.fn().mockResolvedValue(mockAccount),
     markActive: vi.fn().mockResolvedValue(undefined),
     ...overrides,
+  };
+}
+
+// A complete IEmailService fake (both methods) for the flows that need it.
+function makeEmailService(): IEmailService {
+  return {
+    sendVerificationEmail: vi.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -374,6 +396,174 @@ describe('AuthService.resendVerification', () => {
     await expect(service.resendVerification({ email: mockVerifiedUser.email })).resolves.toBeUndefined();
     expect(userRepo.setVerificationCode).not.toHaveBeenCalled();
     expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService.forgotPassword', () => {
+  let userRepo: IUserRepository;
+  let refreshTokenRepo: IRefreshTokenRepository;
+  let accountRepo: IAccountRepository;
+  let emailService: IEmailService;
+  let service: AuthService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockVerifiedUser) });
+    refreshTokenRepo = makeFakeRefreshTokenRepo();
+    accountRepo = makeFakeAccountRepo();
+    emailService = makeEmailService();
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
+  });
+
+  it('sets a fresh reset code (10-min TTL, 4 attempts) and emails it for a registered user', async () => {
+    await service.forgotPassword({ email: mockVerifiedUser.email });
+
+    expect(userRepo.setPasswordResetCode).toHaveBeenCalledOnce();
+    const [id, data] = (userRepo.setPasswordResetCode as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      { codeHash: string; expiresAt: Date; attemptsRemaining: number },
+    ];
+    expect(id).toBe(mockVerifiedUser.id);
+    expect(data.codeHash).toMatch(/^\$2[ab]\$/); // hashed at rest, not the plaintext code
+    expect(data.attemptsRemaining).toBe(4);
+    const ttlMs = data.expiresAt.getTime() - Date.now();
+    expect(ttlMs).toBeGreaterThan(9 * 60_000);
+    expect(ttlMs).toBeLessThanOrEqual(10 * 60_000);
+    expect(emailService.sendPasswordResetEmail).toHaveBeenCalledWith(
+      mockVerifiedUser.email,
+      expect.stringMatching(/^\d{6}$/),
+    );
+  });
+
+  it('issues a code for an unverified user too (reset also verifies — ADR 0038 §6)', async () => {
+    const unverified = { ...mockUser, emailVerified: false };
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(unverified) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
+
+    await service.forgotPassword({ email: unverified.email });
+
+    expect(userRepo.setPasswordResetCode).toHaveBeenCalledOnce();
+    expect(emailService.sendPasswordResetEmail).toHaveBeenCalledOnce();
+  });
+
+  it('is a no-op for an unknown email — no code set, no email sent, still resolves (enumeration-safe)', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(null) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
+
+    await expect(service.forgotPassword({ email: 'nobody@example.com' })).resolves.toBeUndefined();
+    expect(userRepo.setPasswordResetCode).not.toHaveBeenCalled();
+    expect(emailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthService.resetPassword', () => {
+  let userRepo: IUserRepository;
+  let refreshTokenRepo: IRefreshTokenRepository;
+  let accountRepo: IAccountRepository;
+  let service: AuthService;
+
+  const email = makeEmailService();
+  const validReset = {
+    email: mockResetUser.email,
+    code: RESET_CODE,
+    newPassword: NEW_PASSWORD,
+    confirmPassword: NEW_PASSWORD,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockResetUser) });
+    refreshTokenRepo = makeFakeRefreshTokenRepo();
+    accountRepo = makeFakeAccountRepo();
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, email);
+  });
+
+  it('throws 400 code_expired for an unknown email (enumeration-safe)', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(null) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, email);
+
+    await expect(service.resetPassword({ ...validReset, email: 'nobody@example.com' })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'code_expired',
+    });
+  });
+
+  it('throws 400 code_expired when there is no active reset code', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockVerifiedUser) }); // no reset code set
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, email);
+
+    await expect(service.resetPassword({ ...validReset, email: mockVerifiedUser.email })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'code_expired',
+    });
+  });
+
+  it('throws 400 code_expired when the code has expired', async () => {
+    const expiredUser = { ...mockResetUser, passwordResetCodeExpiresAt: new Date(Date.now() - 1000) };
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(expiredUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, email);
+
+    await expect(service.resetPassword(validReset)).rejects.toMatchObject({ statusCode: 400, message: 'code_expired' });
+  });
+
+  it('throws 400 invalid_code and decrements the counter on a wrong code with attempts remaining', async () => {
+    await expect(service.resetPassword({ ...validReset, code: '000000' })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'invalid_code',
+    });
+    expect(userRepo.decrementPasswordResetAttempt).toHaveBeenCalledWith(mockResetUser.id);
+    expect(userRepo.clearPasswordResetCode).not.toHaveBeenCalled();
+  });
+
+  it('burns the code and throws code_expired on the final (4th) wrong attempt', async () => {
+    const lastAttemptUser = { ...mockResetUser, passwordResetAttemptsRemaining: 1 };
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(lastAttemptUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, email);
+
+    await expect(service.resetPassword({ ...validReset, code: '000000' })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'code_expired',
+    });
+    expect(userRepo.clearPasswordResetCode).toHaveBeenCalledWith(mockResetUser.id);
+    expect(userRepo.decrementPasswordResetAttempt).not.toHaveBeenCalled();
+  });
+
+  it('does not change the password or issue tokens on a wrong code', async () => {
+    await expect(service.resetPassword({ ...validReset, code: '000000' })).rejects.toBeInstanceOf(AppError);
+    expect(userRepo.resetPassword).not.toHaveBeenCalled();
+    expect(refreshTokenRepo.deleteAllForUser).not.toHaveBeenCalled();
+    expect(refreshTokenRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('sets a bcrypt-hashed new password (never the plaintext) on the correct code', async () => {
+    await service.resetPassword(validReset);
+
+    expect(userRepo.resetPassword).toHaveBeenCalledOnce();
+    const [id, passwordHash] = (userRepo.resetPassword as ReturnType<typeof vi.fn>).mock.calls[0] as [string, string];
+    expect(id).toBe(mockResetUser.id);
+    expect(passwordHash).toMatch(/^\$2[ab]\$/);
+    expect(passwordHash).not.toBe(NEW_PASSWORD);
+  });
+
+  it('revokes ALL of the user\'s existing sessions before minting a new one', async () => {
+    await service.resetPassword(validReset);
+
+    expect(refreshTokenRepo.deleteAllForUser).toHaveBeenCalledWith(mockResetUser.id);
+    // The new session is created after the revocation, so exactly one token is created.
+    expect(refreshTokenRepo.create).toHaveBeenCalledOnce();
+    const deleteOrder = (refreshTokenRepo.deleteAllForUser as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0];
+    const createOrder = (refreshTokenRepo.create as ReturnType<typeof vi.fn>).mock.invocationCallOrder[0];
+    expect(deleteOrder).toBeLessThan(createOrder);
+  });
+
+  it('auto-signs-in: returns a JWT access token, a raw 64-char hex refresh token, user, and account', async () => {
+    const result = await service.resetPassword(validReset);
+
+    expect(result.accessToken).toMatch(/^eyJ/); // JWT header
+    expect(result.accessTokenExpiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // ISO 8601
+    expect(result.refreshToken).toMatch(/^[0-9a-f]{64}$/); // 32 bytes as hex
+    expect(result.user).toEqual({ id: mockResetUser.id, accountId: mockResetUser.accountId, role: mockResetUser.role });
+    expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
   });
 });
 

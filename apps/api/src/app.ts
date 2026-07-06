@@ -7,6 +7,7 @@ import { prisma } from './lib/prisma';
 import { UPLOADS_DIR } from './lib/upload';
 import {
   sendVerificationEmail,
+  sendPasswordResetEmail,
   sendMechanicPrintoutEmail,
   sendTransferNotificationEmail,
   sendTransferInvitationEmail,
@@ -60,7 +61,10 @@ export function createApp(): Express {
   const insuranceRepo = new PrismaInsuranceRepository(prisma);
   const newsletterRepo = new PrismaNewsletterRepository(prisma);
   const vehicleReportTokenRepo = new PrismaVehicleReportTokenRepository(prisma);
-  const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail });
+  const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, {
+    sendVerificationEmail,
+    sendPasswordResetEmail,
+  });
   const userService = new UserService(userRepo);
   const vehicleService = new VehicleService(vehicleRepo, accountRepo);
   const transferService = new VehicleTransferService(transferRepo, vehicleRepo, userRepo, {

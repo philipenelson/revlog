@@ -11,11 +11,20 @@ process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
 const mockAuthService: Pick<
   AuthService,
-  'register' | 'verifyEmail' | 'resendVerification' | 'login' | 'refresh' | 'logout'
+  | 'register'
+  | 'verifyEmail'
+  | 'resendVerification'
+  | 'forgotPassword'
+  | 'resetPassword'
+  | 'login'
+  | 'refresh'
+  | 'logout'
 > = {
   register: vi.fn(),
   verifyEmail: vi.fn(),
   resendVerification: vi.fn(),
+  forgotPassword: vi.fn(),
+  resetPassword: vi.fn(),
   login: vi.fn(),
   refresh: vi.fn(),
   logout: vi.fn(),
@@ -43,6 +52,13 @@ const verifyEmailResult = {
   refreshToken: 'a'.repeat(64),
   user: { id: 'user-1', accountId: 'acc-1', role: 'OWNER' },
   account: { id: 'acc-1', status: 'ONBOARDING' },
+};
+
+const validResetBody = {
+  email: 'test@example.com',
+  code: '654321',
+  newPassword: 'BrandNewPass9',
+  confirmPassword: 'BrandNewPass9',
 };
 
 const validLoginBody = {
@@ -265,6 +281,156 @@ describe('POST /auth/verify-email/resend', () => {
     const res = await supertest(buildApp())
       .post('/auth/verify-email/resend')
       .send({ email: 'test@example.com' });
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('POST /auth/forgot-password', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 200 for any email (enumeration-safe) and calls the service with the sanitized email', async () => {
+    (mockAuthService.forgotPassword as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const res = await supertest(buildApp())
+      .post('/auth/forgot-password')
+      .send({ email: '  Test@Example.COM  ' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ message: expect.any(String) });
+    expect(mockAuthService.forgotPassword).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com' }),
+    );
+  });
+
+  it('does not include any account-state hint in the response body', async () => {
+    (mockAuthService.forgotPassword as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const res = await supertest(buildApp()).post('/auth/forgot-password').send({ email: 'nobody@example.com' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).not.toHaveProperty('exists');
+    expect(res.body).not.toHaveProperty('user');
+  });
+
+  it('returns 400 and does not call service when the email is invalid', async () => {
+    const res = await supertest(buildApp()).post('/auth/forgot-password').send({ email: 'not-an-email' });
+
+    expect(res.status).toBe(400);
+    expect(mockAuthService.forgotPassword).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockAuthService.forgotPassword as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp()).post('/auth/forgot-password').send({ email: 'test@example.com' });
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('POST /auth/reset-password', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 200 and the session payload when the reset succeeds', async () => {
+    (mockAuthService.resetPassword as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
+
+    const res = await supertest(buildApp()).post('/auth/reset-password').send(validResetBody);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      accessToken: verifyEmailResult.accessToken,
+      accessTokenExpiresAt: verifyEmailResult.accessTokenExpiresAt,
+      user: verifyEmailResult.user,
+      account: verifyEmailResult.account,
+    });
+  });
+
+  it('calls authService.resetPassword with the validated, sanitized body', async () => {
+    (mockAuthService.resetPassword as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
+
+    await supertest(buildApp())
+      .post('/auth/reset-password')
+      .send({ ...validResetBody, email: '  Test@Example.COM  ' });
+
+    expect(mockAuthService.resetPassword).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com', code: '654321', newPassword: 'BrandNewPass9' }),
+    );
+  });
+
+  it('sets an HTTP-only refreshToken cookie and omits it from the web body', async () => {
+    (mockAuthService.resetPassword as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
+
+    const res = await supertest(buildApp()).post('/auth/reset-password').send(validResetBody);
+
+    const cookies = (res.headers['set-cookie'] ?? []) as string[];
+    const refreshCookie = cookies.find(c => c.startsWith('refreshToken='));
+    expect(refreshCookie).toBeDefined();
+    expect(refreshCookie).toMatch(/HttpOnly/i);
+    expect(refreshCookie).toMatch(/SameSite=Strict/i);
+    expect(res.body).not.toHaveProperty('refreshToken');
+  });
+
+  it('includes refreshToken in the body when X-Client-Platform: mobile is sent (ADR 0025)', async () => {
+    (mockAuthService.resetPassword as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
+
+    const res = await supertest(buildApp())
+      .post('/auth/reset-password')
+      .set('X-Client-Platform', 'mobile')
+      .send(validResetBody);
+
+    expect(res.body).toMatchObject({ refreshToken: verifyEmailResult.refreshToken });
+  });
+
+  it('returns 400 and does not call service when the code is not 6 digits', async () => {
+    const res = await supertest(buildApp())
+      .post('/auth/reset-password')
+      .send({ ...validResetBody, code: '12ab' });
+
+    expect(res.status).toBe(400);
+    expect(mockAuthService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 and does not call service when the new password is too weak', async () => {
+    const res = await supertest(buildApp())
+      .post('/auth/reset-password')
+      .send({ ...validResetBody, newPassword: 'short', confirmPassword: 'short' });
+
+    expect(res.status).toBe(400);
+    expect(mockAuthService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 and does not call service when the passwords do not match', async () => {
+    const res = await supertest(buildApp())
+      .post('/auth/reset-password')
+      .send({ ...validResetBody, confirmPassword: 'DifferentPass9' });
+
+    expect(res.status).toBe(400);
+    expect(mockAuthService.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 invalid_code when the service reports a wrong code', async () => {
+    (mockAuthService.resetPassword as ReturnType<typeof vi.fn>).mockRejectedValue(new AppError(400, 'invalid_code'));
+
+    const res = await supertest(buildApp()).post('/auth/reset-password').send(validResetBody);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'invalid_code' });
+  });
+
+  it('returns 400 code_expired when the service reports an expired/burned/unknown code', async () => {
+    (mockAuthService.resetPassword as ReturnType<typeof vi.fn>).mockRejectedValue(new AppError(400, 'code_expired'));
+
+    const res = await supertest(buildApp()).post('/auth/reset-password').send(validResetBody);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'code_expired' });
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockAuthService.resetPassword as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp()).post('/auth/reset-password').send(validResetBody);
 
     expect(res.status).toBe(500);
   });
