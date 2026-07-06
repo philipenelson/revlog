@@ -80,6 +80,11 @@
   .field-input { background: var(--surface-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px 16px; font-size: 14px; color: var(--text-primary); }
   .optional-tag { color: var(--text-disabled); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
+  /* Optional photo picker — mirrors the Add Vehicle screen */
+  .photo-box { height: 96px; background: var(--surface-elevated); border: 1.5px dashed var(--border-default); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--text-tertiary); margin-bottom: 14px; }
+  .photo-box-text { font-size: 12.5px; color: var(--text-secondary); }
+  .photo-box-sub { font-size: 11px; color: var(--text-disabled); }
+
   .primary-btn {
     background: var(--accent);
     color: #080A10;
@@ -121,6 +126,12 @@
         </div>
         <div class="welcome-title">Add your first vehicle</div>
         <div class="welcome-body">Tell us a bit about your bike to start tracking its service history.</div>
+      </div>
+
+      <div class="photo-box">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="5" width="20" height="15" rx="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M8.5 5l1-2h5l1 2" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <div class="photo-box-text">Add a photo</div>
+        <div class="photo-box-sub">Optional</div>
       </div>
 
       <div class="field-row">

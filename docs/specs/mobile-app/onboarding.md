@@ -39,7 +39,7 @@ Centred single-column screen on `surface-base`, mirroring the mobile Welcome / E
 
 1. Owner lands on `/onboarding`, **Step 1 — Welcome** shows an explanation and an "Add my first vehicle" primary action plus a "Skip for now" link.
 2. Owner taps "Add my first vehicle" → **Step 2 — Your vehicle**.
-3. Owner fills Make, Model, Year, Current mileage (Nickname optional).
+3. Owner fills Make, Model, Year, Current mileage (Nickname optional) and may optionally attach a photo of the Vehicle.
 4. Owner taps "Continue".
 5. Input is validated client-side with `createVehicleSchema` (the same schema the Add Vehicle screen and the API use).
 6. **Valid:** the Vehicle is created via `VehicleRepository.create` (SQLite + outbox), the in-memory session's `account.status` is flipped to `ACTIVE` (`resolveOnboarding`), and the wizard advances to **Step 3 — Ready** with a spec plate of the entered data.
@@ -89,7 +89,9 @@ Both completing and skipping resolve onboarding by flipping the Account out of `
 
 - [ ] Step 1 shows the step indicator at segment 1, an "Add my first vehicle" primary action, and a "Skip for now" link
 - [ ] "Add my first vehicle" advances to Step 2; "Back" returns to Step 1 without losing entered data
-- [ ] Step 2 renders Make, Model, Year (numeric), Current mileage (numeric), Nickname (optional)
+- [ ] Step 2 renders an optional photo picker, Make, Model, Year (numeric), Current mileage (numeric), Nickname (optional)
+- [ ] The photo picker mirrors the Add Vehicle screen: a dashed "Add a photo / Optional" placeholder that opens the library; a picked photo shows a preview with a remove control; a denied permission shows an inline hint and does not block the wizard
+- [ ] A picked photo is passed to `VehicleRepository.create(data, photo)`; with no photo the second argument is omitted
 - [ ] "Continue" with empty/invalid required fields shows inline errors and does not advance
 - [ ] "Continue" with valid input creates the Vehicle via `VehicleRepository`, flips the account to `ACTIVE`, and advances to Step 3
 - [ ] A repository failure shows an inline error and stays on Step 2; retrying recovers
@@ -114,12 +116,12 @@ Both completing and skipping resolve onboarding by flipping the Account out of `
 | Account-status flip | Optimistic in-memory flip via `AuthProvider.resolveOnboarding`, plus cached-credential update | Mirrors the web wizard's optimistic `activateAccount`. The server confirms independently (skip endpoint, or the outbox `POST /vehicles`); the local flip prevents an immediate re-route into onboarding |
 | Skip | `skipOnboarding(tokenHttpClient)` directly | Online-only op never persisted locally — same rule login/register/report-token follow (mobile CLAUDE.md; ADR 0036) |
 | Validation | `createVehicleSchema.safeParse` | The same schema the Add Vehicle screen and API use; no duplicated field rules |
+| Optional vehicle photo | Included in Step 2, reusing the Add Vehicle picker path (`expo-image-picker` → `VehicleRepository.create(data, photo)`) | The Owner can capture the bike at first run; the picker, permission handling, and photo storage already exist, so it is a small reuse, not new infrastructure. (Earlier scoped out; reinstated at the user's request 2026-07-06.) |
 | Partial-progress persistence | None in V1 | Short flow; matches the web wizard's V1 decision |
 
 ---
 
 ## Out of scope
 
-- Vehicle photo upload during onboarding — the Add Vehicle screen owns photos; onboarding collects only the spec-plate fields (deferred to keep the first-run flow minimal)
 - Make/Model/Year reference dataset (free-text for now — tracked on the web [onboarding-wizard.md](../onboarding/onboarding-wizard.md))
 - The Garage empty state (separate — [`garage.md`](./garage.md))

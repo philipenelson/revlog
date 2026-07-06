@@ -1,6 +1,7 @@
 import {
   Text,
   View,
+  Image,
   Pressable,
   TextInput,
   ScrollView,
@@ -9,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
 import { RevlogMark } from '@/application/components/RevlogMark';
 import {
@@ -18,6 +20,16 @@ import {
 } from './useOnboardingViewModel';
 
 const STEP_LABELS = ['Welcome', 'Your vehicle', 'Ready'] as const;
+
+function CameraIcon() {
+  return (
+    <Svg width={26} height={26} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <Rect x={2} y={5} width={20} height={15} rx={2.5} stroke={colors.neutral[300]} strokeWidth={1.5} />
+      <Circle cx={12} cy={13} r={3.5} stroke={colors.neutral[300]} strokeWidth={1.5} />
+      <Path d="M8.5 5l1-2h5l1 2" stroke={colors.neutral[300]} strokeWidth={1.5} strokeLinejoin="round" />
+    </Svg>
+  );
+}
 
 function StepIndicator({ step }: { step: OnboardingStep }) {
   return (
@@ -151,6 +163,33 @@ function VehicleStep({ vm }: { vm: ReturnType<typeof useOnboardingViewModel> }) 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.photoSection}>
+          {vm.photoPreviewUri ? (
+            <View style={styles.photoPreviewWrap} testID="onboarding-photo-preview">
+              <Image source={{ uri: vm.photoPreviewUri }} style={styles.photoPreviewImage} resizeMode="cover" />
+              <Pressable
+                style={styles.photoRemoveBtn}
+                onPress={vm.removePhoto}
+                hitSlop={8}
+                testID="onboarding-photo-remove-btn"
+              >
+                <Text style={styles.photoRemoveLabel}>×</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable style={styles.photoPlaceholder} onPress={vm.pickPhoto} testID="onboarding-photo-picker">
+              <CameraIcon />
+              <Text style={styles.photoText}>Add a photo</Text>
+              <Text style={styles.photoSubtext}>Optional</Text>
+            </Pressable>
+          )}
+          {vm.photoError && (
+            <Text style={styles.photoError} testID="onboarding-photo-error">
+              {vm.photoError}
+            </Text>
+          )}
+        </View>
+
         <View style={styles.fieldRow}>
           <Field field="make" label="Make" placeholder="e.g. Honda" value={vm.fields.make} error={vm.errors.make} onChangeText={vm.updateField} half />
           <Field field="model" label="Model" placeholder="e.g. CB650R" value={vm.fields.model} error={vm.errors.model} onChangeText={vm.updateField} half />
@@ -330,6 +369,58 @@ const styles = StyleSheet.create({
   formScroll: {
     paddingTop: spacing[6],
     paddingBottom: spacing[6],
+  },
+  photoSection: {
+    marginBottom: spacing[5],
+  },
+  photoPlaceholder: {
+    height: 120,
+    backgroundColor: colors.neutral[700],
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.neutral[400],
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+  },
+  photoText: {
+    fontSize: fontSize.xs,
+    color: colors.neutral[300],
+  },
+  photoSubtext: {
+    fontSize: fontSize.xs,
+    color: colors.neutral[400],
+  },
+  photoPreviewWrap: {
+    height: 120,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  photoPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoRemoveBtn: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral[900],
+  },
+  photoRemoveLabel: {
+    fontSize: fontSize.base,
+    color: colors.neutral[50],
+    marginTop: -2,
+  },
+  photoError: {
+    marginTop: spacing[2],
+    fontSize: fontSize.xs,
+    color: colors.danger[500],
   },
   fieldRow: {
     flexDirection: 'row',
