@@ -16,6 +16,7 @@ export interface TestUser {
 interface MailpitMessageSummary {
   ID: string;
   To: Array<{ Address: string }>;
+  Subject: string;
 }
 
 interface MailpitListResponse {
@@ -68,6 +69,29 @@ export async function findVerificationCode(email: string, attempts = 15): Promis
     if (codeMatch) return codeMatch[1];
   }
   throw new Error(`Verification code for ${email} not found in Mailpit after ${attempts}s`);
+}
+
+// Reads the 6-digit OTP from the PASSWORD RESET email in Mailpit (ADR 0038).
+// Filtered by subject so it never picks up the earlier verification email,
+// which also carries a 6-digit code to the same address. Mailpit lists newest
+// first, so `.find` returns the most recent reset code.
+export async function findPasswordResetCode(email: string, attempts = 15): Promise<string> {
+  for (let i = 0; i < attempts; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const list = (await fetch(`${MAILPIT_URL}/api/v1/messages`).then((r) => r.json())) as MailpitListResponse;
+    const match = list.messages.find(
+      (m) => m.To.some((t) => t.Address === email) && /reset/i.test(m.Subject),
+    );
+    if (!match) continue;
+
+    const detail = (await fetch(`${MAILPIT_URL}/api/v1/message/${match.ID}`).then((r) =>
+      r.json(),
+    )) as MailpitMessageDetail;
+    const codeMatch = detail.Text.match(/\b(\d{6})\b/);
+    if (codeMatch) return codeMatch[1];
+  }
+  throw new Error(`Password reset code for ${email} not found in Mailpit after ${attempts}s`);
 }
 
 export async function verifyEmailViaApi(email: string): Promise<void> {
