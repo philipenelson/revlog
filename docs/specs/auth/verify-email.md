@@ -129,6 +129,37 @@ This screen is the on-screen half of UC-AUTH-2 and UC-AUTH-3, both fully specifi
 
 ## Out of scope
 
-- Resend verification email (tracked in [register-api.md](./register-api.md) — "Out of scope")
+- ~~Resend verification email~~ — now in scope (see Update below)
 - `/forgot-password` flow (separate spec: [forgot-password.md](./forgot-password.md) when created)
-- Mobile app verification screen (separate spec)
+- Mobile app verification screen — now specified in [`../mobile-app/auth.md`](../mobile-app/auth.md) (UC-MOB-AUTH-3 Update)
+
+---
+
+## Update (2026-07-06) — code-entry form (ADR 0037)
+
+The `?token=` link is retired ([ADR 0037](../../adr/0037-email-verification-otp.md)). This screen becomes a **code-entry form**, not an auto-verifying link target. Everything above describes the superseded link screen.
+
+### States (revised)
+
+The four states collapse to a single interactive form reached from registration (`/verify-email?email=…`):
+
+| State | Shown |
+|---|---|
+| Waiting (default) | "Check your inbox" copy naming the email, a **6-digit code input**, a "Verify" button, and a "Resend code" link. The 10-minute expiry is stated. No network call until the User submits |
+| Verifying | Submit in flight — button shows a pending label |
+| Verified | On 200: store the session, play the success orb briefly, redirect via `routeForAccountStatus` (`ONBOARDING` → `/onboarding`, `ACTIVE` → `/garage`) |
+| Error | On `400 invalid_code`: inline "that code isn't right — try again", stays on the form. On `400 code_expired`: inline "that code has expired — request a new one" with Resend emphasized |
+
+### Behaviour
+
+- Submit calls `verifyEmail(cookieHttpClient, { email, code })` (POST). The old on-mount auto-verify effect and its Strict-Mode ref guard are removed — there is no token to burn on mount.
+- "Resend code" calls `resendVerification(cookieHttpClient, { email })`; always succeeds (200), shows a "new code sent" confirmation, and re-arms the form.
+
+### Acceptance Criteria (revised — Cypress)
+
+- [ ] Visiting `/verify-email?email=…` shows the code-entry form with the email and the 10-minute expiry copy
+- [ ] Submitting the correct code shows the verified state and redirects by account status (`/onboarding` for a zero-vehicle account)
+- [ ] Submitting a wrong code shows the `invalid_code` inline error and keeps the form
+- [ ] Submitting an expired/burned code shows the `code_expired` inline error with Resend emphasized
+- [ ] "Resend code" calls the resend endpoint and shows a confirmation
+- [ ] `journey.cy.ts` is updated to complete verification via the code form rather than a token URL

@@ -55,6 +55,16 @@ Same flow as web (UC-AUTH-2). On success, app navigates to a "Check your email" 
 
 The verification link opens in the browser (same as web — `GET /verify-email?token=...`). The web app handles the verification and signs the Owner in on web. The Owner then opens the mobile app and logs in. Deep linking for automatic mobile sign-in after email verification is V2.
 
+**Amendment (2026-07-06, in-app OTP verification — [ADR 0037](../../adr/0037-email-verification-otp.md)).** UC-MOB-AUTH-2 and UC-MOB-AUTH-3 above describe the superseded link flow. Verification is now a **6-digit code entered in the app** — no browser bounce, no deep linking, no return trip. The `verify-email` screen (previously a placeholder) is built for real:
+
+1. After `POST /auth/register` succeeds, the app pushes `/(auth)/verify-email` carrying the Owner's `email` (UC-MOB-AUTH-2, revised — no longer a passive "check your email" dead end).
+2. The email now contains a 6-digit code (10-minute expiry) instead of a link. The Owner types it into the screen's code field and taps **Verify**.
+3. The app calls `POST /auth/verify-email` with `{ email, code }` via `tokenHttpClient` (an online-only op, never persisted locally — like login/register; ADR 0036's rules). On **200** it stores the returned session via `AuthProvider.setSession` and routes by account status (`routeForAccountStatus` → `ONBOARDING` → `/onboarding`).
+4. **`400 invalid_code`** → inline "that code isn't right — try again", stays on the screen (the server has decremented the 4-attempt counter). **`400 code_expired`** (expired, or burned after 4 wrong attempts) → inline "that code has expired — request a new one", with the resend action emphasized.
+5. **Resend** calls `POST /auth/verify-email/resend` with `{ email }`; always succeeds, shows a "new code sent" confirmation, and re-arms the field.
+
+An Appium E2E covers the happy path (register → code → routed onward) and the `invalid_code` / `code_expired` error states. The spec's Acceptance Criteria below are amended accordingly: "Register navigates to 'Check your email' screen" becomes "Register navigates to the code-entry screen"; "unverified account" login copy is unchanged.
+
 ---
 
 ### UC-MOB-AUTH-4 — Owner resets forgotten password
