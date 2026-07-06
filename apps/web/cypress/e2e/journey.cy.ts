@@ -173,7 +173,7 @@ describe("App smoke test — happy paths", () => {
       cy.wait("@register");
 
       cy.location("pathname").should("eq", "/verify-email");
-      cy.get('[data-testid="verify-waiting"]').should("contain", "newuser@example.com");
+      cy.get('[data-testid="verify-form"]').should("contain", "newuser@example.com");
     });
   });
 

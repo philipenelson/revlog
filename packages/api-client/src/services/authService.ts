@@ -1,6 +1,11 @@
 import type { HttpClient } from '../HttpClient';
 import type { Session } from '../types';
-import type { LoginInput, RegisterInput } from '@maintenance-log/domain';
+import type {
+  LoginInput,
+  RegisterInput,
+  VerifyEmailInput,
+  ResendVerificationInput,
+} from '@maintenance-log/domain';
 
 export function login(client: HttpClient, input: LoginInput): Promise<Session> {
   return client.post<Session>('/auth/login', input);
@@ -20,6 +25,12 @@ export function logout(client: HttpClient): Promise<void> {
   return client.post<void>('/auth/logout');
 }
 
-export function verifyEmail(client: HttpClient, token: string): Promise<Session> {
-  return client.get<Session>(`/auth/verify-email?token=${encodeURIComponent(token)}`);
+/** Verify an email with the 6-digit OTP; on success the User is auto-signed in (ADR 0037). */
+export function verifyEmail(client: HttpClient, input: VerifyEmailInput): Promise<Session> {
+  return client.post<Session>('/auth/verify-email', input);
+}
+
+/** Re-issue a verification code. Always resolves (server is enumeration-safe, ADR 0037). */
+export function resendVerification(client: HttpClient, input: ResendVerificationInput): Promise<void> {
+  return client.post<void>('/auth/verify-email/resend', input);
 }

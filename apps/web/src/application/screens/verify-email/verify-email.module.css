@@ -159,6 +159,101 @@
   background: var(--accent-muted);
 }
 
+/* ── Code-entry form ───────────────────────────────────────────── */
+.form {
+  margin-top: 4px;
+  text-align: left;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 7px;
+  text-align: center;
+}
+
+.input {
+  width: 100%;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-dm-sans);
+  font-size: 14.5px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus-ring);
+}
+
+/* The OTP field: monospace, centered, spaced out so 6 digits read as a code. */
+.codeInput {
+  font-family: var(--font-geist-mono);
+  font-size: 22px;
+  letter-spacing: 0.4em;
+  text-align: center;
+  padding: 13px 14px;
+}
+
+.inputError {
+  border-color: var(--danger);
+}
+
+.fieldError {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--danger);
+  text-align: center;
+}
+
+.formError {
+  margin-top: 4px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--danger);
+  text-align: center;
+}
+
+/* ── Resend row ────────────────────────────────────────────────── */
+.resendRow {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.resendLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-dm-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.resendLink:hover { color: var(--accent-light); }
+.resendLink:disabled { color: var(--text-tertiary); cursor: default; }
+
+.resendSent {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--success);
+}
+
 @media (max-width: 480px) {
   .card { padding: 36px 26px 32px; border-radius: var(--radius-lg); }
   .headline { font-size: 21px; }

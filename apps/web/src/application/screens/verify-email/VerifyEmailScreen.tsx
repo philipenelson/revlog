@@ -18,17 +18,84 @@ export function VerifyEmailScreen() {
 function VerifyEmailBody() {
   const vm = useVerifyEmailViewModel();
 
+  if (vm.isVerified) {
+    return (
+      <Scene>
+        <div data-testid="verify-verified">
+          <StatusOrb state="verified" />
+          <div className={`${styles.eyebrow} ${styles.eyebrowSuccess}`}>You&apos;re verified</div>
+          <h1 className={styles.headline}>Taking you to your garage…</h1>
+        </div>
+      </Scene>
+    );
+  }
+
   return (
     <Scene>
-      {vm.screenState === "waiting" && <WaitingCopy email={vm.email} />}
-      {vm.screenState === "verifying" && <VerifyingCopy />}
-      {vm.screenState === "verified" && <VerifiedCopy />}
-      {vm.screenState === "error" && <ErrorCopy />}
+      <div data-testid="verify-form">
+        <div className={styles.eyebrow}>Almost there</div>
+        <h1 className={styles.headline}>Check your inbox</h1>
+        <p className={styles.bodyCopy}>
+          {vm.email ? (
+            <>We sent a 6-digit code to <span className={styles.emailHighlight}>{vm.email}</span>.</>
+          ) : (
+            "We sent you a 6-digit verification code."
+          )}
+          {" "}Enter it below — it expires in 10 minutes.
+        </p>
+
+        <form className={styles.form} onSubmit={vm.submit} noValidate>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel} htmlFor="code">Verification code</label>
+            <input
+              id="code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="000000"
+              data-testid="code-input"
+              className={`${styles.input} ${styles.codeInput} ${vm.errors.code ? styles.inputError : ""}`}
+              {...vm.field("code")}
+            />
+            {vm.errors.code && (
+              <span className={styles.fieldError} role="alert">{vm.errors.code.message}</span>
+            )}
+          </div>
+
+          {vm.formError && (
+            <p className={styles.formError} role="alert" data-testid="verify-error">{vm.formError}</p>
+          )}
+
+          <button type="submit" className={styles.btnPrimary} disabled={vm.isSubmitting} data-testid="verify-btn">
+            {vm.isSubmitting ? "Verifying…" : "Verify email"}
+          </button>
+        </form>
+
+        {vm.resendState === "sent" ? (
+          <p className={styles.resendSent} data-testid="resend-sent">
+            A new code is on its way. Check your inbox.
+          </p>
+        ) : (
+          <p className={styles.resendRow}>
+            Didn&apos;t get it?{" "}
+            <button
+              type="button"
+              className={styles.resendLink}
+              onClick={vm.onResend}
+              disabled={vm.resendState === "sending"}
+              data-testid="resend-btn"
+            >
+              Resend code
+            </button>
+          </p>
+        )}
+      </div>
     </Scene>
   );
 }
 
-/* ── Presentational sub-components ──────────────────────────────── */
+/* ── Presentational shell ───────────────────────────────────────── */
 
 function Scene({ children }: { children: React.ReactNode }) {
   return (
@@ -40,59 +107,6 @@ function Scene({ children }: { children: React.ReactNode }) {
         </div>
         {children}
       </div>
-    </div>
-  );
-}
-
-function WaitingCopy({ email }: { email: string | null }) {
-  return (
-    <div data-testid="verify-waiting">
-      <div className={styles.eyebrow}>Almost there</div>
-      <h1 className={styles.headline}>Check your inbox</h1>
-      <p className={styles.bodyCopy}>
-        {email ? (
-          <>We sent a verification link to <span className={styles.emailHighlight}>{email}</span>.</>
-        ) : (
-          "We sent you a verification link."
-        )}
-        {" "}Click it to confirm your account — the link expires in 24 hours.
-      </p>
-    </div>
-  );
-}
-
-function VerifyingCopy() {
-  return (
-    <div data-testid="verify-verifying">
-      <StatusOrb state="verifying" />
-      <div className={styles.eyebrow}>One moment</div>
-      <h1 className={styles.headline}>Verifying your email…</h1>
-    </div>
-  );
-}
-
-function VerifiedCopy() {
-  return (
-    <div data-testid="verify-verified">
-      <StatusOrb state="verified" />
-      <div className={`${styles.eyebrow} ${styles.eyebrowSuccess}`}>You&apos;re verified</div>
-      <h1 className={styles.headline}>Taking you to your garage…</h1>
-    </div>
-  );
-}
-
-function ErrorCopy() {
-  return (
-    <div data-testid="verify-error">
-      <div className={styles.eyebrow}>Link expired</div>
-      <h1 className={styles.headline}>This link is no longer valid</h1>
-      <p className={styles.bodyCopy}>
-        Verification links expire after 24 hours, or may have already been used.
-        Request a new one to finish setting up your account.
-      </p>
-      <button type="button" className={styles.btnSecondary} data-testid="resend-btn">
-        Resend verification email
-      </button>
     </div>
   );
 }
