@@ -19,21 +19,17 @@ const transport = nodemailer.createTransport({
       : undefined,
 });
 
-export async function sendVerificationEmail(
-  to: string,
-  token: string,
-  appUrl: string,
-): Promise<void> {
-  const link = `${appUrl}/verify-email?token=${token}`;
-
+export async function sendVerificationEmail(to: string, code: string): Promise<void> {
   await transport.sendMail({
     from: FROM,
     to,
     subject: 'Verify your Revlog account',
     text: [
-      `Click the link below to verify your email address. The link expires in 24 hours.`,
+      `Your Revlog verification code is:`,
       ``,
-      link,
+      `  ${code}`,
+      ``,
+      `Enter it in the app to verify your email. The code expires in 10 minutes.`,
       ``,
       `If you didn't create a Revlog account, you can ignore this email.`,
     ].join('\n'),

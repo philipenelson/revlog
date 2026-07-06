@@ -1,7 +1,10 @@
 import bcrypt from 'bcrypt';
+import { randomInt } from 'node:crypto';
 import type {
   RegisterInput,
   LoginInput,
+  VerifyEmailInput,
+  ResendVerificationInput,
   IUserRepository,
   IRefreshTokenRepository,
   IAccountRepository,
@@ -12,7 +15,9 @@ import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 
 const BCRYPT_ROUNDS = 12;
-const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+// Email verification OTP parameters (ADR 0037).
+const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
+const VERIFICATION_MAX_ATTEMPTS = 4;
 const REFRESH_TOKEN_TTL_MS = parseTtlMs(process.env.JWT_REFRESH_EXPIRES_IN ?? '7d');
 
 // Compared against on every login attempt, even when no user is found for the
@@ -34,7 +39,7 @@ function parseTtlMs(ttl: string): number {
 }
 
 export interface IEmailService {
-  sendVerificationEmail(to: string, token: string, appUrl: string): Promise<void>;
+  sendVerificationEmail(to: string, code: string): Promise<void>;
 }
 
 export interface VerifyEmailResult {
@@ -58,25 +63,52 @@ export class AuthService {
     if (existing) throw new AppError(409, 'Email already registered');
 
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
-    const verificationToken = crypto.randomUUID();
-    const verificationTokenExpiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+    const { code, codeHash, expiresAt } = await this.generateVerificationCode();
 
     await this.userRepo.createWithAccount('PERSONAL', {
       fullName: input.fullName,
       email: input.email,
       passwordHash,
-      verificationToken,
-      verificationTokenExpiresAt,
+      verificationCodeHash: codeHash,
+      verificationCodeExpiresAt: expiresAt,
+      verificationAttemptsRemaining: VERIFICATION_MAX_ATTEMPTS,
     });
 
-    const appUrl = process.env.APP_URL ?? 'http://localhost:3000';
-    await this.emailService.sendVerificationEmail(input.email, verificationToken, appUrl);
+    await this.emailService.sendVerificationEmail(input.email, code);
     logger.info({ email: input.email }, 'user registered');
   }
 
-  async verifyEmail(token: string): Promise<VerifyEmailResult> {
-    const user = await this.userRepo.findByVerificationToken(token, new Date());
-    if (!user) throw new AppError(400, 'Invalid or expired verification token');
+  // Verify a 6-digit OTP (ADR 0037). Lookup is by email — the code alone is not
+  // globally unique. Unknown email, an already-verified account, and a
+  // missing/expired/exhausted code all collapse into `code_expired`, so verify
+  // is no cleaner an enumeration oracle than register's 409.
+  async verifyEmail(input: VerifyEmailInput): Promise<VerifyEmailResult> {
+    const user = await this.userRepo.findByEmail(input.email);
+
+    if (
+      !user ||
+      user.emailVerified ||
+      !user.verificationCodeHash ||
+      user.verificationAttemptsRemaining == null ||
+      user.verificationAttemptsRemaining <= 0 ||
+      !user.verificationCodeExpiresAt ||
+      user.verificationCodeExpiresAt < new Date()
+    ) {
+      throw new AppError(400, 'code_expired');
+    }
+
+    const codeMatches = await bcrypt.compare(input.code, user.verificationCodeHash);
+    if (!codeMatches) {
+      // The last remaining attempt burns the code (no 5th submit is possible);
+      // earlier wrong attempts just decrement the counter.
+      if (user.verificationAttemptsRemaining <= 1) {
+        await this.userRepo.clearVerificationCode(user.id);
+        logger.info({ userId: user.id }, 'verification code burned after final wrong attempt');
+        throw new AppError(400, 'code_expired');
+      }
+      await this.userRepo.decrementVerificationAttempt(user.id);
+      throw new AppError(400, 'invalid_code');
+    }
 
     await this.userRepo.markVerified(user.id);
 
@@ -99,6 +131,36 @@ export class AuthService {
       user: { id: user.id, accountId: user.accountId, role: user.role },
       account: { id: account.id, status: account.status },
     };
+  }
+
+  // Re-issue a fresh code, resetting expiry and the attempt counter (ADR 0037).
+  // Always a no-op-but-success for an unknown or already-verified email so the
+  // endpoint never reveals account state (the route returns 200 regardless).
+  async resendVerification(input: ResendVerificationInput): Promise<void> {
+    const user = await this.userRepo.findByEmail(input.email);
+    if (!user || user.emailVerified) {
+      logger.info({ email: input.email }, 'verification resend for unknown/verified email — no-op');
+      return;
+    }
+
+    const { code, codeHash, expiresAt } = await this.generateVerificationCode();
+    await this.userRepo.setVerificationCode(user.id, {
+      codeHash,
+      expiresAt,
+      attemptsRemaining: VERIFICATION_MAX_ATTEMPTS,
+    });
+
+    await this.emailService.sendVerificationEmail(input.email, code);
+    logger.info({ userId: user.id }, 'verification code resent');
+  }
+
+  // A CSPRNG 6-digit code (zero-padded) plus its bcrypt hash and expiry. The
+  // plaintext is returned only to be emailed; only the hash is ever persisted.
+  private async generateVerificationCode(): Promise<{ code: string; codeHash: string; expiresAt: Date }> {
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
+    const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+    return { code, codeHash, expiresAt };
   }
 
   async login(input: LoginInput): Promise<VerifyEmailResult> {

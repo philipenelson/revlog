@@ -14,7 +14,6 @@ import type {
 
 // JWT signing requires a secret at module evaluation time
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
-process.env['APP_URL'] = 'http://localhost:3000';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
@@ -29,6 +28,11 @@ const mockAccount: DomainAccount = {
   updatedAt: fixedNow,
 };
 
+// The plaintext OTP the fixture's hash matches. Expiry is anchored to real
+// Date.now(), not fixedNow — the service (not the repo) now checks expiry, so a
+// fixedNow-based expiry would read as already-lapsed against the real clock.
+const CORRECT_CODE = '123456';
+
 const mockUser: DomainUser = {
   id: 'user-1',
   accountId: 'account-1',
@@ -37,8 +41,9 @@ const mockUser: DomainUser = {
   passwordHash: '$2b$12$placeholder',
   role: 'OWNER',
   emailVerified: false,
-  verificationToken: 'tok-abc',
-  verificationTokenExpiresAt: new Date(fixedNow.getTime() + 60_000),
+  verificationCodeHash: bcrypt.hashSync(CORRECT_CODE, BCRYPT_ROUNDS_FOR_FIXTURES),
+  verificationCodeExpiresAt: new Date(Date.now() + 10 * 60_000),
+  verificationAttemptsRemaining: 4,
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
@@ -51,8 +56,9 @@ const mockVerifiedUser: DomainUser = {
   email: 'verified@example.com',
   passwordHash: bcrypt.hashSync(CORRECT_PASSWORD, BCRYPT_ROUNDS_FOR_FIXTURES),
   emailVerified: true,
-  verificationToken: null,
-  verificationTokenExpiresAt: null,
+  verificationCodeHash: null,
+  verificationCodeExpiresAt: null,
+  verificationAttemptsRemaining: null,
 };
 
 const mockRefreshTokenRecord: DomainRefreshToken = {
@@ -68,8 +74,10 @@ function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserReposi
     findById: vi.fn().mockResolvedValue(null),
     findByAccountId: vi.fn().mockResolvedValue(null),
     findByEmail: vi.fn().mockResolvedValue(null),
-    findByVerificationToken: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue(mockUser),
+    setVerificationCode: vi.fn().mockResolvedValue(undefined),
+    decrementVerificationAttempt: vi.fn().mockResolvedValue(undefined),
+    clearVerificationCode: vi.fn().mockResolvedValue(undefined),
     createWithAccount: vi.fn().mockResolvedValue({ account: mockAccount, user: mockUser }),
     markVerified: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -157,15 +165,31 @@ describe('AuthService.register', () => {
     expect(userData.passwordHash).toMatch(/^\$2[ab]\$/); // bcrypt prefix
   });
 
-  it('sends a verification email to the registered address', async () => {
+  it('sends a verification email carrying a 6-digit code to the registered address', async () => {
     await service.register(validInput);
 
     expect(emailService.sendVerificationEmail).toHaveBeenCalledOnce();
     expect(emailService.sendVerificationEmail).toHaveBeenCalledWith(
       validInput.email,
-      expect.any(String),
-      'http://localhost:3000',
+      expect.stringMatching(/^\d{6}$/),
     );
+  });
+
+  it('stores a hashed code (not the plaintext), a 10-minute expiry, and 4 attempts', async () => {
+    await service.register(validInput);
+
+    const [, userData] = (userRepo.createWithAccount as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      { verificationCodeHash: string; verificationCodeExpiresAt: Date; verificationAttemptsRemaining: number },
+    ];
+    // The plaintext emailed code never lands in the DB — only its bcrypt hash.
+    const [, emailedCode] = (emailService.sendVerificationEmail as ReturnType<typeof vi.fn>).mock.calls[0] as [string, string];
+    expect(userData.verificationCodeHash).toMatch(/^\$2[ab]\$/);
+    expect(userData.verificationCodeHash).not.toBe(emailedCode);
+    expect(userData.verificationAttemptsRemaining).toBe(4);
+    const ttlMs = userData.verificationCodeExpiresAt.getTime() - Date.now();
+    expect(ttlMs).toBeGreaterThan(9 * 60_000);
+    expect(ttlMs).toBeLessThanOrEqual(10 * 60_000);
   });
 
   it('does not send email when account creation fails', async () => {
@@ -185,40 +209,86 @@ describe('AuthService.verifyEmail', () => {
   let accountRepo: IAccountRepository;
   let service: AuthService;
 
+  const validVerify = { email: mockUser.email, code: CORRECT_CODE };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    userRepo = makeFakeUserRepo({
-      findByVerificationToken: vi.fn().mockResolvedValue(mockUser),
-    });
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockUser) });
     refreshTokenRepo = makeFakeRefreshTokenRepo();
     accountRepo = makeFakeAccountRepo();
     service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
   });
 
-  it('throws 400 when the token is not found or expired', async () => {
-    userRepo = makeFakeUserRepo({ findByVerificationToken: vi.fn().mockResolvedValue(null) });
+  it('throws 400 code_expired for an unknown email (enumeration-safe)', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(null) });
     service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
 
-    await expect(service.verifyEmail('bad-token')).rejects.toMatchObject({
+    await expect(service.verifyEmail({ email: 'nobody@example.com', code: CORRECT_CODE })).rejects.toMatchObject({
       statusCode: 400,
-      message: 'Invalid or expired verification token',
+      message: 'code_expired',
     });
   });
 
-  it('marks the user email as verified', async () => {
-    await service.verifyEmail('tok-abc');
+  it('throws 400 code_expired when the account is already verified', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockVerifiedUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.verifyEmail({ email: mockVerifiedUser.email, code: CORRECT_CODE })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'code_expired',
+    });
+  });
+
+  it('throws 400 code_expired when the code has expired', async () => {
+    const expiredUser = { ...mockUser, verificationCodeExpiresAt: new Date(Date.now() - 1000) };
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(expiredUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.verifyEmail(validVerify)).rejects.toMatchObject({ statusCode: 400, message: 'code_expired' });
+  });
+
+  it('throws 400 invalid_code and decrements the counter on a wrong code with attempts remaining', async () => {
+    await expect(service.verifyEmail({ ...validVerify, code: '000000' })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'invalid_code',
+    });
+    expect(userRepo.decrementVerificationAttempt).toHaveBeenCalledWith(mockUser.id);
+    expect(userRepo.clearVerificationCode).not.toHaveBeenCalled();
+  });
+
+  it('burns the code and throws code_expired on the final (4th) wrong attempt', async () => {
+    const lastAttemptUser = { ...mockUser, verificationAttemptsRemaining: 1 };
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(lastAttemptUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, { sendVerificationEmail: vi.fn() } as unknown as IEmailService);
+
+    await expect(service.verifyEmail({ ...validVerify, code: '000000' })).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'code_expired',
+    });
+    expect(userRepo.clearVerificationCode).toHaveBeenCalledWith(mockUser.id);
+    expect(userRepo.decrementVerificationAttempt).not.toHaveBeenCalled();
+  });
+
+  it('does not mark verified or issue tokens on a wrong code', async () => {
+    await expect(service.verifyEmail({ ...validVerify, code: '000000' })).rejects.toBeInstanceOf(AppError);
+    expect(userRepo.markVerified).not.toHaveBeenCalled();
+    expect(refreshTokenRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('marks the user email as verified on the correct code', async () => {
+    await service.verifyEmail(validVerify);
     expect(userRepo.markVerified).toHaveBeenCalledWith(mockUser.id);
   });
 
   it('looks up and returns the account associated with the user', async () => {
-    const result = await service.verifyEmail('tok-abc');
+    const result = await service.verifyEmail(validVerify);
 
     expect(accountRepo.findById).toHaveBeenCalledWith(mockUser.accountId);
     expect(result.account).toEqual({ id: mockAccount.id, status: mockAccount.status });
   });
 
   it('stores the hashed refresh token, not the raw token value', async () => {
-    const result = await service.verifyEmail('tok-abc');
+    const result = await service.verifyEmail(validVerify);
 
     const [storedData] = (refreshTokenRepo.create as ReturnType<typeof vi.fn>).mock.calls[0] as [{ tokenHash: string; userId: string }];
     expect(storedData.tokenHash).not.toBe(result.refreshToken); // hash ≠ raw token
@@ -226,7 +296,7 @@ describe('AuthService.verifyEmail', () => {
   });
 
   it('returns a JWT access token, a raw 64-char hex refresh token, and user info', async () => {
-    const result = await service.verifyEmail('tok-abc');
+    const result = await service.verifyEmail(validVerify);
 
     expect(result.accessToken).toMatch(/^eyJ/); // JWT header
     expect(result.accessTokenExpiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // ISO 8601
@@ -240,11 +310,63 @@ describe('AuthService.verifyEmail', () => {
 
   it('the stored hash is the SHA-256 of the returned raw refresh token', async () => {
     const { createHash } = await import('crypto');
-    const result = await service.verifyEmail('tok-abc');
+    const result = await service.verifyEmail(validVerify);
 
     const [storedData] = (refreshTokenRepo.create as ReturnType<typeof vi.fn>).mock.calls[0] as [{ tokenHash: string }];
     const expectedHash = createHash('sha256').update(result.refreshToken).digest('hex');
     expect(storedData.tokenHash).toBe(expectedHash);
+  });
+});
+
+describe('AuthService.resendVerification', () => {
+  let userRepo: IUserRepository;
+  let refreshTokenRepo: IRefreshTokenRepository;
+  let accountRepo: IAccountRepository;
+  let emailService: IEmailService;
+  let service: AuthService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockUser) });
+    refreshTokenRepo = makeFakeRefreshTokenRepo();
+    accountRepo = makeFakeAccountRepo();
+    emailService = { sendVerificationEmail: vi.fn().mockResolvedValue(undefined) } as unknown as IEmailService;
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
+  });
+
+  it('issues a fresh 6-digit code, resets expiry and attempts, and re-sends the email for an unverified user', async () => {
+    await service.resendVerification({ email: mockUser.email });
+
+    expect(userRepo.setVerificationCode).toHaveBeenCalledOnce();
+    const [id, data] = (userRepo.setVerificationCode as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      { codeHash: string; expiresAt: Date; attemptsRemaining: number },
+    ];
+    expect(id).toBe(mockUser.id);
+    expect(data.codeHash).toMatch(/^\$2[ab]\$/);
+    expect(data.attemptsRemaining).toBe(4);
+    const ttlMs = data.expiresAt.getTime() - Date.now();
+    expect(ttlMs).toBeGreaterThan(9 * 60_000);
+    expect(ttlMs).toBeLessThanOrEqual(10 * 60_000);
+    expect(emailService.sendVerificationEmail).toHaveBeenCalledWith(mockUser.email, expect.stringMatching(/^\d{6}$/));
+  });
+
+  it('is a no-op for an unknown email — no code set, no email sent, still resolves', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(null) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
+
+    await expect(service.resendVerification({ email: 'nobody@example.com' })).resolves.toBeUndefined();
+    expect(userRepo.setVerificationCode).not.toHaveBeenCalled();
+    expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op for an already-verified email', async () => {
+    userRepo = makeFakeUserRepo({ findByEmail: vi.fn().mockResolvedValue(mockVerifiedUser) });
+    service = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailService);
+
+    await expect(service.resendVerification({ email: mockVerifiedUser.email })).resolves.toBeUndefined();
+    expect(userRepo.setVerificationCode).not.toHaveBeenCalled();
+    expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
   });
 });
 

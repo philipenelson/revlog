@@ -9,9 +9,13 @@ import type { AuthService } from '../services/auth.service';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
-const mockAuthService: Pick<AuthService, 'register' | 'verifyEmail' | 'login' | 'refresh' | 'logout'> = {
+const mockAuthService: Pick<
+  AuthService,
+  'register' | 'verifyEmail' | 'resendVerification' | 'login' | 'refresh' | 'logout'
+> = {
   register: vi.fn(),
   verifyEmail: vi.fn(),
+  resendVerification: vi.fn(),
   login: vi.fn(),
   refresh: vi.fn(),
   logout: vi.fn(),
@@ -116,13 +120,15 @@ describe('POST /auth/register', () => {
   });
 });
 
-describe('GET /auth/verify-email', () => {
+const validVerifyBody = { email: 'test@example.com', code: '123456' };
+
+describe('POST /auth/verify-email', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returns 200 when verification succeeds', async () => {
+  it('returns 200 and the session payload when verification succeeds', async () => {
     (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
 
-    const res = await supertest(buildApp()).get('/auth/verify-email?token=valid-token');
+    const res = await supertest(buildApp()).post('/auth/verify-email').send(validVerifyBody);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -133,18 +139,22 @@ describe('GET /auth/verify-email', () => {
     });
   });
 
-  it('calls authService.verifyEmail with the token from the query string', async () => {
+  it('calls authService.verifyEmail with the validated, sanitized body', async () => {
     (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
 
-    await supertest(buildApp()).get('/auth/verify-email?token=abc123');
+    await supertest(buildApp())
+      .post('/auth/verify-email')
+      .send({ email: '  Test@Example.COM  ', code: '123456' });
 
-    expect(mockAuthService.verifyEmail).toHaveBeenCalledWith('abc123');
+    expect(mockAuthService.verifyEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com', code: '123456' }),
+    );
   });
 
   it('sets an HTTP-only cookie named refreshToken', async () => {
     (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
 
-    const res = await supertest(buildApp()).get('/auth/verify-email?token=valid-token');
+    const res = await supertest(buildApp()).post('/auth/verify-email').send(validVerifyBody);
 
     const cookies = (res.headers['set-cookie'] ?? []) as string[];
     const refreshCookie = cookies.find(c => c.startsWith('refreshToken='));
@@ -156,7 +166,7 @@ describe('GET /auth/verify-email', () => {
   it('does not include refreshToken in the response body for web (no X-Client-Platform header)', async () => {
     (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
 
-    const res = await supertest(buildApp()).get('/auth/verify-email?token=valid-token');
+    const res = await supertest(buildApp()).post('/auth/verify-email').send(validVerifyBody);
 
     expect(res.body).not.toHaveProperty('refreshToken');
   });
@@ -165,44 +175,98 @@ describe('GET /auth/verify-email', () => {
     (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
 
     const res = await supertest(buildApp())
-      .get('/auth/verify-email?token=valid-token')
-      .set('X-Client-Platform', 'mobile');
+      .post('/auth/verify-email')
+      .set('X-Client-Platform', 'mobile')
+      .send(validVerifyBody);
 
     expect(res.body).toMatchObject({ refreshToken: verifyEmailResult.refreshToken });
   });
 
-  it('returns 400 and does not call service when token param is missing', async () => {
-    const res = await supertest(buildApp()).get('/auth/verify-email');
+  it('returns 400 and does not call service when the code is not 6 digits', async () => {
+    const res = await supertest(buildApp())
+      .post('/auth/verify-email')
+      .send({ email: 'test@example.com', code: '12ab' });
 
     expect(res.status).toBe(400);
     expect(mockAuthService.verifyEmail).not.toHaveBeenCalled();
   });
 
-  it('trims whitespace from the token before passing it to the service', async () => {
-    (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockResolvedValue(verifyEmailResult);
-
-    // %20 is a URL-encoded space — simulates a copy-pasted token with surrounding spaces
-    await supertest(buildApp()).get('/auth/verify-email?token=%20abc123%20');
-
-    expect(mockAuthService.verifyEmail).toHaveBeenCalledWith('abc123');
-  });
-
-  it('returns 400 when token is only whitespace', async () => {
-    const res = await supertest(buildApp()).get('/auth/verify-email?token=%20%20%20');
+  it('returns 400 and does not call service when the body is missing fields', async () => {
+    const res = await supertest(buildApp()).post('/auth/verify-email').send({ email: 'test@example.com' });
 
     expect(res.status).toBe(400);
     expect(mockAuthService.verifyEmail).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when service throws AppError 400', async () => {
-    (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new AppError(400, 'Invalid or expired verification token'),
+  it('returns 400 invalid_code when the service reports a wrong code', async () => {
+    (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockRejectedValue(new AppError(400, 'invalid_code'));
+
+    const res = await supertest(buildApp()).post('/auth/verify-email').send(validVerifyBody);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'invalid_code' });
+  });
+
+  it('returns 400 code_expired when the service reports an expired/burned code', async () => {
+    (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockRejectedValue(new AppError(400, 'code_expired'));
+
+    const res = await supertest(buildApp()).post('/auth/verify-email').send(validVerifyBody);
+
+    expect(res.status).toBe(400);
+    expect(res.body).toMatchObject({ error: 'code_expired' });
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockAuthService.verifyEmail as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp()).post('/auth/verify-email').send(validVerifyBody);
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('POST /auth/verify-email/resend', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 200 for any email (enumeration-safe) and calls the service', async () => {
+    (mockAuthService.resendVerification as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const res = await supertest(buildApp())
+      .post('/auth/verify-email/resend')
+      .send({ email: 'test@example.com' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ message: expect.any(String) });
+    expect(mockAuthService.resendVerification).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com' }),
     );
+  });
 
-    const res = await supertest(buildApp()).get('/auth/verify-email?token=bad');
+  it('sanitizes the email before passing it to the service', async () => {
+    (mockAuthService.resendVerification as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    await supertest(buildApp()).post('/auth/verify-email/resend').send({ email: '  Test@Example.COM  ' });
+
+    expect(mockAuthService.resendVerification).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com' }),
+    );
+  });
+
+  it('returns 400 and does not call service when the email is invalid', async () => {
+    const res = await supertest(buildApp()).post('/auth/verify-email/resend').send({ email: 'not-an-email' });
 
     expect(res.status).toBe(400);
-    expect(res.body).toMatchObject({ error: 'Invalid or expired verification token' });
+    expect(mockAuthService.resendVerification).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 on unexpected service errors', async () => {
+    (mockAuthService.resendVerification as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB exploded'));
+
+    const res = await supertest(buildApp())
+      .post('/auth/verify-email/resend')
+      .send({ email: 'test@example.com' });
+
+    expect(res.status).toBe(500);
   });
 });
 

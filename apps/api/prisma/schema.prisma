@@ -46,8 +46,12 @@ model User {
   passwordHash               String
   role                       Role           @default(OWNER)
   emailVerified              Boolean        @default(false)
-  verificationToken          String?
-  verificationTokenExpiresAt DateTime?
+  // Email verification via 6-digit OTP (ADR 0037): hashed code, short expiry,
+  // decrementing attempt counter. Set together at register/resend, cleared on
+  // success or attempt-burn.
+  verificationCodeHash          String?
+  verificationCodeExpiresAt     DateTime?
+  verificationAttemptsRemaining Int?
   createdAt                  DateTime       @default(now())
   updatedAt                  DateTime       @updatedAt
   refreshTokens              RefreshToken[]

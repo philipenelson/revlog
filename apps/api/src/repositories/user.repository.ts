@@ -4,6 +4,7 @@ import type {
   DomainUser,
   CreateUserData,
   NewUserRegistrationData,
+  VerificationCodeData,
   DomainAccount,
 } from '@maintenance-log/domain';
 import type { AccountType } from '@maintenance-log/domain';
@@ -23,17 +24,37 @@ export class PrismaUserRepository implements IUserRepository {
     return this.db.user.findUnique({ where: { email } });
   }
 
-  async findByVerificationToken(token: string, now: Date): Promise<DomainUser | null> {
-    return this.db.user.findFirst({
-      where: {
-        verificationToken: token,
-        verificationTokenExpiresAt: { gt: now },
+  async create(data: CreateUserData): Promise<DomainUser> {
+    return this.db.user.create({ data });
+  }
+
+  async setVerificationCode(id: string, data: VerificationCodeData): Promise<void> {
+    await this.db.user.update({
+      where: { id },
+      data: {
+        verificationCodeHash: data.codeHash,
+        verificationCodeExpiresAt: data.expiresAt,
+        verificationAttemptsRemaining: data.attemptsRemaining,
       },
     });
   }
 
-  async create(data: CreateUserData): Promise<DomainUser> {
-    return this.db.user.create({ data });
+  async decrementVerificationAttempt(id: string): Promise<void> {
+    await this.db.user.update({
+      where: { id },
+      data: { verificationAttemptsRemaining: { decrement: 1 } },
+    });
+  }
+
+  async clearVerificationCode(id: string): Promise<void> {
+    await this.db.user.update({
+      where: { id },
+      data: {
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+        verificationAttemptsRemaining: null,
+      },
+    });
   }
 
   async markVerified(id: string): Promise<void> {
@@ -41,8 +62,9 @@ export class PrismaUserRepository implements IUserRepository {
       where: { id },
       data: {
         emailVerified: true,
-        verificationToken: null,
-        verificationTokenExpiresAt: null,
+        verificationCodeHash: null,
+        verificationCodeExpiresAt: null,
+        verificationAttemptsRemaining: null,
       },
     });
   }

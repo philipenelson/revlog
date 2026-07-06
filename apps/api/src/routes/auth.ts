@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { registerSchema, loginSchema } from '@maintenance-log/domain';
+import { registerSchema, loginSchema, verifyEmailSchema, resendVerificationSchema } from '@maintenance-log/domain';
 import type { AuthService } from '../services/auth.service';
 import { authenticate } from '../middleware/auth';
 
@@ -67,16 +67,36 @@ export function createAuthRouter(authService: AuthService): ExpressRouter {
     }
   });
 
-  router.get('/verify-email', async (req: Request, res: Response, next: NextFunction) => {
-    const token = typeof req.query['token'] === 'string' ? req.query['token'].trim() : '';
-    if (!token) {
-      res.status(400).json({ error: 'Invalid or expired verification token' });
+  // OTP verification (ADR 0037): body { email, code }, replaces the old
+  // GET ?token= link. On success it auto-signs the User in, exactly as the
+  // link path did — same cookie/body token handling as /login.
+  router.post('/verify-email', async (req: Request, res: Response, next: NextFunction) => {
+    const parsed = verifyEmailSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
       return;
     }
     try {
-      const result = await authService.verifyEmail(token);
+      const result = await authService.verifyEmail(parsed.data);
       res.cookie(REFRESH_COOKIE, result.refreshToken, REFRESH_COOKIE_OPTIONS);
       res.status(200).json(sessionResponseBody(result, req));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Re-issue a verification code. Always 200 regardless of whether the email is
+  // registered or already verified — the endpoint must not disclose account
+  // state (enumeration-safe, ADR 0037). The service is a no-op in those cases.
+  router.post('/verify-email/resend', async (req: Request, res: Response, next: NextFunction) => {
+    const parsed = resendVerificationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid input', details: parsed.error.issues });
+      return;
+    }
+    try {
+      await authService.resendVerification(parsed.data);
+      res.status(200).json({ message: 'If that account needs verifying, a new code is on its way.' });
     } catch (err) {
       next(err);
     }

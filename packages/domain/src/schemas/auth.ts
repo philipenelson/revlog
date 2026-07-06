@@ -31,3 +31,21 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+// Email verification via 6-digit OTP (ADR 0037). Lookup is by email — the code
+// alone is not globally unique. `code` is trimmed and must be exactly 6 digits.
+export const verifyEmailSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Enter the 6-digit code from your email'),
+});
+
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+
+export const resendVerificationSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+});
+
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;

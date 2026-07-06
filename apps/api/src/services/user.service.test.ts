@@ -13,8 +13,9 @@ const mockUser: DomainUser = {
   passwordHash: 'hashed-secret',
   role: 'OWNER',
   emailVerified: true,
-  verificationToken: null,
-  verificationTokenExpiresAt: null,
+  verificationCodeHash: null,
+  verificationCodeExpiresAt: null,
+  verificationAttemptsRemaining: null,
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
@@ -24,8 +25,10 @@ function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserReposi
     findById: vi.fn().mockResolvedValue(mockUser),
     findByAccountId: vi.fn().mockResolvedValue(mockUser),
     findByEmail: vi.fn().mockResolvedValue(mockUser),
-    findByVerificationToken: vi.fn().mockResolvedValue(mockUser),
     create: vi.fn().mockResolvedValue(mockUser),
+    setVerificationCode: vi.fn().mockResolvedValue(undefined),
+    decrementVerificationAttempt: vi.fn().mockResolvedValue(undefined),
+    clearVerificationCode: vi.fn().mockResolvedValue(undefined),
     markVerified: vi.fn().mockResolvedValue(undefined),
     createWithAccount: vi.fn(),
     ...overrides,
@@ -58,7 +61,7 @@ describe('UserService.getCurrentUser', () => {
     const profile = await service.getCurrentUser('user-1');
 
     expect(profile).not.toHaveProperty('passwordHash');
-    expect(profile).not.toHaveProperty('verificationToken');
+    expect(profile).not.toHaveProperty('verificationCodeHash');
     expect(Object.keys(profile).sort()).toEqual(['email', 'fullName', 'id', 'role']);
   });
 
