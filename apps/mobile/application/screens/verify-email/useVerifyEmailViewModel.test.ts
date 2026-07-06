@@ -41,6 +41,7 @@ function auth(): ReturnType<typeof useAuth> {
     isOffline: false,
     hasStoredCredentials: false,
     setSession,
+    resolveOnboarding: jest.fn(),
     clearSession: jest.fn(),
   };
 }

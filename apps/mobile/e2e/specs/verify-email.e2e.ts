@@ -35,8 +35,8 @@ describe('Verify-email screen', () => {
     await $(byTestId('verify-email-submit')).click();
 
     // A brand-new account is in ONBOARDING, so verification routes onward to
-    // the onboarding wizard (still a placeholder screen until that feature).
-    const onboarding = await $(byTestId('placeholder-onboarding'));
+    // the onboarding wizard.
+    const onboarding = await $(byTestId('onboarding-welcome-title'));
     await onboarding.waitForDisplayed({ timeout: 15000 });
     await expect(onboarding).toBeDisplayed();
   });

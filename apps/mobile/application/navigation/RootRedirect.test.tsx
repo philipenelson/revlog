@@ -21,6 +21,7 @@ function auth(overrides: Partial<ReturnType<typeof useAuth>>): ReturnType<typeof
     isOffline: false,
     hasStoredCredentials: false,
     setSession: jest.fn(),
+    resolveOnboarding: jest.fn(),
     clearSession: jest.fn(),
     ...overrides,
   };

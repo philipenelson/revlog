@@ -52,6 +52,7 @@ async function setup() {
     isOffline: false,
     hasStoredCredentials: false,
     setSession,
+    resolveOnboarding: jest.fn(),
     clearSession: jest.fn(),
   });
   const { result } = await renderHook(() => useSignIn());

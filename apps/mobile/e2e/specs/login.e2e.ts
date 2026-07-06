@@ -59,8 +59,8 @@ describe('Login screen', () => {
     // A freshly registered + verified account has no vehicles yet, so its
     // AccountStatus is ONBOARDING -- RootRedirect sends it to /onboarding,
     // not /garage (see application/navigation/routeForAccountStatus.ts).
-    const onboardingPlaceholder = await $(byTestId('placeholder-onboarding'));
-    await onboardingPlaceholder.waitForDisplayed({ timeout: 15000 });
-    await expect(onboardingPlaceholder).toBeDisplayed();
+    const onboardingTitle = await $(byTestId('onboarding-welcome-title'));
+    await onboardingTitle.waitForDisplayed({ timeout: 15000 });
+    await expect(onboardingTitle).toBeDisplayed();
   });
 });

@@ -84,6 +84,7 @@ describe('useSettingsViewModel', () => {
       isOffline: false,
       hasStoredCredentials: false,
       setSession: jest.fn(),
+      resolveOnboarding: jest.fn(),
       clearSession,
     });
     jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined as unknown as boolean);

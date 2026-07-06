@@ -1,0 +1,152 @@
+import { useState } from 'react';
+import { router } from 'expo-router';
+import { createVehicleSchema } from '@maintenance-log/domain';
+import { ApiError, skipOnboarding } from '@maintenance-log/api-client';
+import { useDatabase } from '@/application/providers/DatabaseProvider';
+import { useAuth } from '@/application/providers/AuthProvider';
+import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
+import { logger } from '@/infrastructure/logging/logger';
+
+export type OnboardingStep = 1 | 2 | 3;
+
+// Plain strings, validated on submit via createVehicleSchema — the same shape
+// and reasoning as the Add Vehicle form (see useAddVehicleViewModel).
+export interface VehicleFormFields {
+  nickname: string;
+  make: string;
+  model: string;
+  year: string;
+  mileage: string;
+}
+
+export type VehicleFormErrors = Partial<Record<keyof VehicleFormFields, string>>;
+
+const EMPTY_FIELDS: VehicleFormFields = { nickname: '', make: '', model: '', year: '', mileage: '' };
+
+const VEHICLE_SAVE_ERROR = "Couldn't save your vehicle. Try again in a moment.";
+const SKIP_ERROR = "Couldn't skip right now. Try again in a moment.";
+const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
+
+export interface OnboardingViewModel {
+  step: OnboardingStep;
+  goToVehicleStep: () => void;
+  goBackToWelcome: () => void;
+  fields: VehicleFormFields;
+  errors: VehicleFormErrors;
+  updateField: (field: keyof VehicleFormFields, value: string) => void;
+  /** The vehicle as saved — drives the Step 3 spec plate. */
+  savedVehicle: VehicleFormFields | null;
+  readyHeadline: string;
+  isSubmitting: boolean;
+  submitError: string | null;
+  onContinue: () => void;
+  isSkipping: boolean;
+  skipError: string | null;
+  onSkip: () => void;
+  onGoToGarage: () => void;
+}
+
+export function useOnboardingViewModel(): OnboardingViewModel {
+  const { vehicleRepository } = useDatabase();
+  const { resolveOnboarding } = useAuth();
+  const [step, setStep] = useState<OnboardingStep>(1);
+  const [fields, setFields] = useState<VehicleFormFields>(EMPTY_FIELDS);
+  const [errors, setErrors] = useState<VehicleFormErrors>({});
+  const [savedVehicle, setSavedVehicle] = useState<VehicleFormFields | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [skipError, setSkipError] = useState<string | null>(null);
+
+  function updateField(field: keyof VehicleFormFields, value: string): void {
+    setFields((f) => ({ ...f, [field]: value }));
+    setErrors((errs) => (errs[field] ? { ...errs, [field]: undefined } : errs));
+  }
+
+  // Complete onboarding by adding the first Vehicle. Offline-first: the write
+  // goes through the repository (SQLite + outbox), never a direct POST — so the
+  // Garage can read it offline afterward. The Account is flipped to ACTIVE
+  // optimistically; the server confirms when the outbox flushes POST /vehicles.
+  async function handleContinue(): Promise<void> {
+    if (!vehicleRepository) return;
+
+    const result = createVehicleSchema.safeParse({
+      nickname: fields.nickname,
+      make: fields.make,
+      model: fields.model,
+      year: fields.year,
+      // Defensive, matches Add Vehicle: an Owner may type "12,500".
+      mileage: fields.mileage.replace(/,/g, ''),
+    });
+
+    if (!result.success) {
+      const nextErrors: VehicleFormErrors = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === 'string' && !(field in nextErrors)) {
+          nextErrors[field as keyof VehicleFormFields] = issue.message;
+        }
+      }
+      setErrors(nextErrors);
+      return;
+    }
+
+    setErrors({});
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      await vehicleRepository.create(result.data);
+      resolveOnboarding();
+      setSavedVehicle({ ...fields });
+      setStep(3);
+    } catch {
+      setSubmitError(VEHICLE_SAVE_ERROR);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  // Skip is an online-only op never persisted locally — call the service
+  // directly with tokenHttpClient (mobile CLAUDE.md; ADR 0036). The server
+  // transitions the Account to ACTIVE (ADR 0015); flip in memory and route out.
+  async function handleSkip(): Promise<void> {
+    setSkipError(null);
+    setIsSkipping(true);
+    try {
+      await skipOnboarding(tokenHttpClient);
+      resolveOnboarding();
+      router.replace('/garage');
+    } catch (err) {
+      if (err instanceof ApiError && err.status < 500) {
+        setSkipError(SKIP_ERROR);
+      } else {
+        logger.error('skip onboarding failed', { err });
+        setSkipError(SERVICE_ERROR);
+      }
+    } finally {
+      setIsSkipping(false);
+    }
+  }
+
+  const readyHeadline = savedVehicle
+    ? `${savedVehicle.nickname.trim() || `${savedVehicle.make.trim()} ${savedVehicle.model.trim()}`.trim()} is in your garage`
+    : '';
+
+  return {
+    step,
+    goToVehicleStep: () => setStep(2),
+    goBackToWelcome: () => setStep(1),
+    fields,
+    errors,
+    updateField,
+    savedVehicle,
+    readyHeadline,
+    isSubmitting,
+    submitError,
+    onContinue: () => void handleContinue(),
+    isSkipping,
+    skipError,
+    onSkip: () => void handleSkip(),
+    onGoToGarage: () => router.replace('/garage'),
+  };
+}

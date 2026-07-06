@@ -20,6 +20,9 @@ interface AuthContextValue {
   // returning Owner straight to the login screen instead of Welcome.
   hasStoredCredentials: boolean;
   setSession: (session: Session) => void;
+  // Flip the current Account out of ONBOARDING after the wizard resolves
+  // (completed or skipped). Optimistic — the server resolves it independently.
+  resolveOnboarding: () => void;
   clearSession: () => void;
 }
 
@@ -72,6 +75,27 @@ export function AuthProvider({ children }: PropsWithChildren) {
   function setSession(newSession: Session): void {
     persistSession(newSession);
     setSessionState(newSession);
+  }
+
+  // The wizard resolves onboarding by completing (first vehicle written to the
+  // outbox) or skipping (POST /onboarding/skip). Either way the server moves the
+  // Account to ACTIVE — on complete, when the outbox flushes POST /vehicles
+  // (ADR 0015); on skip, immediately. This optimistic in-memory flip keeps the
+  // Owner from being routed straight back into onboarding before that lands, and
+  // the cached credential (offline/biometric login carve-out, ADR 0036) is
+  // updated so a later cold-start or offline login agrees.
+  function resolveOnboarding(): void {
+    setSessionState((prev) =>
+      prev && prev.account.status === 'ONBOARDING'
+        ? { ...prev, account: { ...prev.account, status: 'ACTIVE' } }
+        : prev,
+    );
+    void (async () => {
+      const stored = await credentialStore.get();
+      if (stored && stored.accountStatus !== 'ACTIVE') {
+        await credentialStore.save({ ...stored, accountStatus: 'ACTIVE' });
+      }
+    })();
   }
 
   function clearSession(): void {
@@ -128,6 +152,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     isOffline: session != null && isOfflineSession(session),
     hasStoredCredentials,
     setSession,
+    resolveOnboarding,
     clearSession,
   };
 
