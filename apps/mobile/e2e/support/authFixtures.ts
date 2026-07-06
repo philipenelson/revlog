@@ -22,6 +22,10 @@ interface MailpitListResponse {
   messages: MailpitMessageSummary[];
 }
 
+interface MailpitMessageDetail {
+  Text: string;
+}
+
 export function uniqueTestUser(prefix: string): TestUser {
   const unique = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   return {
@@ -47,7 +51,9 @@ export async function registerViaApi(user: TestUser): Promise<void> {
   }
 }
 
-async function findVerificationToken(email: string, attempts = 15): Promise<string> {
+// Reads the 6-digit OTP from the verification email in Mailpit (ADR 0037 —
+// replaced the old link token). The email body's only 6-digit run is the code.
+export async function findVerificationCode(email: string, attempts = 15): Promise<string> {
   for (let i = 0; i < attempts; i++) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -55,16 +61,22 @@ async function findVerificationToken(email: string, attempts = 15): Promise<stri
     const match = list.messages.find((m) => m.To.some((t) => t.Address === email));
     if (!match) continue;
 
-    const body = await fetch(`${MAILPIT_URL}/api/v1/message/${match.ID}`).then((r) => r.text());
-    const tokenMatch = body.match(/token=([a-f0-9-]{36})/);
-    if (tokenMatch) return tokenMatch[1];
+    const detail = (await fetch(`${MAILPIT_URL}/api/v1/message/${match.ID}`).then((r) =>
+      r.json(),
+    )) as MailpitMessageDetail;
+    const codeMatch = detail.Text.match(/\b(\d{6})\b/);
+    if (codeMatch) return codeMatch[1];
   }
-  throw new Error(`Verification token for ${email} not found in Mailpit after ${attempts}s`);
+  throw new Error(`Verification code for ${email} not found in Mailpit after ${attempts}s`);
 }
 
 export async function verifyEmailViaApi(email: string): Promise<void> {
-  const token = await findVerificationToken(email);
-  const res = await fetch(`${API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`);
+  const code = await findVerificationCode(email);
+  const res = await fetch(`${API_URL}/auth/verify-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  });
   if (!res.ok) {
     throw new Error(`verifyEmailViaApi(${email}) failed: ${res.status} ${await res.text()}`);
   }

@@ -42,9 +42,9 @@ describe('Register screen', () => {
     await fillRegisterForm(user, user.password);
     await $(byTestId('register-submit-btn')).click();
 
-    const verifyEmailPlaceholder = await $(byTestId('placeholder-verify-email'));
-    await verifyEmailPlaceholder.waitForDisplayed({ timeout: 15000 });
-    await expect(verifyEmailPlaceholder).toBeDisplayed();
+    const verifyEmailTitle = await $(byTestId('verify-email-title'));
+    await verifyEmailTitle.waitForDisplayed({ timeout: 15000 });
+    await expect(verifyEmailTitle).toBeDisplayed();
   });
 
   it('shows a validation error when passwords do not match', async () => {
@@ -63,7 +63,7 @@ describe('Register screen', () => {
 
     await fillRegisterForm(user, user.password);
     await $(byTestId('register-submit-btn')).click();
-    await $(byTestId('placeholder-verify-email')).waitForDisplayed({ timeout: 15000 });
+    await $(byTestId('verify-email-title')).waitForDisplayed({ timeout: 15000 });
 
     await restartApp();
     await goToRegister();
