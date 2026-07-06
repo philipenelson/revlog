@@ -52,6 +52,13 @@ model User {
   verificationCodeHash          String?
   verificationCodeExpiresAt     DateTime?
   verificationAttemptsRemaining Int?
+  // Password reset via 6-digit OTP (ADR 0038): same mechanism as verification,
+  // but its own columns — a reset code and a verification code can be live at
+  // once, so they must not share storage. Set on forgot-password, cleared on a
+  // successful reset or attempt-burn.
+  passwordResetCodeHash          String?
+  passwordResetCodeExpiresAt     DateTime?
+  passwordResetAttemptsRemaining Int?
   createdAt                  DateTime       @default(now())
   updatedAt                  DateTime       @updatedAt
   refreshTokens              RefreshToken[]

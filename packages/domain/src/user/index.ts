@@ -14,6 +14,11 @@ export interface DomainUser {
   verificationCodeHash: string | null;
   verificationCodeExpiresAt: Date | null;
   verificationAttemptsRemaining: number | null;
+  // Password reset OTP (ADR 0038): same shape as the verification triplet, but
+  // independent — a reset code and a verification code can be live at once.
+  passwordResetCodeHash: string | null;
+  passwordResetCodeExpiresAt: Date | null;
+  passwordResetAttemptsRemaining: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +43,15 @@ export interface VerificationCodeData {
   attemptsRemaining: number;
 }
 
+// The password-reset OTP fields, written together on forgot-password / re-request
+// (ADR 0038). Same shape as VerificationCodeData but a distinct type — the two
+// codes are independent and must not be interchanged at call sites.
+export interface PasswordResetCodeData {
+  codeHash: string;
+  expiresAt: Date;
+  attemptsRemaining: number;
+}
+
 export interface IUserRepository {
   findById(id: string): Promise<DomainUser | null>;
   findByAccountId(accountId: string): Promise<DomainUser | null>;
@@ -51,6 +65,15 @@ export interface IUserRepository {
   clearVerificationCode(id: string): Promise<void>;
   // Marks the User verified and clears all three OTP fields.
   markVerified(id: string): Promise<void>;
+  // Sets a fresh password-reset code + expiry + attempt count (forgot-password, ADR 0038).
+  setPasswordResetCode(id: string, data: PasswordResetCodeData): Promise<void>;
+  // Atomically decrements the reset attempt counter by one (wrong-but-attempts-remain).
+  decrementPasswordResetAttempt(id: string): Promise<void>;
+  // Clears all three password-reset fields (attempt-burn) so no further submit can match.
+  clearPasswordResetCode(id: string): Promise<void>;
+  // Sets a new passwordHash, marks the User verified (a valid emailed OTP proves
+  // inbox control — ADR 0038 §6), and clears all three reset fields, atomically.
+  resetPassword(id: string, passwordHash: string): Promise<void>;
   // Atomically creates a new Account and a linked User in a single transaction.
   // Crosses entity boundary by design — registration is inherently atomic.
   createWithAccount(accountType: AccountType, userData: NewUserRegistrationData): Promise<{ account: DomainAccount; user: DomainUser }>;

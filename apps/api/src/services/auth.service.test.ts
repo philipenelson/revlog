@@ -44,6 +44,9 @@ const mockUser: DomainUser = {
   verificationCodeHash: bcrypt.hashSync(CORRECT_CODE, BCRYPT_ROUNDS_FOR_FIXTURES),
   verificationCodeExpiresAt: new Date(Date.now() + 10 * 60_000),
   verificationAttemptsRemaining: 4,
+  passwordResetCodeHash: null,
+  passwordResetCodeExpiresAt: null,
+  passwordResetAttemptsRemaining: null,
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
@@ -80,6 +83,10 @@ function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserReposi
     clearVerificationCode: vi.fn().mockResolvedValue(undefined),
     createWithAccount: vi.fn().mockResolvedValue({ account: mockAccount, user: mockUser }),
     markVerified: vi.fn().mockResolvedValue(undefined),
+    setPasswordResetCode: vi.fn().mockResolvedValue(undefined),
+    decrementPasswordResetAttempt: vi.fn().mockResolvedValue(undefined),
+    clearPasswordResetCode: vi.fn().mockResolvedValue(undefined),
+    resetPassword: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

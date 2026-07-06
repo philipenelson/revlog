@@ -26,6 +26,9 @@ const mockSenderUser: DomainUser = {
   verificationCodeHash: null,
   verificationCodeExpiresAt: null,
   verificationAttemptsRemaining: null,
+  passwordResetCodeHash: null,
+  passwordResetCodeExpiresAt: null,
+  passwordResetAttemptsRemaining: null,
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
@@ -41,6 +44,9 @@ const mockRecipientUser: DomainUser = {
   verificationCodeHash: null,
   verificationCodeExpiresAt: null,
   verificationAttemptsRemaining: null,
+  passwordResetCodeHash: null,
+  passwordResetCodeExpiresAt: null,
+  passwordResetAttemptsRemaining: null,
   createdAt: fixedNow,
   updatedAt: fixedNow,
 };
@@ -124,6 +130,10 @@ function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserReposi
     decrementVerificationAttempt: vi.fn(),
     clearVerificationCode: vi.fn(),
     markVerified: vi.fn(),
+    setPasswordResetCode: vi.fn(),
+    decrementPasswordResetAttempt: vi.fn(),
+    clearPasswordResetCode: vi.fn(),
+    resetPassword: vi.fn(),
     createWithAccount: vi.fn(),
     ...overrides,
   };

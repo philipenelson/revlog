@@ -5,6 +5,7 @@ import type {
   CreateUserData,
   NewUserRegistrationData,
   VerificationCodeData,
+  PasswordResetCodeData,
   DomainAccount,
 } from '@maintenance-log/domain';
 import type { AccountType } from '@maintenance-log/domain';
@@ -65,6 +66,49 @@ export class PrismaUserRepository implements IUserRepository {
         verificationCodeHash: null,
         verificationCodeExpiresAt: null,
         verificationAttemptsRemaining: null,
+      },
+    });
+  }
+
+  async setPasswordResetCode(id: string, data: PasswordResetCodeData): Promise<void> {
+    await this.db.user.update({
+      where: { id },
+      data: {
+        passwordResetCodeHash: data.codeHash,
+        passwordResetCodeExpiresAt: data.expiresAt,
+        passwordResetAttemptsRemaining: data.attemptsRemaining,
+      },
+    });
+  }
+
+  async decrementPasswordResetAttempt(id: string): Promise<void> {
+    await this.db.user.update({
+      where: { id },
+      data: { passwordResetAttemptsRemaining: { decrement: 1 } },
+    });
+  }
+
+  async clearPasswordResetCode(id: string): Promise<void> {
+    await this.db.user.update({
+      where: { id },
+      data: {
+        passwordResetCodeHash: null,
+        passwordResetCodeExpiresAt: null,
+        passwordResetAttemptsRemaining: null,
+      },
+    });
+  }
+
+  async resetPassword(id: string, passwordHash: string): Promise<void> {
+    await this.db.user.update({
+      where: { id },
+      data: {
+        passwordHash,
+        // A valid emailed OTP proves inbox control, so a reset also verifies (ADR 0038 §6).
+        emailVerified: true,
+        passwordResetCodeHash: null,
+        passwordResetCodeExpiresAt: null,
+        passwordResetAttemptsRemaining: null,
       },
     });
   }
