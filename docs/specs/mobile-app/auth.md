@@ -80,6 +80,16 @@ An Appium E2E covers the happy path (register → code → routed onward) and th
 5. Owner taps the reset link in the email; it opens in the browser. The browser-based reset flow (web app) completes the password change.
 6. Owner returns to the mobile app login screen and logs in with the new password.
 
+**Amendment (2026-07-06, in-app OTP reset — [ADR 0038](../../adr/0038-password-reset-otp.md)).** The link flow above (steps 2–6) is **superseded before implementation** — it was never built. Reset is now a **6-digit code entered in the app**, mirroring email verification (ADR 0037): no reset link, no browser bounce, no return trip. The full flow, endpoints, and use cases (UC-AUTH-FP-1..3, shared web + mobile) live in [`../auth/forgot-password.md`](../auth/forgot-password.md). Mobile specifics:
+
+1. `[Forgot password?]` pushes `/(auth)/forgot-password` (a real screen now, not a placeholder).
+2. The Owner enters their email and taps **Send reset code**. The app calls `POST /auth/forgot-password` via `tokenHttpClient` (online-only op, never persisted locally — like login/register/verify-email). The endpoint always 200s (enumeration-safe); the app pushes `/(auth)/reset-password` carrying the `email` and shows "if an account exists, a code is on its way" copy.
+3. The email contains a 6-digit code (10-minute expiry). On the reset screen the Owner types the code and a new password (confirmed) and taps **Reset password**. The app calls `POST /auth/reset-password`.
+4. On **200** the server has set the password, marked the account verified, revoked all prior sessions, and returned a fresh session — the app stores it via `AuthProvider.setSession` and routes by account status (`routeForAccountStatus`). **`400 invalid_code`** → inline "that code isn't right — try again" (attempt consumed). **`400 code_expired`** → inline "that code has expired — request a new one".
+5. **Resend** re-calls `POST /auth/forgot-password` with the same email; always succeeds and re-arms the field.
+
+An Appium E2E covers the happy path (email → code + new password → routed onward) and the `invalid_code` / `code_expired` error states.
+
 ---
 
 ### UC-MOB-AUTH-5 — Silent token refresh on foreground
@@ -137,7 +147,7 @@ This does not affect backgrounding without a kill (home button, app switcher) �
 - [ ] Login shows error for incorrect credentials
 - [ ] Login shows error for unverified account
 - [ ] Register navigates to "Check your email" screen on success
-- [ ] Forgot password screen sends reset email and shows confirmation copy regardless of whether the email exists
+- [ ] Forgot password: request screen sends a reset code and shows enumeration-safe confirmation copy regardless of whether the email exists; reset screen accepts the code + a new password (respecting the registration password rules), signs the Owner in on success, and renders `invalid_code` / `code_expired` errors (in-app OTP, ADR 0038 — see [`../auth/forgot-password.md`](../auth/forgot-password.md))
 - [ ] Silent refresh fires on app foreground when access token is within 60 seconds of expiry
 - [ ] Silent refresh failure navigates to login and clears secure store
 - [ ] Logout calls `POST /auth/logout`; on success it clears secure store and navigates to login; on a network failure it keeps the session and shows an "online required" error
@@ -150,7 +160,7 @@ This does not affect backgrounding without a kill (home button, app switcher) �
 | Decision | Choice | Reason |
 |---|---|---|
 | Token storage | expo-secure-store | OS Keychain/Keystore — hardware-backed, inaccessible to other apps; see ADR 0025 |
-| Forgot password reset form | Browser-based | Mobile does not handle reset URL in V1; deep linking is V2 |
+| Forgot password reset form | ~~Browser-based~~ → **in-app 6-digit OTP** (ADR 0038) | Superseded before implementation. Reset completes entirely in-app (request-code + reset screens), same OTP idiom as email verification (ADR 0037) — no reset link, no browser bounce, no deep-linking dependency |
 | Foreground refresh trigger | AppState `active` event | Access tokens can expire while app is suspended; pre-request check alone is insufficient |
 | Logout clears local DB? | No — data remains | Re-populating on next login is slower; local data is per-account and encrypted |
 | Session persistence across app restarts | None — `AuthProvider` clears `expo-secure-store` on every cold start | Simpler and more secure default; no reliable "about to be killed" hook exists on either platform, so cold start is the only implementable clear point (see UC-MOB-AUTH-7). An opt-in "remember me" that would restore a session is deferred to V2 |
@@ -160,7 +170,7 @@ This does not affect backgrounding without a kill (home button, app switcher) �
 ## Out of scope
 
 - Deep linking for email verification → opens browser in V1; V2 routes directly into app
-- Deep linking for password reset → opens browser in V1; V2 routes directly into app
+- ~~Deep linking for password reset → opens browser in V1; V2 routes directly into app~~ — no longer applicable: reset is in-app OTP (ADR 0038), so there is no reset URL to deep-link
 - OAuth sign-in → V2
 - "Remember me" persistent session across app restarts → V2. V1's default is the opposite of "remember" — every cold start clears the session (UC-MOB-AUTH-7); V2 would add an opt-in toggle that restores it
 

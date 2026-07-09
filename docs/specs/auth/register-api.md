@@ -171,7 +171,7 @@ The `/verify-email` screen shows an error state with a "Resend verification emai
 ## Out of scope
 
 - ~~Resend verification email endpoint~~ — now in scope, see the Update below
-- Forgot password flow (see [`forgot-password.md`](./forgot-password.md) when created)
+- Forgot password flow (see [`forgot-password.md`](./forgot-password.md), ADR 0038)
 - OAuth registration (V2)
 - Rate limiting on registration endpoint (V2)
 

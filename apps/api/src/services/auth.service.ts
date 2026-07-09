@@ -5,6 +5,8 @@ import type {
   LoginInput,
   VerifyEmailInput,
   ResendVerificationInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
   IUserRepository,
   IRefreshTokenRepository,
   IAccountRepository,
@@ -18,6 +20,10 @@ const BCRYPT_ROUNDS = 12;
 // Email verification OTP parameters (ADR 0037).
 const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 const VERIFICATION_MAX_ATTEMPTS = 4;
+// Password reset OTP parameters (ADR 0038). Same values as verification today,
+// but named independently so the two flows can diverge without entangling.
+const PASSWORD_RESET_CODE_TTL_MS = 10 * 60 * 1000;
+const PASSWORD_RESET_MAX_ATTEMPTS = 4;
 const REFRESH_TOKEN_TTL_MS = parseTtlMs(process.env.JWT_REFRESH_EXPIRES_IN ?? '7d');
 
 // Compared against on every login attempt, even when no user is found for the
@@ -40,6 +46,7 @@ function parseTtlMs(ttl: string): number {
 
 export interface IEmailService {
   sendVerificationEmail(to: string, code: string): Promise<void>;
+  sendPasswordResetEmail(to: string, code: string): Promise<void>;
 }
 
 export interface VerifyEmailResult {
@@ -154,12 +161,104 @@ export class AuthService {
     logger.info({ userId: user.id }, 'verification code resent');
   }
 
+  // Request (or re-request) a password reset code (ADR 0038). Always a no-op
+  // success for an unknown email — the route returns 200 regardless, so this
+  // never becomes an account-enumeration oracle. A registered user gets a fresh
+  // code whether or not they are verified; re-requesting replaces the prior code.
+  async forgotPassword(input: ForgotPasswordInput): Promise<void> {
+    const user = await this.userRepo.findByEmail(input.email);
+    if (!user) {
+      logger.info({ email: input.email }, 'password reset requested for unknown email — no-op');
+      return;
+    }
+
+    const { code, codeHash, expiresAt } = await this.generatePasswordResetCode();
+    await this.userRepo.setPasswordResetCode(user.id, {
+      codeHash,
+      expiresAt,
+      attemptsRemaining: PASSWORD_RESET_MAX_ATTEMPTS,
+    });
+
+    await this.emailService.sendPasswordResetEmail(input.email, code);
+    logger.info({ userId: user.id }, 'password reset code sent');
+  }
+
+  // Validate a reset code and set a new password (ADR 0038). Lookup is by email.
+  // As with verify-email, unknown email / no active code / expired / exhausted
+  // all collapse into `code_expired` so reset is no cleaner an enumeration oracle.
+  // On success: set the password, mark verified, revoke ALL existing sessions,
+  // then mint and return a fresh one (auto-sign-in).
+  async resetPassword(input: ResetPasswordInput): Promise<VerifyEmailResult> {
+    const user = await this.userRepo.findByEmail(input.email);
+
+    if (
+      !user ||
+      !user.passwordResetCodeHash ||
+      user.passwordResetAttemptsRemaining == null ||
+      user.passwordResetAttemptsRemaining <= 0 ||
+      !user.passwordResetCodeExpiresAt ||
+      user.passwordResetCodeExpiresAt < new Date()
+    ) {
+      throw new AppError(400, 'code_expired');
+    }
+
+    const codeMatches = await bcrypt.compare(input.code, user.passwordResetCodeHash);
+    if (!codeMatches) {
+      // The last remaining attempt burns the code (no further submit is possible);
+      // earlier wrong attempts just decrement the counter.
+      if (user.passwordResetAttemptsRemaining <= 1) {
+        await this.userRepo.clearPasswordResetCode(user.id);
+        logger.info({ userId: user.id }, 'password reset code burned after final wrong attempt');
+        throw new AppError(400, 'code_expired');
+      }
+      await this.userRepo.decrementPasswordResetAttempt(user.id);
+      throw new AppError(400, 'invalid_code');
+    }
+
+    // Set the new password (also marks verified + clears the reset code, ADR 0038 §6).
+    const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
+    await this.userRepo.resetPassword(user.id, passwordHash);
+
+    // Revoke every existing session BEFORE minting the new one, so the reset logs
+    // the user out of all other devices and evicts any attacker-held session.
+    await this.refreshTokenRepo.deleteAllForUser(user.id);
+
+    const { raw, hash } = generateRefreshToken();
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+
+    // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
+    const account = (await this.accountRepo.findById(user.accountId))!;
+
+    const [signed] = await Promise.all([
+      signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
+      this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
+    ]);
+
+    logger.info({ userId: user.id }, 'password reset completed');
+    return {
+      accessToken: signed.token,
+      accessTokenExpiresAt: signed.expiresAt.toISOString(),
+      refreshToken: raw,
+      user: { id: user.id, accountId: user.accountId, role: user.role },
+      account: { id: account.id, status: account.status },
+    };
+  }
+
   // A CSPRNG 6-digit code (zero-padded) plus its bcrypt hash and expiry. The
   // plaintext is returned only to be emailed; only the hash is ever persisted.
   private async generateVerificationCode(): Promise<{ code: string; codeHash: string; expiresAt: Date }> {
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
     const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
+    return { code, codeHash, expiresAt };
+  }
+
+  // Same construction as generateVerificationCode, but with the reset TTL — kept
+  // separate so the two OTP flows stay independent (ADR 0038 §3).
+  private async generatePasswordResetCode(): Promise<{ code: string; codeHash: string; expiresAt: Date }> {
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_CODE_TTL_MS);
     return { code, codeHash, expiresAt };
   }
 

@@ -40,9 +40,9 @@ describe('Login screen', () => {
   it('navigates to Forgot Password from the link', async () => {
     await $(byTestId('login-forgot-password-link')).click();
 
-    const forgotPasswordPlaceholder = await $(byTestId('placeholder-forgot-password'));
-    await forgotPasswordPlaceholder.waitForDisplayed({ timeout: 10000 });
-    await expect(forgotPasswordPlaceholder).toBeDisplayed();
+    const forgotPasswordTitle = await $(byTestId('forgot-password-title'));
+    await forgotPasswordTitle.waitForDisplayed({ timeout: 10000 });
+    await expect(forgotPasswordTitle).toBeDisplayed();
   });
 
   // Runs last for clarity, though no longer strictly required: AuthProvider

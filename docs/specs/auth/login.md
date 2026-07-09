@@ -96,7 +96,7 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 
 1. User clicks "Forgot password?" on the Login tab
 2. Browser navigates to `/forgot-password`
-3. *(Out of scope for this spec — see [forgot-password spec](forgot-password.md) when created)*
+3. *(Out of scope for this spec — the OTP reset flow is specified in [forgot-password.md](forgot-password.md), ADR 0038)*
 
 ---
 
@@ -165,7 +165,7 @@ On screens narrower than 360px the brand panel collapses (responsive behaviour i
 - [x] On success, user is redirected within 300ms of token receipt (no loading spinner needed for V1)
 - [x] On user-input error, the error message appears inline below the form (not a toast)
 - [x] On service error, the service error message appears inline below the form
-- [ ] "Forgot password?" navigates to `/forgot-password` — link is rendered, but `/forgot-password` itself is not yet built (still a placeholder destination)
+- [x] "Forgot password?" navigates to `/forgot-password` — now a built OTP reset flow (request-code + reset screens), see [forgot-password.md](forgot-password.md) / ADR 0038
 
 ### Registration form
 

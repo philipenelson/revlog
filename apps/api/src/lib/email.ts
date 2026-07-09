@@ -38,6 +38,25 @@ export async function sendVerificationEmail(to: string, code: string): Promise<v
   logger.info({ to }, 'verification email sent');
 }
 
+export async function sendPasswordResetEmail(to: string, code: string): Promise<void> {
+  await transport.sendMail({
+    from: FROM,
+    to,
+    subject: 'Reset your Revlog password',
+    text: [
+      `Your Revlog password reset code is:`,
+      ``,
+      `  ${code}`,
+      ``,
+      `Enter it in the app to set a new password. The code expires in 10 minutes.`,
+      ``,
+      `If you didn't ask to reset your password, you can ignore this email — your password is unchanged.`,
+    ].join('\n'),
+  });
+
+  logger.info({ to }, 'password reset email sent');
+}
+
 export interface MechanicPrintoutEmailParams {
   to: string;
   ownerName: string;
