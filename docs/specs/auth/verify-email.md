@@ -130,7 +130,7 @@ This screen is the on-screen half of UC-AUTH-2 and UC-AUTH-3, both fully specifi
 ## Out of scope
 
 - ~~Resend verification email~~ — now in scope (see Update below)
-- `/forgot-password` flow (separate spec: [forgot-password.md](./forgot-password.md) when created)
+- `/forgot-password` flow (separate spec: [forgot-password.md](./forgot-password.md), ADR 0038)
 - Mobile app verification screen — now specified in [`../mobile-app/auth.md`](../mobile-app/auth.md) (UC-MOB-AUTH-3 Update)
 
 ---
