@@ -7,17 +7,9 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export interface AccessTokenPayload {
-  sub: string;
-  accountId: string;
-  role: string;
-}
-
-export interface SignedAccessToken {
-  token: string;
-  /** The token's `exp`, so the client can refresh before it lapses without decoding the JWT. */
-  expiresAt: Date;
-}
+import type { AccessTokenPayload, SignedAccessToken } from '../application/ports/TokenService';
+// Re-export so existing importers (middleware, tests) keep resolving these here.
+export type { AccessTokenPayload, SignedAccessToken };
 
 // Access tokens are stateless JWTs — validated on signature + expiry with no DB lookup.
 export async function signAccessToken(payload: AccessTokenPayload): Promise<SignedAccessToken> {

@@ -2,7 +2,8 @@ import bcrypt from 'bcrypt';
 import { randomInt } from 'node:crypto';
 import type { RegisterInput, LoginInput, VerifyEmailInput, ResendVerificationInput, ForgotPasswordInput, ResetPasswordInput, AccountStatus } from '@maintenance-log/domain';
 import type { UserRepository, RefreshTokenRepository, AccountRepository } from '../domain';
-import { signAccessToken, generateRefreshToken, hashRefreshToken } from '../lib/tokens';
+import type { EmailSender } from '../application/ports/EmailSender';
+import type { TokenService } from '../application/ports/TokenService';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 
@@ -34,11 +35,6 @@ function parseTtlMs(ttl: string): number {
   }
 }
 
-export interface IEmailService {
-  sendVerificationEmail(to: string, code: string): Promise<void>;
-  sendPasswordResetEmail(to: string, code: string): Promise<void>;
-}
-
 export interface VerifyEmailResult {
   accessToken: string;
   accessTokenExpiresAt: string; // ISO 8601 — when the access token's `exp` lapses
@@ -52,7 +48,8 @@ export class AuthService {
     private readonly userRepo: UserRepository,
     private readonly refreshTokenRepo: RefreshTokenRepository,
     private readonly accountRepo: AccountRepository,
-    private readonly emailService: IEmailService,
+    private readonly emailService: EmailSender,
+    private readonly tokenService: TokenService,
   ) {}
 
   async register(input: RegisterInput): Promise<void> {
@@ -109,14 +106,14 @@ export class AuthService {
 
     await this.userRepo.markVerified(user.id);
 
-    const { raw, hash } = generateRefreshToken();
+    const { raw, hash } = this.tokenService.generateRefreshToken();
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
     // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
     const account = (await this.accountRepo.findById(user.accountId))!;
 
     const [signed] = await Promise.all([
-      signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
+      this.tokenService.signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
     ]);
 
@@ -213,14 +210,14 @@ export class AuthService {
     // the user out of all other devices and evicts any attacker-held session.
     await this.refreshTokenRepo.deleteAllForUser(user.id);
 
-    const { raw, hash } = generateRefreshToken();
+    const { raw, hash } = this.tokenService.generateRefreshToken();
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
     // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
     const account = (await this.accountRepo.findById(user.accountId))!;
 
     const [signed] = await Promise.all([
-      signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
+      this.tokenService.signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
     ]);
 
@@ -262,14 +259,14 @@ export class AuthService {
       throw new AppError(401, 'Invalid email or password');
     }
 
-    const { raw, hash } = generateRefreshToken();
+    const { raw, hash } = this.tokenService.generateRefreshToken();
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
     // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
     const account = (await this.accountRepo.findById(user.accountId))!;
 
     const [signed] = await Promise.all([
-      signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
+      this.tokenService.signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
     ]);
 
@@ -284,7 +281,7 @@ export class AuthService {
   }
 
   async refresh(rawToken: string): Promise<VerifyEmailResult> {
-    const record = await this.refreshTokenRepo.findByTokenHash(hashRefreshToken(rawToken));
+    const record = await this.refreshTokenRepo.findByTokenHash(this.tokenService.hashRefreshToken(rawToken));
 
     // "Not found" and "expired" collapse into the same 401 — see ADR 0017 ("Reuse
     // detection"): a garbage, forged, expired, or already-rotated token must be
@@ -298,13 +295,13 @@ export class AuthService {
     // FK guarantees the account exists for any persisted user — accounts are never deleted in V1.
     const account = (await this.accountRepo.findById(user.accountId))!;
 
-    const { raw, hash } = generateRefreshToken();
+    const { raw, hash } = this.tokenService.generateRefreshToken();
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
     // Rotation: delete the old row and insert a new one (ADR 0012 / ADR 0017) — keeps
     // "is this token still valid" and "replace it" as separate, individually-failable steps.
     const [signed] = await Promise.all([
-      signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
+      this.tokenService.signAccessToken({ sub: user.id, accountId: user.accountId, role: user.role }),
       this.refreshTokenRepo.deleteById(record.id),
       this.refreshTokenRepo.create({ userId: user.id, tokenHash: hash, expiresAt }),
     ]);
@@ -323,7 +320,7 @@ export class AuthService {
   // unknown/absent token is a no-op success — logout must never fail because
   // the token was already gone, and it never discloses whether one existed.
   async logout(rawToken: string): Promise<void> {
-    const record = await this.refreshTokenRepo.findByTokenHash(hashRefreshToken(rawToken));
+    const record = await this.refreshTokenRepo.findByTokenHash(this.tokenService.hashRefreshToken(rawToken));
     if (record) {
       await this.refreshTokenRepo.deleteById(record.id);
       logger.info({ userId: record.userId }, 'user logged out');

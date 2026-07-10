@@ -5,16 +5,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { prisma } from './lib/prisma';
 import { UPLOADS_DIR } from './lib/upload';
-import {
-  sendVerificationEmail,
-  sendPasswordResetEmail,
-  sendMechanicPrintoutEmail,
-  sendTransferNotificationEmail,
-  sendTransferInvitationEmail,
-  sendTransferCancellationEmail,
-  sendTransferDeclineEmail,
-  sendTransferExpiryEmail,
-} from './lib/email';
+import { NodemailerEmailSender } from './adapters/email/NodemailerEmailSender';
+import { JwtTokenService } from './adapters/token/JwtTokenService';
 import { PrismaUserRepository } from './repositories/user.repository';
 import { PrismaRefreshTokenRepository } from './repositories/refresh-token.repository';
 import { PrismaAccountRepository } from './repositories/account.repository';
@@ -61,19 +53,18 @@ export function createApp(): Express {
   const insuranceRepo = new PrismaInsuranceRepository(prisma);
   const newsletterRepo = new PrismaNewsletterRepository(prisma);
   const vehicleReportTokenRepo = new PrismaVehicleReportTokenRepository(prisma);
-  const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, {
-    sendVerificationEmail,
-    sendPasswordResetEmail,
-  });
+  const emailSender = new NodemailerEmailSender();
+  const tokenService = new JwtTokenService();
+  const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailSender, tokenService);
   const userService = new UserService(userRepo);
   const vehicleService = new VehicleService(vehicleRepo, accountRepo);
-  const transferService = new VehicleTransferService(transferRepo, vehicleRepo, userRepo, {
-    sendTransferNotification: sendTransferNotificationEmail,
-    sendTransferInvitation: sendTransferInvitationEmail,
-    sendTransferCancellation: sendTransferCancellationEmail,
-    sendTransferDecline: sendTransferDeclineEmail,
-    sendTransferExpiry: sendTransferExpiryEmail,
-  }, process.env.APP_URL ?? 'http://localhost:3000');
+  const transferService = new VehicleTransferService(
+    transferRepo,
+    vehicleRepo,
+    userRepo,
+    emailSender,
+    process.env.APP_URL ?? 'http://localhost:3000',
+  );
   const accountService = new AccountService(accountRepo);
   const logEntryService = new LogEntryService(logEntryRepo, vehicleRepo, prisma);
   const insuranceService = new InsuranceService(insuranceRepo, vehicleRepo);
@@ -81,7 +72,7 @@ export function createApp(): Express {
   const vehicleReportService = new VehicleReportService(
     vehicleReportTokenRepo,
     vehicleRepo,
-    { sendMechanicPrintoutEmail },
+    emailSender,
     process.env.APP_URL ?? 'http://localhost:3000',
   );
 

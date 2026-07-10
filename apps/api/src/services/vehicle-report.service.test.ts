@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleReportService } from './vehicle-report.service';
 import type { VehicleReportTokenRepository, VehicleRepository, VehicleReportToken, VehicleDetail, MechanicPrintout } from '../domain';
-import type { VehicleReportEmailer } from './vehicle-report.service';
+import type { EmailSender } from '../application/ports/EmailSender';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
@@ -56,8 +56,8 @@ function makeFakeVehicleRepo(overrides: Partial<VehicleRepository> = {}): Vehicl
   } as unknown as VehicleRepository;
 }
 
-function makeFakeEmailer(): VehicleReportEmailer {
-  return { sendMechanicPrintoutEmail: vi.fn().mockResolvedValue(undefined) };
+function makeFakeEmailer(): EmailSender {
+  return { sendMechanicPrintoutEmail: vi.fn().mockResolvedValue(undefined) } as unknown as EmailSender;
 }
 
 const APP_URL = 'https://app.revlog.io';
@@ -65,7 +65,7 @@ const APP_URL = 'https://app.revlog.io';
 describe('VehicleReportService.createToken', () => {
   let tokenRepo: VehicleReportTokenRepository;
   let vehicleRepo: VehicleRepository;
-  let emailer: VehicleReportEmailer;
+  let emailer: EmailSender;
   let service: VehicleReportService;
 
   beforeEach(() => {
@@ -111,7 +111,7 @@ describe('VehicleReportService.createToken', () => {
 describe('VehicleReportService.revokeToken', () => {
   let tokenRepo: VehicleReportTokenRepository;
   let vehicleRepo: VehicleRepository;
-  let emailer: VehicleReportEmailer;
+  let emailer: EmailSender;
   let service: VehicleReportService;
 
   beforeEach(() => {
@@ -155,7 +155,7 @@ describe('VehicleReportService.revokeToken', () => {
 describe('VehicleReportService.emailLink', () => {
   let tokenRepo: VehicleReportTokenRepository;
   let vehicleRepo: VehicleRepository;
-  let emailer: VehicleReportEmailer;
+  let emailer: EmailSender;
   let service: VehicleReportService;
 
   beforeEach(() => {
@@ -197,7 +197,7 @@ describe('VehicleReportService.emailLink', () => {
 describe('VehicleReportService.getByShareToken', () => {
   let tokenRepo: VehicleReportTokenRepository;
   let vehicleRepo: VehicleRepository;
-  let emailer: VehicleReportEmailer;
+  let emailer: EmailSender;
   let service: VehicleReportService;
 
   beforeEach(() => {

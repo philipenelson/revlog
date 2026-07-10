@@ -1,17 +1,13 @@
 import type { VehicleReportTokenRepository, VehicleRepository, MechanicPrintout } from '../domain';
-import type { MechanicPrintoutEmailParams } from '../lib/email';
+import type { EmailSender } from '../application/ports/EmailSender';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
-
-export interface VehicleReportEmailer {
-  sendMechanicPrintoutEmail(params: MechanicPrintoutEmailParams): Promise<void>;
-}
 
 export class VehicleReportService {
   constructor(
     private readonly reportTokenRepo: VehicleReportTokenRepository,
     private readonly vehicleRepo: VehicleRepository,
-    private readonly emailer: VehicleReportEmailer,
+    private readonly emailer: EmailSender,
     private readonly appUrl: string,
   ) {}
 

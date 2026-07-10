@@ -2,6 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import nodemailer from 'nodemailer';
 import { logger } from './logger';
+import type {
+  MechanicPrintoutEmailParams,
+  TransferEmailContext,
+} from '../application/ports/EmailSender';
+
+// Re-export so existing importers keep resolving these email DTOs here.
+export type { MechanicPrintoutEmailParams, TransferEmailContext };
 
 const PRINTOUT_EMAIL_TEMPLATE = fs.readFileSync(
   path.join(__dirname, 'templates', 'mechanic-printout-email.html'),
@@ -57,17 +64,6 @@ export async function sendPasswordResetEmail(to: string, code: string): Promise<
   logger.info({ to }, 'password reset email sent');
 }
 
-export interface MechanicPrintoutEmailParams {
-  to: string;
-  ownerName: string;
-  vehicleDisplayName: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: number;
-  logEntryCount: number;
-  reportUrl: string;
-}
-
 export async function sendMechanicPrintoutEmail(params: MechanicPrintoutEmailParams): Promise<void> {
   const {
     to, ownerName, vehicleDisplayName, vehicleMake, vehicleModel, vehicleYear,
@@ -106,16 +102,6 @@ export async function sendMechanicPrintoutEmail(params: MechanicPrintoutEmailPar
   });
 
   logger.info({ to }, 'mechanic printout email sent');
-}
-
-export interface TransferEmailContext {
-  senderName: string;
-  vehicleDisplayName: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: number;
-  logEntryCount: number;
-  expiresAt: string;
 }
 
 export async function sendTransferNotificationEmail(

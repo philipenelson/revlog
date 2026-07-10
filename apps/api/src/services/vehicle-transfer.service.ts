@@ -1,28 +1,7 @@
 import type { VehicleTransferRepository, VehicleTransfer, VehicleRepository, UserRepository } from '../domain';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
-import type {
-  TransferEmailContext,
-  sendTransferNotificationEmail,
-  sendTransferInvitationEmail,
-  sendTransferCancellationEmail,
-  sendTransferDeclineEmail,
-  sendTransferExpiryEmail,
-} from '../lib/email';
-
-type SendNotificationFn = typeof sendTransferNotificationEmail;
-type SendInvitationFn = typeof sendTransferInvitationEmail;
-type SendCancellationFn = typeof sendTransferCancellationEmail;
-type SendDeclineFn = typeof sendTransferDeclineEmail;
-type SendExpiryFn = typeof sendTransferExpiryEmail;
-
-export interface VehicleTransferEmailDeps {
-  sendTransferNotification: SendNotificationFn;
-  sendTransferInvitation: SendInvitationFn;
-  sendTransferCancellation: SendCancellationFn;
-  sendTransferDecline: SendDeclineFn;
-  sendTransferExpiry: SendExpiryFn;
-}
+import type { EmailSender, TransferEmailContext } from '../application/ports/EmailSender';
 
 export interface TransferDetails {
   status: 'PENDING';
@@ -49,7 +28,7 @@ export class VehicleTransferService {
     private readonly transferRepo: VehicleTransferRepository,
     private readonly vehicleRepo: VehicleRepository,
     private readonly userRepo: UserRepository,
-    private readonly email: VehicleTransferEmailDeps,
+    private readonly email: EmailSender,
     private readonly appUrl: string,
   ) {}
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleTransferService } from './vehicle-transfer.service';
 import { AppError } from '../middleware/error';
 import type { VehicleTransferRepository, VehicleRepository, UserRepository, VehicleTransfer, VehicleDetail, User } from '../domain';
-import type { VehicleTransferEmailDeps } from './vehicle-transfer.service';
+import type { EmailSender } from '../application/ports/EmailSender';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -132,14 +132,14 @@ function makeFakeUserRepo(overrides: Partial<UserRepository> = {}): UserReposito
   };
 }
 
-function makeFakeEmail(): VehicleTransferEmailDeps {
+function makeFakeEmail(): EmailSender {
   return {
     sendTransferNotification: vi.fn().mockResolvedValue(undefined),
     sendTransferInvitation: vi.fn().mockResolvedValue(undefined),
     sendTransferCancellation: vi.fn().mockResolvedValue(undefined),
     sendTransferDecline: vi.fn().mockResolvedValue(undefined),
     sendTransferExpiry: vi.fn().mockResolvedValue(undefined),
-  };
+  } as unknown as EmailSender;
 }
 
 const APP_URL = 'http://localhost:3000';
@@ -150,7 +150,7 @@ describe('VehicleTransferService.initiate', () => {
   let transferRepo: VehicleTransferRepository;
   let vehicleRepo: VehicleRepository;
   let userRepo: UserRepository;
-  let email: VehicleTransferEmailDeps;
+  let email: EmailSender;
   let service: VehicleTransferService;
 
   beforeEach(() => {
@@ -232,7 +232,7 @@ describe('VehicleTransferService.accept', () => {
   let transferRepo: VehicleTransferRepository;
   let vehicleRepo: VehicleRepository;
   let userRepo: UserRepository;
-  let email: VehicleTransferEmailDeps;
+  let email: EmailSender;
   let service: VehicleTransferService;
 
   beforeEach(() => {
@@ -290,7 +290,7 @@ describe('VehicleTransferService.decline', () => {
   let transferRepo: VehicleTransferRepository;
   let vehicleRepo: VehicleRepository;
   let userRepo: UserRepository;
-  let email: VehicleTransferEmailDeps;
+  let email: EmailSender;
   let service: VehicleTransferService;
 
   beforeEach(() => {
@@ -338,7 +338,7 @@ describe('VehicleTransferService.cancel', () => {
   let transferRepo: VehicleTransferRepository;
   let vehicleRepo: VehicleRepository;
   let userRepo: UserRepository;
-  let email: VehicleTransferEmailDeps;
+  let email: EmailSender;
   let service: VehicleTransferService;
 
   beforeEach(() => {
@@ -390,7 +390,7 @@ describe('VehicleTransferService.getTransferDetails', () => {
   let transferRepo: VehicleTransferRepository;
   let vehicleRepo: VehicleRepository;
   let userRepo: UserRepository;
-  let email: VehicleTransferEmailDeps;
+  let email: EmailSender;
   let service: VehicleTransferService;
 
   beforeEach(() => {
