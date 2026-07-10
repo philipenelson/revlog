@@ -1,99 +1,138 @@
 # API — Architecture Rules
 
-## Layered architecture (non-negotiable)
+The API uses **Hexagonal (Ports & Adapters)** architecture (ADR 0039). Dependencies point
+one way and inward:
 
-Every feature is split into exactly three layers. Each layer has one job.
+```
+adapters/ → application/ → domain/
+```
 
-### Routes (`src/routes/`)
+`domain/` and `application/` are the framework-free core. `adapters/` is the only place that
+touches Express, Prisma, Nodemailer, or JWT libraries. Nothing in the core imports a
+framework.
 
-Handle HTTP only:
-- Parse and validate the request body/query using schemas from `@maintenance-log/domain`
-- Call one service method
-- Map the result to an HTTP response and status code
-- Pass errors to `next(err)` — never handle them inline
+## Layers
 
-No business logic. No direct database access. No token signing. No `crypto`.
+### `domain/` — the core (`src/domain/`)
 
-### Services (`src/services/`)
+```
+domain/
+  models/    ← entity types (Vehicle, VehicleDetail, User, Account, LogEntry, …)
+             ← + server repo-input types (CreateVehicleData, UpdateVehicleData, …)
+  ports/     ← driven port interfaces (VehicleRepository, UserRepository,
+               MetadataRepository, …)
+```
 
-Own the business logic:
-- Orchestrate repository calls (including transactions)
+Framework-free. Imports nothing but the shared contract package
+(`@maintenance-log/domain`: Zod schemas, `*Input` types, lookup constants). No Prisma, no
+Express. Entity types have **no** `Domain` prefix; ports have **no** `I` prefix.
+
+### `application/` — use cases (`src/application/`)
+
+```
+application/
+  services/  ← the *Service classes: business logic, orchestration
+  ports/     ← app-specific outbound ports (EmailSender, TokenService)
+```
+
+Services own the business logic:
+- Orchestrate repository (driven-port) calls
 - Make domain decisions ("is this email taken?", "has the token expired?")
-- Call other services or utilities (email, tokens)
 - Throw `AppError` for known failure conditions
 
-No `req`, `res`, or `next`. No direct Prisma imports — use repositories.
+Services receive **every** I/O collaborator through the constructor as a **port interface** —
+never a concrete adapter, never a framework import. No `req`/`res`/`next`. No Prisma. No
+`lib/tokens` / `lib/email`. Services stay cohesive (one `VehicleService` with methods); we do
+**not** split them into one class per action, and we do **not** put interfaces in front of
+them (no inbound ports — the service is the implementation). See ADR 0039 §4.
 
-### Repositories (`src/repositories/`)
-
-Own all database access:
-- Implement the repository interface from `packages/domain/<entity>/`
-- Accept a db client (Prisma client or transaction client) in the constructor
-- Return domain types (`Domain*`), never raw Prisma models
-- No business logic — no decisions, no conditionals beyond query filters
-
----
-
-## Repository interfaces in `packages/domain`
-
-Every entity that needs persistence defines its repository interface in
-`packages/domain/src/<entity>/index.ts`. The API implements these with Prisma.
+### `adapters/` — the outside (`src/adapters/`)
 
 ```
-packages/domain/src/user/index.ts   → IUserRepository, DomainUser
-packages/domain/src/account/index.ts → IAccountRepository, DomainAccount
-
-apps/api/src/repositories/user.repository.ts    → PrismaUserRepository
-apps/api/src/repositories/account.repository.ts → PrismaAccountRepository
+adapters/
+  http/
+    routers/     ← createXxxRouter(service) factories: parse/validate, call one
+                   service method, map result → HTTP, pass errors to next(err)
+    middleware/  ← authenticate (uses TokenService), errorMiddleware + AppError
+    upload/      ← multer vehiclePhotoUpload (HTTP-only concern)
+  persistence/   ← PrismaXxxRepository: implement a domain/ports interface,
+                   accept a db client in the constructor, return domain models
+                   (never raw Prisma rows), no business logic
+  email/         ← NodemailerEmailSender: implements EmailSender
+  token/         ← JwtTokenService: implements TokenService
 ```
 
-The domain layer never knows about Prisma. The repository implementation in the
-API translates between Prisma models and domain types.
+Driving adapters (`http/`) call into the application. Driven adapters (`persistence/`,
+`email/`, `token/`) implement ports the core defines. Adapters are the only code importing
+Express, Prisma, Nodemailer, or `jsonwebtoken`.
 
 ---
 
-## Token and session management
+## Ports live in the layer that needs them
 
-- **Signing** tokens (access + refresh) happens in services, not in routes.
-- **Validating** tokens (authentication) happens in middleware (`src/middleware/auth.ts`).
-- **Cookie** setting happens in routes, using values returned from services.
-- Routes never call `signAccessToken`, `verifyAccessToken`, or touch cookies directly.
+- **Repository (driven) ports** → `domain/ports/`. Every persisted entity defines its port
+  here; the API implements it with Prisma in `adapters/persistence/`. The domain never knows
+  about Prisma.
+- **App-specific outbound ports** (`EmailSender`, `TokenService`) → `application/ports/`,
+  implemented in `adapters/email/` and `adapters/token/`.
 
----
+There is no standalone top-level `ports/` folder.
 
-## Observability — V2 roadmap
+```
+domain/ports/VehicleRepository.ts        → adapters/persistence/PrismaVehicleRepository.ts
+application/ports/EmailSender.ts          → adapters/email/NodemailerEmailSender.ts
+application/ports/TokenService.ts         → adapters/token/JwtTokenService.ts
+```
 
-V1 uses Pino structured logging. In V2, OpenTelemetry layers on top:
-- `@opentelemetry/sdk-node` with Express and Prisma instrumentation for distributed tracing
-- Pino log correlation: `trace_id` and `span_id` injected into every log entry
-- OTLP export to a managed backend (Grafana Cloud or Honeycomb — TBD at implementation time)
+## The shared contract package
 
-The `logger` interface (`src/lib/logger.ts`) stays the same; only the transport changes. No call sites need updating.
-
-See `docs/milestones/v2.md` — Observability for the full task list.
-
----
-
-## Error handling
-
-All errors flow to the global error middleware (`src/middleware/error.ts`):
-- Routes pass errors via `next(err)` — never swallow or format them inline
-- Services throw `AppError` for known conditions (wrong credentials, token expired, etc.)
-- Unexpected errors surface as 500 — raw messages are hidden in production
+`@maintenance-log/domain` (`packages/domain`) holds only what web, mobile, and the API all
+agree on: Zod schemas, their inferred `*Input` types, and lookup constants. It does **not**
+hold the API's entity models or repository ports — those are private to the API
+(`src/domain/`). Do not add server-internal or framework-specific types to the package.
 
 ---
 
 ## Dependency injection (non-negotiable)
 
-Services receive **all I/O-touching dependencies through the constructor** — repositories, email service, and any other collaborator that performs I/O. Services never import or instantiate concrete infrastructure directly.
+Services receive all I/O collaborators through the constructor as **port interfaces**.
+The **composition root is `src/app.ts`** — the only place that `new`s concrete adapters
+(`PrismaXxxRepository`, `NodemailerEmailSender`, `JwtTokenService`) and wires them into
+services and routers. Routers are factories (`createXxxRouter(service)`) — never pre-wired
+module-level values.
 
-The **composition root is `src/app.ts`** — the only place that `new`s concrete implementations and wires them into services and routers.
+**Acceptable exceptions**: `logger` is a global import anywhere (no state, not worth
+injecting); the Prisma client is instantiated once in `app.ts`.
 
-Routes are also factories (`createXxxRouter(service)`) — never exported as pre-wired module-level values.
+See ADR 0014 (the DI mechanism) and ADR 0039 (the hexagon it formalizes).
 
-**Acceptable exceptions**: the `logger` is a global import in any file — it has no state and is not worth injecting.
+---
 
-See ADR 0014 for the rationale and the explicit comparison to global singleton patterns.
+## Token and session management
+
+- **Signing/generating** tokens goes through the `TokenService` port (adapter:
+  `JwtTokenService`), injected into `AuthService`. Services never import `lib/tokens`.
+- **Validating** tokens (authentication) happens in `adapters/http/middleware/authenticate`,
+  which also uses `TokenService`.
+- **Cookie** setting happens in routers, using values returned from services.
+
+---
+
+## Error handling
+
+All errors flow to the global error middleware (`adapters/http/middleware`):
+- Routers pass errors via `next(err)` — never swallow or format them inline
+- Services throw `AppError` for known conditions
+- Unexpected errors surface as 500 — raw messages hidden in production
+
+---
+
+## Observability — V2 roadmap
+
+V1 uses Pino structured logging. In V2, OpenTelemetry layers on top (`@opentelemetry/sdk-node`
+with Express + Prisma instrumentation; `trace_id`/`span_id` in every log line; OTLP export).
+The `logger` interface (`src/lib/logger.ts`) stays the same; only the transport changes. See
+`docs/milestones/v2.md` — Observability.
 
 ---
 
@@ -105,11 +144,13 @@ Test files are co-located with the source (`src/**/*.test.ts`) and run with Vite
 
 | Layer | Test approach | What's verified |
 |---|---|---|
-| Routes | `supertest` + mock service injected | HTTP status codes, correct service method called with correct args, cookie/header attributes set, validation rejects before service is reached |
-| Services | Fake repo implementations injected via constructor | Business logic: guard clauses (duplicate → 409, expired token → 400), correct data passed to repos, email sent with correct args |
-| Pure utilities | Direct function calls | `generateRefreshToken`: correct length, hash matches SHA-256 of raw, unique per call |
+| HTTP routers | `supertest` + mock service injected | status codes, correct service method + args, cookie/header attributes, validation rejects before the service is reached |
+| Application services | Fake port implementations injected via constructor | business logic: guard clauses (duplicate → 409, expired token → 400), correct data passed to ports, email sent with correct args |
+| Pure utilities | Direct calls | e.g. `generateRefreshToken`: length, SHA-256 hash matches, unique per call |
 
 ### What NOT to test
 
-- **Repositories** — thin Prisma translators with no logic; test at integration level (real DB) when needed
-- **Library behaviour** — never assert that bcrypt hashes correctly, Prisma creates rows, or JWT signing produces a valid token; test your code that calls these
+- **Persistence adapters** (`PrismaXxxRepository`) — thin Prisma translators with no logic;
+  cover at integration level (real DB) when needed
+- **Library behaviour** — never assert bcrypt hashes, Prisma writes rows, or JWT signs a
+  valid token; test *your* code that calls these

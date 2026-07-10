@@ -1,5 +1,8 @@
-// Domain layer: shared interfaces, types, value objects, and validation schemas.
-// No framework dependencies. No UI. No infrastructure.
+// Shared contract package: the system-wide surface that web, mobile, and the API
+// all agree on — Zod validation schemas, their inferred *Input types, and lookup
+// constants/enums. NOT the API's entity models or repository ports: those are
+// private to the API (apps/api/src/domain/) per ADR 0039.
+// No framework dependencies. No UI. No infrastructure. No server-internal types.
 // All apps import from here; nothing here imports from apps.
 
 export * from './schemas/auth';
