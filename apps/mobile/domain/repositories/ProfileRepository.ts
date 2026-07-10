@@ -1,5 +1,5 @@
 import type { UserProfile } from '@maintenance-log/api-client';
-import type { Store } from '@/infrastructure/database/Store';
+import type { Store } from '@/domain/ports/Store';
 
 export interface ProfileRepository {
   get(): Promise<UserProfile | null>;

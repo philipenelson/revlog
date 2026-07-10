@@ -1,6 +1,6 @@
 import type { VehicleSummary } from '@maintenance-log/api-client';
-import type { Store, StoreQueryOptions } from '@/infrastructure/database/Store';
-import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
+import type { Store, StoreQueryOptions } from '@/domain/ports/Store';
+import type { OutboxWriter } from '@/domain/ports/OutboxWriter';
 import { createVehicleRepository, type LocalVehicleDetail } from './VehicleRepository';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'generated-id') }));

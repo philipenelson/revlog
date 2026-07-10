@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import type { VehicleSummary } from '@maintenance-log/api-client';
-import type { Store } from '@/infrastructure/database/Store';
-import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
+import type { Store } from '@/domain/ports/Store';
+import type { OutboxWriter } from '@/domain/ports/OutboxWriter';
 import { persistVehiclePhoto, deleteVehiclePhoto, type PickedPhoto } from '@/infrastructure/storage/photoStorage';
 
 // Vehicle Detail-only fields — VehicleSummary (GET /vehicles) can't supply

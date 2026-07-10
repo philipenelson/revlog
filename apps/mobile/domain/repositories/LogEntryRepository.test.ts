@@ -1,6 +1,6 @@
 import type { LogEntrySummary } from '@maintenance-log/api-client';
-import type { Store, StoreQueryOptions } from '@/infrastructure/database/Store';
-import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
+import type { Store, StoreQueryOptions } from '@/domain/ports/Store';
+import type { OutboxWriter } from '@/domain/ports/OutboxWriter';
 import { createLogEntryRepository, type LocalLogEntry } from './LogEntryRepository';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'generated-id') }));

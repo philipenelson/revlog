@@ -1,5 +1,5 @@
 import { createProfileRepository } from './ProfileRepository';
-import type { Store } from '@/infrastructure/database/Store';
+import type { Store } from '@/domain/ports/Store';
 import type { UserProfile } from '@maintenance-log/api-client';
 
 const profile: UserProfile = { id: 'u1', fullName: 'Philip Russo', email: 'p@example.com', role: 'OWNER' };

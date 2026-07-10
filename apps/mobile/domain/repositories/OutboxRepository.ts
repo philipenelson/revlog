@@ -1,5 +1,5 @@
 import * as Crypto from 'expo-crypto';
-import type { Store } from '@/infrastructure/database/Store';
+import type { Store } from '@/domain/ports/Store';
 
 export type OutboxStatus = 'pending' | 'processing' | 'failed';
 

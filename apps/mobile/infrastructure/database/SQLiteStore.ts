@@ -1,8 +1,8 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core';
 import { buildOutboxEntry } from '@/domain/repositories/OutboxRepository';
-import type { Store, StoreQueryOptions } from './Store';
-import type { OutboxWriter } from './OutboxWriter';
+import type { Store, StoreQueryOptions } from '@/domain/ports/Store';
+import type { OutboxWriter } from '@/domain/ports/OutboxWriter';
 import type { DrizzleDb } from './openDatabase';
 import { outboxTable } from './schema';
 
