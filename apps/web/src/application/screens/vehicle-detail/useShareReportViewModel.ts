@@ -7,8 +7,8 @@ import {
   revokeReportToken,
   emailReportLink,
 } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
-import { logger } from "@/infrastructure/logging/logger";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
+import { logger } from "@/adapters/logging/logger";
 
 export type ShareReportState = "no-token" | "has-token" | "loading";
 

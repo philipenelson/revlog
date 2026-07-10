@@ -3,10 +3,10 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, createVehicle, createVehicleWithPhoto } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
-import { logger } from "@/infrastructure/logging/logger";
+import { logger } from "@/adapters/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
 
 const EMPTY_DRAFT: VehicleDraft = { nickname: "", make: "", model: "", year: "", mileage: "" };

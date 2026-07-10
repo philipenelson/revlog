@@ -12,9 +12,9 @@ import {
   type LogEntrySummary,
   type VehicleDetail,
 } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { vehicleDisplayName } from "@/domain/types";
-import { logger } from "@/infrastructure/logging/logger";
+import { logger } from "@/adapters/logging/logger";
 
 export type VehicleDetailLoadState = "loading" | "loaded" | "error" | "not-found";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { logger } from "@/infrastructure/logging/logger";
+import { logger } from "@/adapters/logging/logger";
 
 /** Logs a page-level error-boundary crash (route error.tsx files stay logic-free). */
 export function useLogScreenCrash(screen: string, error: Error & { digest?: string }) {

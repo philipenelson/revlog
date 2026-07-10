@@ -1,4 +1,4 @@
-import type { MediaRef, MediaStore } from "@/infrastructure/media/MediaStore";
+import type { MediaRef, MediaStore } from "@/domain/ports/MediaStore";
 import { todayIso } from "@/utils/date";
 import type { LogEntryDetail, LogEntryPayload } from "@maintenance-log/api-client";
 

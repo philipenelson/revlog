@@ -7,10 +7,10 @@ import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { resetPasswordSchema, type ResetPasswordInput } from "@maintenance-log/domain";
 import { ApiError, resetPassword, forgotPassword } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
-import { logger } from "@/infrastructure/logging/logger";
+import { logger } from "@/adapters/logging/logger";
 
 const INVALID_CODE_COPY = "That code isn't right. Check it and try again.";
 const CODE_EXPIRED_COPY = "That code has expired or been used up. Request a new one below.";
