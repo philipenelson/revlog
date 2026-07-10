@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useMediaStore } from "@/infrastructure/media/useMediaStore";
+import { useMediaStore } from "@/adapters/media/useMediaStore";
 import { getLogEntry, updateLogEntry, deleteLogEntry } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import {
   buildLogEntryPayload,
   entryToFormState,

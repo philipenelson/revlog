@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { ApiError, listVehicles, type VehicleSummary } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
-import { logger } from "@/infrastructure/logging/logger";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
+import { logger } from "@/adapters/logging/logger";
 
 export type GarageLoadState = "loading" | "loaded" | "error";
 

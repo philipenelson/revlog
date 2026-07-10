@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { getMechanicPrintout, type MechanicPrintout } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { vehicleDisplayName } from "@/domain/types";
-import { logger } from "@/infrastructure/logging/logger";
+import { logger } from "@/adapters/logging/logger";
 
 export type PrintoutLoadState = "loading" | "loaded" | "not-found" | "error";
 

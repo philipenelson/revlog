@@ -1,7 +1,7 @@
-import { sessionStore } from '@/infrastructure/session/sessionStore';
-import { cookieHttpClient } from '@/infrastructure/http/CookieHttpClient';
+import { sessionStore } from '@/adapters/session/sessionStore';
+import { cookieHttpClient } from '@/adapters/http/CookieHttpClient';
 import { refreshSession } from '@maintenance-log/api-client';
-import type { RequestInterceptor, ResponseInterceptor } from '@/infrastructure/http/apiClient';
+import type { RequestInterceptor, ResponseInterceptor } from '@/adapters/http/apiClient';
 import type { Session } from '@maintenance-log/api-client';
 
 /** Refresh this many ms before the access token's `exp` — an in-flight-expiry guard (ADR 0021). */

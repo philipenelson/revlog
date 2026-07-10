@@ -9,8 +9,8 @@ import {
   declineTransfer,
   type TransferDetails,
 } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
-import { logger } from "@/infrastructure/logging/logger";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
+import { logger } from "@/adapters/logging/logger";
 import { useAuth } from "@/application/providers/AuthProvider";
 
 export type TransferLoadState =

@@ -11,10 +11,10 @@ import {
   type LoginInput,
 } from "@maintenance-log/domain";
 import { ApiError, login as loginRequest, register as registerRequest } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
-import { logger } from "@/infrastructure/logging/logger";
+import { logger } from "@/adapters/logging/logger";
 
 const SIGN_IN_USER_ERROR =
   "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";

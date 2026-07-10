@@ -3,12 +3,12 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, createVehicle, createVehicleWithPhoto, skipOnboarding } from "@maintenance-log/api-client";
-import { cookieHttpClient } from "@/infrastructure/http/CookieHttpClient";
+import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
-import { logger } from "@/infrastructure/logging/logger";
+import { logger } from "@/adapters/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
-import { sessionStore } from '@/infrastructure/session/sessionStore';
+import { sessionStore } from '@/adapters/session/sessionStore';
 
 export type OnboardingStep = 1 | 2 | 3;
 
