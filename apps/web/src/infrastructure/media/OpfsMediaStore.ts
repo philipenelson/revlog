@@ -1,4 +1,4 @@
-import type { MediaRef, MediaStore, StoredMedia } from './MediaStore';
+import type { MediaRef, MediaStore, StoredMedia } from '@/domain/ports/MediaStore';
 
 /**
  * Origin Private File System (OPFS) implementation of MediaStore.

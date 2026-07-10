@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState } from 'react';
-import type { MediaStore } from './MediaStore';
+import type { MediaStore } from '@/domain/ports/MediaStore';
 import { OpfsMediaStore } from './OpfsMediaStore';
 
 const MediaStoreContext = createContext<MediaStore | null>(null);
