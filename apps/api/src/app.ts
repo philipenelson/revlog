@@ -5,45 +5,38 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { prisma } from './lib/prisma';
 import { UPLOADS_DIR } from './lib/upload';
-import {
-  sendVerificationEmail,
-  sendPasswordResetEmail,
-  sendMechanicPrintoutEmail,
-  sendTransferNotificationEmail,
-  sendTransferInvitationEmail,
-  sendTransferCancellationEmail,
-  sendTransferDeclineEmail,
-  sendTransferExpiryEmail,
-} from './lib/email';
-import { PrismaUserRepository } from './repositories/user.repository';
-import { PrismaRefreshTokenRepository } from './repositories/refresh-token.repository';
-import { PrismaAccountRepository } from './repositories/account.repository';
-import { PrismaVehicleRepository } from './repositories/vehicle.repository';
-import { PrismaVehicleTransferRepository } from './repositories/vehicle-transfer.repository';
-import { PrismaLogEntryRepository } from './repositories/log-entry.repository';
-import { PrismaInsuranceRepository } from './repositories/insurance.repository';
-import { PrismaNewsletterRepository } from './repositories/newsletter.repository';
-import { PrismaVehicleReportTokenRepository } from './repositories/vehicle-report-token.repository';
-import { AuthService } from './services/auth.service';
-import { UserService } from './services/user.service';
-import { VehicleService } from './services/vehicle.service';
-import { VehicleTransferService } from './services/vehicle-transfer.service';
-import { AccountService } from './services/account.service';
-import { LogEntryService } from './services/log-entry.service';
-import { InsuranceService } from './services/insurance.service';
-import { NewsletterService } from './services/newsletter.service';
-import { VehicleReportService } from './services/vehicle-report.service';
-import { createAuthRouter } from './routes/auth';
-import { createUsersRouter } from './routes/users';
-import { createVehicleRouter } from './routes/vehicles';
-import { createTransferRouter } from './routes/transfers';
-import { createOnboardingRouter } from './routes/onboarding';
-import { createLogEntryRouter } from './routes/log-entries';
-import { createInsuranceRouter } from './routes/insurance';
-import { createLookupRouter } from './routes/lookup';
-import { createNewsletterRouter } from './routes/newsletter';
-import { createReportRouter, createVehicleReportTokenRouter } from './routes/report';
-import { errorMiddleware } from './middleware/error';
+import { NodemailerEmailSender } from './adapters/email/NodemailerEmailSender';
+import { JwtTokenService } from './adapters/token/JwtTokenService';
+import { PrismaUserRepository } from './adapters/persistence/user.repository';
+import { PrismaRefreshTokenRepository } from './adapters/persistence/refresh-token.repository';
+import { PrismaAccountRepository } from './adapters/persistence/account.repository';
+import { PrismaVehicleRepository } from './adapters/persistence/vehicle.repository';
+import { PrismaVehicleTransferRepository } from './adapters/persistence/vehicle-transfer.repository';
+import { PrismaLogEntryRepository } from './adapters/persistence/log-entry.repository';
+import { PrismaInsuranceRepository } from './adapters/persistence/insurance.repository';
+import { PrismaNewsletterRepository } from './adapters/persistence/newsletter.repository';
+import { PrismaVehicleReportTokenRepository } from './adapters/persistence/vehicle-report-token.repository';
+import { PrismaMetadataRepository } from './adapters/persistence/metadata.repository';
+import { AuthService } from './application/services/auth.service';
+import { UserService } from './application/services/user.service';
+import { VehicleService } from './application/services/vehicle.service';
+import { VehicleTransferService } from './application/services/vehicle-transfer.service';
+import { AccountService } from './application/services/account.service';
+import { LogEntryService } from './application/services/log-entry.service';
+import { InsuranceService } from './application/services/insurance.service';
+import { NewsletterService } from './application/services/newsletter.service';
+import { VehicleReportService } from './application/services/vehicle-report.service';
+import { createAuthRouter } from './adapters/http/routers/auth';
+import { createUsersRouter } from './adapters/http/routers/users';
+import { createVehicleRouter } from './adapters/http/routers/vehicles';
+import { createTransferRouter } from './adapters/http/routers/transfers';
+import { createOnboardingRouter } from './adapters/http/routers/onboarding';
+import { createLogEntryRouter } from './adapters/http/routers/log-entries';
+import { createInsuranceRouter } from './adapters/http/routers/insurance';
+import { createLookupRouter } from './adapters/http/routers/lookup';
+import { createNewsletterRouter } from './adapters/http/routers/newsletter';
+import { createReportRouter, createVehicleReportTokenRouter } from './adapters/http/routers/report';
+import { errorMiddleware } from './adapters/http/middleware/error';
 
 const allowedOrigins = [
   process.env.APP_URL ?? 'http://localhost:3000',
@@ -61,27 +54,27 @@ export function createApp(): Express {
   const insuranceRepo = new PrismaInsuranceRepository(prisma);
   const newsletterRepo = new PrismaNewsletterRepository(prisma);
   const vehicleReportTokenRepo = new PrismaVehicleReportTokenRepository(prisma);
-  const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, {
-    sendVerificationEmail,
-    sendPasswordResetEmail,
-  });
+  const metadataRepo = new PrismaMetadataRepository(prisma);
+  const emailSender = new NodemailerEmailSender();
+  const tokenService = new JwtTokenService();
+  const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailSender, tokenService);
   const userService = new UserService(userRepo);
   const vehicleService = new VehicleService(vehicleRepo, accountRepo);
-  const transferService = new VehicleTransferService(transferRepo, vehicleRepo, userRepo, {
-    sendTransferNotification: sendTransferNotificationEmail,
-    sendTransferInvitation: sendTransferInvitationEmail,
-    sendTransferCancellation: sendTransferCancellationEmail,
-    sendTransferDecline: sendTransferDeclineEmail,
-    sendTransferExpiry: sendTransferExpiryEmail,
-  }, process.env.APP_URL ?? 'http://localhost:3000');
+  const transferService = new VehicleTransferService(
+    transferRepo,
+    vehicleRepo,
+    userRepo,
+    emailSender,
+    process.env.APP_URL ?? 'http://localhost:3000',
+  );
   const accountService = new AccountService(accountRepo);
-  const logEntryService = new LogEntryService(logEntryRepo, vehicleRepo, prisma);
+  const logEntryService = new LogEntryService(logEntryRepo, vehicleRepo, metadataRepo);
   const insuranceService = new InsuranceService(insuranceRepo, vehicleRepo);
   const newsletterService = new NewsletterService(newsletterRepo);
   const vehicleReportService = new VehicleReportService(
     vehicleReportTokenRepo,
     vehicleRepo,
-    { sendMechanicPrintoutEmail },
+    emailSender,
     process.env.APP_URL ?? 'http://localhost:3000',
   );
 

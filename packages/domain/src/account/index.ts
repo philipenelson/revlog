@@ -1,18 +1,6 @@
+// Shared account contract enums (ADR 0039). The Account entity model and its
+// repository port are private to the API (apps/api/src/domain/); only these
+// wire-level enums are agreed system-wide (web/mobile/api-client consume them).
 export type AccountType = 'PERSONAL';
 
 export type AccountStatus = 'ONBOARDING' | 'ACTIVE';
-
-export interface DomainAccount {
-  id: string;
-  type: AccountType;
-  status: AccountStatus;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface IAccountRepository {
-  create(type: AccountType): Promise<DomainAccount>;
-  findById(id: string): Promise<DomainAccount | null>;
-  // Conditionally transitions ONBOARDING -> ACTIVE; no-op if already ACTIVE (idempotent, one-way).
-  markActive(id: string): Promise<void>;
-}

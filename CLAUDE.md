@@ -112,7 +112,7 @@ The log level is controlled by the `LOG_LEVEL` environment variable (default: `i
 Every route and async operation must have explicit error handling. Rules:
 - Express route handlers must pass errors to `next(err)` — never swallow them silently
 - All `async` route handlers must be wrapped so unhandled promise rejections reach the Express error middleware
-- The global error middleware (`apps/api/src/middleware/error.ts`) is the single place where errors are mapped to HTTP responses and logged
+- The global error middleware (`apps/api/src/adapters/http/middleware/error.ts`) is the single place where errors are mapped to HTTP responses and logged
 - Never expose raw error messages or stack traces to API clients in production — map to safe, generic messages
 - Error boundaries in React (`apps/web`) must be present at the page level to prevent full-app crashes from component errors
 
