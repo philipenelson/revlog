@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import type { Session } from '@maintenance-log/api-client';
-import type { LoginInput } from '@maintenance-log/domain';
+import type { LoginInput } from '@maintenance-log/contracts';
 import { renderViewModel } from '../../../test/renderViewModel';
 import { useLoginViewModel, type LoginViewModel } from './useLoginViewModel';
 import { useSignIn, type SignInResult } from '@/application/auth/useSignIn';

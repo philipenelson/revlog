@@ -2,7 +2,7 @@ import { act, waitFor } from '@testing-library/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ApiError, resetPassword, forgotPassword } from '@maintenance-log/api-client';
 import type { Session } from '@maintenance-log/api-client';
-import type { ResetPasswordInput } from '@maintenance-log/domain';
+import type { ResetPasswordInput } from '@maintenance-log/contracts';
 import { renderViewModel } from '../../../test/renderViewModel';
 import { useResetPasswordViewModel, type ResetPasswordViewModel } from './useResetPasswordViewModel';
 import { useAuth } from '@/application/providers/AuthProvider';

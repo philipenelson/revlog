@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { type LogEntryTypeId, ITEM_CATEGORY, type ItemCategoryId } from '@maintenance-log/domain';
+import { type LogEntryTypeId, ITEM_CATEGORY, type ItemCategoryId } from '@maintenance-log/contracts';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import type { CreateLogEntryItemData } from '@/domain/repositories/LogEntryRepository';
 import { toIsoDate } from '@/utils/date';

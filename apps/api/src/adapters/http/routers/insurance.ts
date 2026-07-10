@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { upsertInsuranceSchema } from '@maintenance-log/domain';
+import { upsertInsuranceSchema } from '@maintenance-log/contracts';
 import type { InsuranceService } from '../../../application/services/insurance.service';
 import { authenticate } from '../middleware/auth';
 

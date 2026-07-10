@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { verifyEmailSchema, type VerifyEmailInput } from "@maintenance-log/domain";
+import { verifyEmailSchema, type VerifyEmailInput } from "@maintenance-log/contracts";
 import { ApiError, verifyEmail, resendVerification } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";

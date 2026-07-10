@@ -24,7 +24,7 @@ domain/
 ```
 
 Framework-free. Imports nothing but the shared contract package
-(`@maintenance-log/domain`: Zod schemas, `*Input` types, lookup constants). No Prisma, no
+(`@maintenance-log/contracts`: Zod schemas, `*Input` types, lookup constants). No Prisma, no
 Express. Entity types have **no** `Domain` prefix; ports have **no** `I` prefix.
 
 ### `application/` — use cases (`src/application/`)
@@ -94,7 +94,7 @@ application/ports/TokenService.ts         → adapters/token/JwtTokenService.ts
 
 ## The shared contract package
 
-`@maintenance-log/domain` (`packages/domain`) holds only what web, mobile, and the API all
+`@maintenance-log/contracts` (`packages/domain`) holds only what web, mobile, and the API all
 agree on: Zod schemas, their inferred `*Input` types, and lookup constants. It does **not**
 hold the API's entity models or repository ports — those are private to the API
 (`src/domain/`). Do not add server-internal or framework-specific types to the package.

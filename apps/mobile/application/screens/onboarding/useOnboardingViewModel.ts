@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { createVehicleSchema } from '@maintenance-log/domain';
+import { createVehicleSchema } from '@maintenance-log/contracts';
 import { ApiError, skipOnboarding } from '@maintenance-log/api-client';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useAuth } from '@/application/providers/AuthProvider';

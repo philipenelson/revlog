@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { useForm, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { forgotPasswordSchema, type ForgotPasswordInput } from '@maintenance-log/domain';
+import { forgotPasswordSchema, type ForgotPasswordInput } from '@maintenance-log/contracts';
 import { ApiError, forgotPassword } from '@maintenance-log/api-client';
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { logger } from '@/adapters/logging/logger';

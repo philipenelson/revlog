@@ -1,5 +1,5 @@
 import type { Session } from '@maintenance-log/api-client';
-import type { LoginInput } from '@maintenance-log/domain';
+import type { LoginInput } from '@maintenance-log/contracts';
 import type { StoredCredential } from '@/adapters/storage/credentialStore';
 
 // Pure mappings between a Session, login credentials, and the stored-credential

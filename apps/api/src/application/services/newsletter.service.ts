@@ -1,4 +1,4 @@
-import type { NewsletterSubscribeInput } from '@maintenance-log/domain';
+import type { NewsletterSubscribeInput } from '@maintenance-log/contracts';
 import type { NewsletterRepository } from '../../domain';
 import { logger } from '../../lib/logger';
 

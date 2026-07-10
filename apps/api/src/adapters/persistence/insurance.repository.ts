@@ -1,5 +1,5 @@
 import type { PrismaClient } from '../../generated/prisma/client';
-import type { UpsertInsuranceInput } from '@maintenance-log/domain';
+import type { UpsertInsuranceInput } from '@maintenance-log/contracts';
 import type { VehicleInsurance, InsuranceRepository } from '../../domain';
 
 type InsuranceDb = Pick<PrismaClient, 'vehicleInsurance'>;

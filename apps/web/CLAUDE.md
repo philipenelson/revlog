@@ -101,7 +101,7 @@ When you need new cross-cutting behaviour (tracing, logging, etc.), write an int
 
 ## Forms
 
-Use React Hook Form + Zod resolver. Validation schemas are imported from `@maintenance-log/domain` — the same schemas the API validates against. Never duplicate field rules.
+Use React Hook Form + Zod resolver. Validation schemas are imported from `@maintenance-log/contracts` — the same schemas the API validates against. Never duplicate field rules.
 
 ---
 

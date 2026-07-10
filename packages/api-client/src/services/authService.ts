@@ -7,7 +7,7 @@ import type {
   ResendVerificationInput,
   ForgotPasswordInput,
   ResetPasswordInput,
-} from '@maintenance-log/domain';
+} from '@maintenance-log/contracts';
 
 export function login(client: HttpClient, input: LoginInput): Promise<Session> {
   return client.post<Session>('/auth/login', input);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useForm, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginInput } from '@maintenance-log/domain';
+import { loginSchema, type LoginInput } from '@maintenance-log/contracts';
 import type { Session } from '@maintenance-log/api-client';
 import { useSignIn, type SignInResult } from '@/application/auth/useSignIn';
 import { routeForAccountStatus } from '@/application/navigation/routeForAccountStatus';
