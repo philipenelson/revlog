@@ -1,12 +1,5 @@
 import { Directory, File, Paths } from 'expo-file-system';
-
-export interface PickedPhoto {
-  uri: string;
-  name: string;
-  type: string;
-}
-
-export type StablePhoto = PickedPhoto;
+import type { PhotoStore, PickedPhoto, StablePhoto } from '@/domain/ports/PhotoStore';
 
 const PHOTOS_DIR_NAME = 'vehicle-photos';
 
@@ -44,3 +37,12 @@ export function deleteVehiclePhoto(uri: string): void {
 export function openVehiclePhotoFile(uri: string): File {
   return new File(uri);
 }
+
+// The PhotoStore port adapter (ADR 0041): the persist/remove surface the
+// domain's VehicleRepository depends on. openVehiclePhotoFile stays a plain
+// module function — it's used only by the outbox handler (adapter→adapter),
+// not by the domain, so it is not part of the port.
+export const photoStore: PhotoStore = {
+  persist: persistVehiclePhoto,
+  remove: deleteVehiclePhoto,
+};

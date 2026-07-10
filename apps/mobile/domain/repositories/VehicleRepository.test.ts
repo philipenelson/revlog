@@ -1,18 +1,23 @@
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import type { Store, StoreQueryOptions } from '@/domain/ports/Store';
 import type { OutboxWriter } from '@/domain/ports/OutboxWriter';
+import type { PhotoStore, PickedPhoto, StablePhoto } from '@/domain/ports/PhotoStore';
 import { createVehicleRepository, type LocalVehicleDetail } from './VehicleRepository';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'generated-id') }));
-jest.mock('@/infrastructure/storage/photoStorage', () => ({
-  persistVehiclePhoto: jest.fn(),
-  deleteVehiclePhoto: jest.fn(),
-}));
 
-import { persistVehiclePhoto, deleteVehiclePhoto } from '@/infrastructure/storage/photoStorage';
+// Injected fake for the PhotoStore port (ADR 0041) — replaces the former
+// jest.mock of the concrete photoStorage module now that the repository takes
+// the port as a constructor argument. A fresh one is built per test (beforeEach).
+function fakePhotoStore() {
+  const persist = jest.fn(
+    async (_vehicleId: string, _photo: PickedPhoto): Promise<StablePhoto> => ({ uri: '', name: '', type: '' }),
+  );
+  const remove = jest.fn((_uri: string) => {});
+  return { photoStore: { persist, remove } as PhotoStore, persist, remove };
+}
 
-const mockPersistVehiclePhoto = persistVehiclePhoto as jest.MockedFunction<typeof persistVehiclePhoto>;
-const mockDeleteVehiclePhoto = deleteVehiclePhoto as jest.MockedFunction<typeof deleteVehiclePhoto>;
+let photoStoreFake: ReturnType<typeof fakePhotoStore>;
 
 function fakeOutboxWriter<T extends { id: string }>() {
   const save = jest.fn(async (_record: T, _outboxType: string, _outboxPayload: unknown) => {});
@@ -81,6 +86,9 @@ const defaultDetail = {
 };
 
 describe('VehicleRepository', () => {
+  beforeEach(() => {
+    photoStoreFake = fakePhotoStore();
+  });
   afterEach(() => jest.clearAllMocks());
 
   it('findAll returns vehicles ordered by sortOrder, without leaking sortOrder or detail fields', async () => {
@@ -88,7 +96,7 @@ describe('VehicleRepository', () => {
       { ...vehicleB, ...defaultDetail, sortOrder: 1 },
       { ...vehicleA, ...defaultDetail, sortOrder: 0 },
     ]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     const result = await repo.findAll();
 
@@ -101,7 +109,7 @@ describe('VehicleRepository', () => {
     const { store, getRows } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([
       { ...vehicleA, ...defaultDetail, sortOrder: 0 },
     ]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     await repo.reconcile([vehicleB, vehicleA]);
 
@@ -116,7 +124,7 @@ describe('VehicleRepository', () => {
     const { store, getRows } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([
       { ...vehicleA, ...defaultDetail, sortOrder: 0 },
     ]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     await repo.reconcile([]);
 
@@ -134,7 +142,7 @@ describe('VehicleRepository', () => {
         pendingTransferRecipientEmail: 'alex@example.com',
       },
     ]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     // vehicleA reappears in the fresh GET /vehicles list (phase 1); its
     // previously-fetched detail fields must survive this replace even
@@ -165,7 +173,7 @@ describe('VehicleRepository', () => {
         pendingTransferRecipientEmail: null,
       },
     ]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     const result = await repo.findById('v1');
 
@@ -181,7 +189,7 @@ describe('VehicleRepository', () => {
 
   it('findById returns null when the vehicle does not exist locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     expect(await repo.findById('missing')).toBeNull();
   });
@@ -189,7 +197,7 @@ describe('VehicleRepository', () => {
   it('create writes a new row with a generated id and default detail fields, and enqueues a CREATE_VEHICLE outbox entry atomically', async () => {
     const { store, getRows } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     const id = await repo.create({ nickname: 'Blackbird', make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 });
 
@@ -218,7 +226,7 @@ describe('VehicleRepository', () => {
   it('create sorts a new vehicle ahead of existing ones', async () => {
     const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.create({ nickname: null, make: 'KTM', model: '390 Duke', year: 2021, mileage: 1800 });
 
@@ -232,14 +240,14 @@ describe('VehicleRepository', () => {
   it('create persists a picked photo locally and includes the stable reference in the outbox payload', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
     const pickedPhoto = { uri: 'file:///tmp/picker-cache/abc.jpg', name: 'photo.jpg', type: 'image/jpeg' };
     const stablePhoto = { uri: 'file:///documents/vehicle-photos/generated-id.jpg', name: 'photo.jpg', type: 'image/jpeg' };
-    mockPersistVehiclePhoto.mockResolvedValue(stablePhoto);
+    photoStoreFake.persist.mockResolvedValue(stablePhoto);
 
     await repo.create({ nickname: null, make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 }, pickedPhoto);
 
-    expect(mockPersistVehiclePhoto).toHaveBeenCalledWith('generated-id', pickedPhoto);
+    expect(photoStoreFake.persist).toHaveBeenCalledWith('generated-id', pickedPhoto);
     expect(save).toHaveBeenCalledWith(
       // photoUrl is the stable local file, not null -- Garage/Vehicle
       // Detail render it immediately, before the create has even reached
@@ -254,18 +262,18 @@ describe('VehicleRepository', () => {
   it('create does not touch photo storage when no photo is given', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.create({ nickname: null, make: 'Honda', model: 'CB650R', year: 2019, mileage: 4200 });
 
-    expect(mockPersistVehiclePhoto).not.toHaveBeenCalled();
+    expect(photoStoreFake.persist).not.toHaveBeenCalled();
     const [, , payload] = save.mock.calls[0]!;
     expect(payload).not.toHaveProperty('photo');
   });
 
   it('applyDetail merges detail fields into the existing row', async () => {
     const { store, getRows } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     await repo.applyDetail('v1', {
       totalSpent: '1840.00',
@@ -288,7 +296,7 @@ describe('VehicleRepository', () => {
 
   it('applyDetail is a no-op when the vehicle no longer exists locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
-    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer);
+    const repo = createVehicleRepository(store, fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>().writer, photoStoreFake.photoStore);
 
     await repo.applyDetail('missing', {
       totalSpent: '0.00',
@@ -303,7 +311,7 @@ describe('VehicleRepository', () => {
   it('update merges the given fields into the existing row and enqueues an UPDATE_VEHICLE outbox entry atomically', async () => {
     const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.update('v1', { nickname: 'Widowmaker', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 });
 
@@ -320,7 +328,7 @@ describe('VehicleRepository', () => {
   it('update is a no-op when the vehicle does not exist locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.update('missing', { nickname: null, make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 });
 
@@ -330,10 +338,10 @@ describe('VehicleRepository', () => {
   it('update persists a picked replacement photo locally and includes the stable reference in the outbox payload', async () => {
     const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
     const pickedPhoto = { uri: 'file:///tmp/picker-cache/abc.jpg', name: 'photo.jpg', type: 'image/jpeg' };
     const stablePhoto = { uri: 'file:///documents/vehicle-photos/v1.jpg', name: 'photo.jpg', type: 'image/jpeg' };
-    mockPersistVehiclePhoto.mockResolvedValue(stablePhoto);
+    photoStoreFake.persist.mockResolvedValue(stablePhoto);
 
     await repo.update(
       'v1',
@@ -341,7 +349,7 @@ describe('VehicleRepository', () => {
       pickedPhoto,
     );
 
-    expect(mockPersistVehiclePhoto).toHaveBeenCalledWith('v1', pickedPhoto);
+    expect(photoStoreFake.persist).toHaveBeenCalledWith('v1', pickedPhoto);
     expect(save).toHaveBeenCalledWith(
       // photoUrl is the stable local file, not the row's previous value --
       // Garage/Vehicle Detail render it immediately, before the update has
@@ -356,11 +364,11 @@ describe('VehicleRepository', () => {
   it('update does not touch photo storage when no photo is given', async () => {
     const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.update('v1', { nickname: 'Widowmaker', make: 'Honda', model: 'CB650R', year: 2020, mileage: 5000 });
 
-    expect(mockPersistVehiclePhoto).not.toHaveBeenCalled();
+    expect(photoStoreFake.persist).not.toHaveBeenCalled();
     const [updatedRow, , payload] = save.mock.calls[0]!;
     expect((updatedRow as { photoUrl: string | null }).photoUrl).toBe(vehicleA.photoUrl);
     expect(payload).not.toHaveProperty('photo');
@@ -369,7 +377,7 @@ describe('VehicleRepository', () => {
   it('delete removes the local row and enqueues a DELETE_VEHICLE outbox entry atomically', async () => {
     const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
     const { writer, remove } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.delete('v1');
 
@@ -382,12 +390,12 @@ describe('VehicleRepository', () => {
   it('delete is a no-op when the vehicle does not exist locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
     const { writer, remove } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.delete('missing');
 
     expect(remove).not.toHaveBeenCalled();
-    expect(mockDeleteVehiclePhoto).not.toHaveBeenCalled();
+    expect(photoStoreFake.remove).not.toHaveBeenCalled();
   });
 
   it('delete cleans up a not-yet-synced local photo file before enqueuing the outbox entry', async () => {
@@ -395,11 +403,11 @@ describe('VehicleRepository', () => {
       { ...vehicleA, ...defaultDetail, sortOrder: 0, photoUrl: 'file:///documents/vehicle-photos/v1.jpg' },
     ]);
     const { writer } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.delete('v1');
 
-    expect(mockDeleteVehiclePhoto).toHaveBeenCalledWith('file:///documents/vehicle-photos/v1.jpg');
+    expect(photoStoreFake.remove).toHaveBeenCalledWith('file:///documents/vehicle-photos/v1.jpg');
   });
 
   it('delete leaves a reconciled (remote) photo url alone', async () => {
@@ -407,17 +415,17 @@ describe('VehicleRepository', () => {
       { ...vehicleA, ...defaultDetail, sortOrder: 0, photoUrl: 'https://cdn.example.com/v1.jpg' },
     ]);
     const { writer } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.delete('v1');
 
-    expect(mockDeleteVehiclePhoto).not.toHaveBeenCalled();
+    expect(photoStoreFake.remove).not.toHaveBeenCalled();
   });
 
   it('initiateTransfer marks the row transferPending and enqueues an INITIATE_TRANSFER outbox entry atomically', async () => {
     const { store } = fakeStore([{ ...vehicleA, ...defaultDetail, sortOrder: 0 }]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.initiateTransfer('v1', 'buyer@example.com');
 
@@ -438,7 +446,7 @@ describe('VehicleRepository', () => {
   it('initiateTransfer is a no-op when the vehicle does not exist locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.initiateTransfer('missing', 'buyer@example.com');
 
@@ -456,7 +464,7 @@ describe('VehicleRepository', () => {
       },
     ]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.cancelTransfer('v1');
 
@@ -471,7 +479,7 @@ describe('VehicleRepository', () => {
   it('cancelTransfer is a no-op when the vehicle does not exist locally', async () => {
     const { store } = fakeStore<LocalVehicleDetail & { sortOrder: number }>([]);
     const { writer, save } = fakeOutboxWriter<LocalVehicleDetail & { sortOrder: number }>();
-    const repo = createVehicleRepository(store, writer);
+    const repo = createVehicleRepository(store, writer, photoStoreFake.photoStore);
 
     await repo.cancelTransfer('missing');
 
