@@ -15,13 +15,13 @@ jest.mock('@maintenance-log/api-client', () => ({
   updateLogEntry: jest.fn(),
   deleteLogEntry: jest.fn(),
 }));
-jest.mock('@/infrastructure/storage/photoStorage', () => ({
+jest.mock('@/adapters/storage/photoStorage', () => ({
   deleteVehiclePhoto: jest.fn(),
   openVehiclePhotoFile: jest.fn(),
 }));
 
 import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, initiateTransfer, cancelTransfer, createLogEntry, updateLogEntry, deleteLogEntry } from '@maintenance-log/api-client';
-import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
+import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/adapters/storage/photoStorage';
 
 const mockCreateVehicle = createVehicle as jest.MockedFunction<typeof createVehicle>;
 const mockCreateVehicleWithPhotoUri = createVehicleWithPhotoUri as jest.MockedFunction<typeof createVehicleWithPhotoUri>;

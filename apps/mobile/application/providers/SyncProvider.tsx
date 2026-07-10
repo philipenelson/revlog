@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { AppState } from 'react-native';
 import { useNetInfo } from '@react-native-community/netinfo';
-import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
+import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
-import { createSyncService } from '@/infrastructure/sync/SyncService';
-import { createOutboxHandlers } from '@/infrastructure/sync/outboxHandlers';
-import { logger } from '@/infrastructure/logging/logger';
+import { createSyncService } from '@/adapters/sync/SyncService';
+import { createOutboxHandlers } from '@/adapters/sync/outboxHandlers';
+import { logger } from '@/adapters/logging/logger';
 
 type SyncStatus = 'idle' | 'syncing' | 'error';
 

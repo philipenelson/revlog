@@ -6,9 +6,9 @@ import { loginSchema, type LoginInput } from '@maintenance-log/domain';
 import type { Session } from '@maintenance-log/api-client';
 import { useSignIn, type SignInResult } from '@/application/auth/useSignIn';
 import { routeForAccountStatus } from '@/application/navigation/routeForAccountStatus';
-import { biometrics } from '@/infrastructure/biometrics/biometrics';
-import { credentialStore } from '@/infrastructure/storage/credentialStore';
-import { preferences } from '@/infrastructure/storage/preferences';
+import { biometrics } from '@/adapters/biometrics/biometrics';
+import { credentialStore } from '@/adapters/storage/credentialStore';
+import { preferences } from '@/adapters/storage/preferences';
 
 const SIGN_IN_USER_ERROR =
   "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";

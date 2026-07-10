@@ -18,16 +18,16 @@ The Revlog mobile app delivers full feature parity with the V1 web app on iOS an
 
 ## Architecture
 
-The mobile app follows the same MVVM layered architecture as the web app, adapted for React Native:
+The mobile app follows Hexagonal (Ports & Adapters) MVVM, the same as the web app, adapted for React Native (see ADR 0041):
 
 ```
 app/             ← expo-router routing shell (entry points only, no logic)
 application/     ← screens, viewmodels, components, providers, navigation
-domain/          ← repositories, types, validation
-infrastructure/  ← SQLiteLocalDatabase, TokenHttpClient, SyncService, storage
+domain/          ← ports (Store/OutboxWriter/PhotoStore), repositories, validation
+adapters/        ← SQLiteStore, TokenHttpClient, SyncService, storage
 ```
 
-Dependency direction: `application` → `domain` → `infrastructure`.
+Dependency direction: `app → application → domain`, with `adapters/` implementing the ports the core defines (inward).
 
 **Shared services:** All API service functions live in `packages/api-client` and are shared between the web and mobile apps. Each app provides its own `HttpClient` adapter. See ADR 0024.
 

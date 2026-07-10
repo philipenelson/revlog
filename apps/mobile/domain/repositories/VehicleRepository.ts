@@ -1,8 +1,8 @@
 import * as Crypto from 'expo-crypto';
 import type { VehicleSummary } from '@maintenance-log/api-client';
-import type { Store } from '@/infrastructure/database/Store';
-import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
-import { persistVehiclePhoto, deleteVehiclePhoto, type PickedPhoto } from '@/infrastructure/storage/photoStorage';
+import type { Store } from '@/domain/ports/Store';
+import type { OutboxWriter } from '@/domain/ports/OutboxWriter';
+import type { PhotoStore, PickedPhoto } from '@/domain/ports/PhotoStore';
 
 // Vehicle Detail-only fields — VehicleSummary (GET /vehicles) can't supply
 // these; they come from GET /vehicles/:vehicleId. See ADR 0027's 2026-07-03
@@ -110,6 +110,7 @@ export interface VehicleRepository {
 export function createVehicleRepository(
   store: Store<LocalVehicle>,
   outboxWriter: OutboxWriter<LocalVehicle>,
+  photoStore: PhotoStore,
 ): VehicleRepository {
   async function findRow(id: string): Promise<LocalVehicle | undefined> {
     const [row] = await store.getAll({ where: { id } });
@@ -146,7 +147,7 @@ export function createVehicleRepository(
       // reconcile() picks up the confirmed row from GET /vehicles, its own
       // `photoUrl` (the real CDN url) naturally overwrites this local one —
       // see ADR 0027's 2026-07-03 "local photo preview" update.
-      const stablePhoto = photo ? await persistVehiclePhoto(id, photo) : undefined;
+      const stablePhoto = photo ? await photoStore.persist(id, photo) : undefined;
       const vehicle: LocalVehicle = {
         id,
         ...data,
@@ -168,7 +169,7 @@ export function createVehicleRepository(
       // Same reasoning as create()'s photoUrl handling: the stable local
       // path renders immediately (Image treats file:// like https://), and
       // the next reconcile() overwrites it with the server's confirmed url.
-      const stablePhoto = photo ? await persistVehiclePhoto(vehicleId, photo) : undefined;
+      const stablePhoto = photo ? await photoStore.persist(vehicleId, photo) : undefined;
       const updated: LocalVehicle = { ...row, ...data, ...(stablePhoto ? { photoUrl: stablePhoto.uri } : {}) };
       const outboxPayload: Record<string, unknown> = { vehicleId, ...data };
       if (stablePhoto) outboxPayload.photo = stablePhoto;
@@ -181,7 +182,7 @@ export function createVehicleRepository(
       // Only ever a local file:// reference for a photo that hasn't synced
       // yet (see create()) -- a reconciled row's real CDN url is left
       // alone, nothing to clean up locally for that case.
-      if (row.photoUrl?.startsWith('file://')) deleteVehiclePhoto(row.photoUrl);
+      if (row.photoUrl?.startsWith('file://')) photoStore.remove(row.photoUrl);
       await outboxWriter.remove(vehicleId, 'DELETE_VEHICLE', { vehicleId });
     },
 

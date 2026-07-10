@@ -1,7 +1,7 @@
 import { createVehicle, createVehicleWithPhotoUri, updateVehicle, setVehiclePhotoUri, deleteVehicle, initiateTransfer, cancelTransfer, createLogEntry, updateLogEntry, deleteLogEntry, ApiError, type HttpClient } from '@maintenance-log/api-client';
 import { RetryableOutboxError, type OutboxHandler } from './SyncService';
-import { logger } from '@/infrastructure/logging/logger';
-import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/infrastructure/storage/photoStorage';
+import { logger } from '@/adapters/logging/logger';
+import { deleteVehiclePhoto, openVehiclePhotoFile } from '@/adapters/storage/photoStorage';
 
 interface CreateVehicleOutboxPayload {
   id: string;

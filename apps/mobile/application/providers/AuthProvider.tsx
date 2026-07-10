@@ -3,11 +3,11 @@ import { AppState } from 'react-native';
 import { router } from 'expo-router';
 import { ApiError, login as loginRequest } from '@maintenance-log/api-client';
 import type { Session } from '@maintenance-log/api-client';
-import { setSessionTokens, clearSessionTokens, tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
-import { credentialStore } from '@/infrastructure/storage/credentialStore';
+import { setSessionTokens, clearSessionTokens, tokenHttpClient } from '@/adapters/http/TokenHttpClient';
+import { credentialStore } from '@/adapters/storage/credentialStore';
 import { credentialForStore } from '@/application/auth/offlineSession';
-import { preferences } from '@/infrastructure/storage/preferences';
-import { logger } from '@/infrastructure/logging/logger';
+import { preferences } from '@/adapters/storage/preferences';
+import { logger } from '@/adapters/logging/logger';
 
 interface AuthContextValue {
   session: Session | null;

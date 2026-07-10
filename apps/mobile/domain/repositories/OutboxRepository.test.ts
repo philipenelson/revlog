@@ -1,4 +1,4 @@
-import type { Store, StoreQueryOptions } from '@/infrastructure/database/Store';
+import type { Store, StoreQueryOptions } from '@/domain/ports/Store';
 import { createOutboxRepository, type OutboxEntry } from './OutboxRepository';
 
 jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'generated-id') }));

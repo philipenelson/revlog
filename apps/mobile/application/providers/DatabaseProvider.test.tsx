@@ -5,9 +5,9 @@ import { DatabaseProvider, useDatabase } from './DatabaseProvider';
 // factories run for real, since they don't touch the connection until one
 // of their methods is actually called (never, in this test). Verifies the
 // provider's own job: open once, build both repositories, flip isReady.
-jest.mock('@/infrastructure/database/openDatabase', () => ({ openDatabase: jest.fn() }));
+jest.mock('@/adapters/database/openDatabase', () => ({ openDatabase: jest.fn() }));
 
-import { openDatabase } from '@/infrastructure/database/openDatabase';
+import { openDatabase } from '@/adapters/database/openDatabase';
 
 const mockOpenDatabase = openDatabase as jest.MockedFunction<typeof openDatabase>;
 

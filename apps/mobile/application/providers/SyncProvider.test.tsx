@@ -5,13 +5,13 @@ import { SyncProvider, useSync } from './SyncProvider';
 jest.mock('@react-native-community/netinfo', () => ({ useNetInfo: jest.fn() }));
 jest.mock('@/application/providers/AuthProvider', () => ({ useAuth: jest.fn() }));
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
-jest.mock('@/infrastructure/sync/SyncService', () => ({ createSyncService: jest.fn() }));
-jest.mock('@/infrastructure/http/TokenHttpClient', () => ({ tokenHttpClient: {} }));
+jest.mock('@/adapters/sync/SyncService', () => ({ createSyncService: jest.fn() }));
+jest.mock('@/adapters/http/TokenHttpClient', () => ({ tokenHttpClient: {} }));
 
 import { useNetInfo } from '@react-native-community/netinfo';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
-import { createSyncService } from '@/infrastructure/sync/SyncService';
+import { createSyncService } from '@/adapters/sync/SyncService';
 
 const mockUseNetInfo = useNetInfo as jest.MockedFunction<typeof useNetInfo>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;

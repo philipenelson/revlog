@@ -1,6 +1,6 @@
 import type { Session } from '@maintenance-log/api-client';
 import type { LoginInput } from '@maintenance-log/domain';
-import type { StoredCredential } from '@/infrastructure/storage/credentialStore';
+import type { StoredCredential } from '@/adapters/storage/credentialStore';
 
 // Pure mappings between a Session, login credentials, and the stored-credential
 // blob (ADR 0036). Kept in a leaf module (no React, no provider imports) so

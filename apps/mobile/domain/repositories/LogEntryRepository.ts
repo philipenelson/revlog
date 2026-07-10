@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import type { LogEntrySummary } from '@maintenance-log/api-client';
-import type { Store } from '@/infrastructure/database/Store';
-import type { OutboxWriter } from '@/infrastructure/database/OutboxWriter';
+import type { Store } from '@/domain/ports/Store';
+import type { OutboxWriter } from '@/domain/ports/OutboxWriter';
 
 // Local-only columns, never exposed on this repository's public read
 // methods — findByVehicleId strips them back to a plain LogEntrySummary;

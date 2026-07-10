@@ -23,7 +23,7 @@ Design file: [`revlog-mobile-offline-sync.html`](../../designs/mobile/revlog-mob
 ### `Store<T>` port
 
 ```ts
-// infrastructure/database/Store.ts
+// domain/ports/Store.ts  (moved into the core — ADR 0041)
 export interface Store<T extends { id: string }> {
   getAll(options?: { where?: Partial<T>; orderBy?: { field: keyof T; direction: 'asc' | 'desc' } }): Promise<T[]>;
   save(record: T): Promise<void>;
@@ -32,7 +32,7 @@ export interface Store<T extends { id: string }> {
 }
 ```
 
-`SQLiteStore` (`infrastructure/database/SQLiteStore.ts`, factory `createSQLiteStore<T>(db, table)`) implements this port using expo-sqlite + Drizzle, one instance per entity/collection. `openDatabase.ts` opens the connection, sets the SQLCipher key (a `PRAGMA key` statement, not an open option — see ADR 0026's update), and runs migrations once; the key is generated via `expo-crypto` and stored in `expo-secure-store` (`secureStorage.getOrCreateDbKey()`, deliberately untouched by the per-restart token clear).
+`SQLiteStore` (`adapters/database/SQLiteStore.ts`, factory `createSQLiteStore<T>(db, table)`) implements this port using expo-sqlite + Drizzle, one instance per entity/collection. `openDatabase.ts` opens the connection, sets the SQLCipher key (a `PRAGMA key` statement, not an open option — see ADR 0026's update), and runs migrations once; the key is generated via `expo-crypto` and stored in `expo-secure-store` (`secureStorage.getOrCreateDbKey()`, deliberately untouched by the per-restart token clear).
 
 ### Repositories
 
@@ -67,7 +67,7 @@ Every write operation in a repository calls `OutboxRepository.enqueue()` in the 
 
 ### SyncService
 
-`infrastructure/sync/SyncService.ts` — factory `createSyncService({ client, vehicleRepository, outboxRepository, handlers })`, mounted (via `SyncProvider`) at the application root.
+`adapters/sync/SyncService.ts` — factory `createSyncService({ client, vehicleRepository, outboxRepository, handlers })`, mounted (via `SyncProvider`) at the application root.
 
 **Outbox flush (`flushOutbox()`, triggered on mount, connectivity restored, and app foreground):**
 

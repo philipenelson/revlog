@@ -5,19 +5,19 @@ import type { LoginInput } from '@maintenance-log/domain';
 import { renderViewModel } from '../../../test/renderViewModel';
 import { useLoginViewModel, type LoginViewModel } from './useLoginViewModel';
 import { useSignIn, type SignInResult } from '@/application/auth/useSignIn';
-import { biometrics } from '@/infrastructure/biometrics/biometrics';
-import { credentialStore } from '@/infrastructure/storage/credentialStore';
-import { preferences } from '@/infrastructure/storage/preferences';
+import { biometrics } from '@/adapters/biometrics/biometrics';
+import { credentialStore } from '@/adapters/storage/credentialStore';
+import { preferences } from '@/adapters/storage/preferences';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), replace: jest.fn() } }));
 jest.mock('@/application/auth/useSignIn', () => ({ useSignIn: jest.fn() }));
-jest.mock('@/infrastructure/biometrics/biometrics', () => ({
+jest.mock('@/adapters/biometrics/biometrics', () => ({
   biometrics: { isAvailable: jest.fn(), authenticate: jest.fn() },
 }));
-jest.mock('@/infrastructure/storage/credentialStore', () => ({
+jest.mock('@/adapters/storage/credentialStore', () => ({
   credentialStore: { get: jest.fn(), has: jest.fn() },
 }));
-jest.mock('@/infrastructure/storage/preferences', () => ({
+jest.mock('@/adapters/storage/preferences', () => ({
   preferences: { getBiometricUnlockEnabled: jest.fn(), getHasPromptedBiometric: jest.fn() },
 }));
 

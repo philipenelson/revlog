@@ -1,12 +1,17 @@
 # Mobile App — Architecture Rules
 
-## Layered architecture (non-negotiable)
+## Architecture — Hexagonal (Ports & Adapters) MVVM (non-negotiable)
 
-The mobile app uses the same MVVM layered architecture as the web app. Dependency direction is one-way and strictly enforced:
+The mobile app is **Hexagonal (Ports & Adapters)** — see [ADR 0041](../../docs/adr/0041-hexagonal-architecture-mobile.md), which renames the MVVM layering of [ADR 0023](../../docs/adr/0023-mobile-app-architecture.md) into hexagon vocabulary (its rules are unchanged), mirroring the API (ADR 0039) and web (ADR 0040). Dependency direction is one-way and inward (there is no `src/` folder; layers live directly under `apps/mobile/`, alias `@/*` → `./*`):
 
 ```
-app/ → application/ → domain/ → infrastructure/
+app → application → domain            (adapters implement the ports the core defines)
 ```
+
+**Frontend hexagon roles** — the UI framework *is* the driving adapter, so (as on web) the application layer is React-Native-bound, named openly:
+- **Driving adapters** — `app/` routes + the `application/screens/*` **views**; also the **`SyncProvider` trigger** (responds to mount/reconnect/foreground/network events).
+- **Core** — `domain/` (framework-free: repositories, driven **ports**, locale/validation) + the `application/` **ViewModels** (orchestration, bound to React Native by design).
+- **Driven adapters** — `adapters/{database,http,sync,storage,biometrics,logging}`: the only code touching SQLite, the network, secure storage, the file system, biometrics, or the console. The **`SyncService` engine is a driven adapter** (talks OUT via the `HttpClient` port); only its trigger is on the driving side.
 
 ### `app/` — expo-router routing shell
 
@@ -37,35 +42,41 @@ application/
 
 **ViewModels own all behaviour.** All state machines, effects, validation calls, and repository calls live in `use<Screen>ViewModel`. ViewModels return data and callbacks — never JSX.
 
-### `domain/` — repositories, types, validation
+### `domain/` — framework-free core (ports, repositories, validation)
 
 ```
 domain/
+  ports/                     ← driven port interfaces: Store<T>, OutboxWriter<T>, PhotoStore
   repositories/              ← VehicleRepository, LogEntryRepository, OutboxRepository, etc.
-  types.ts                   ← domain types
+  locale.ts                  ← domain types/constants
   validation/                ← client-side draft validation rules
 ```
 
-Repositories are the ONLY place that touches the `LocalDatabase` port. ViewModels call repositories, never `LocalDatabase` directly. Repositories own the logic of "write to SQLite + enqueue outbox entry in a single transaction."
+Repositories are the ONLY place that touches the `Store<T>` / `OutboxWriter<T>` ports. ViewModels call repositories, never a store directly. Repositories own the logic of "write to SQLite + enqueue outbox entry in a single atomic write (`OutboxWriter<T>`)." Every driven port a repository needs is **defined in `domain/ports/`** and injected as a constructor argument (e.g. `createVehicleRepository(store, outboxWriter, photoStore)`); the concrete adapter is supplied by `DatabaseProvider`.
 
-Services from `packages/api-client` are not called from viewmodels **for syncable application data** (vehicles, log entries) — that data goes through repositories so reads and writes stay offline-first. **Online-only operations that are never persisted locally (auth, report tokens) may call api-client services directly with `tokenHttpClient`, mirroring the web viewmodels** — see `useLoginViewModel` and `useRegisterViewModel`.
+Services from `packages/api-client` are not called from viewmodels **for syncable application data** (vehicles, log entries) — that data goes through repositories so reads and writes stay offline-first. **Online-only operations that are never persisted locally (auth, report tokens) may call api-client services directly with `tokenHttpClient`, mirroring the web viewmodels** — see `useLoginViewModel` and `useRegisterViewModel`. There is **no mobile-local gateway port** wrapping api-client (ADR 0041 §4).
 
-### `infrastructure/` — adapters, transport, sync, storage
+### `adapters/` — the driven side (transport, database, sync, storage)
 
 ```
-infrastructure/
+adapters/
   database/
-    LocalDatabase.ts          ← Port (interface)
-    SQLiteLocalDatabase.ts    ← Adapter (expo-sqlite + Drizzle + SQLCipher)
+    Store.ts / OutboxWriter.ts  ← (ports now live in domain/ports/ — see above)
+    SQLiteStore.ts              ← Adapter: createSQLiteStore / createOutboxWriter
+                                   (expo-sqlite + Drizzle + SQLCipher)
+    openDatabase.ts schema.ts migrations.ts
   http/
-    TokenHttpClient.ts        ← HttpClient adapter (reads from expo-secure-store)
+    TokenHttpClient.ts          ← implements the api-client HttpClient port (reads secure store)
   sync/
-    SyncService.ts            ← Outbox flush + API pull
+    SyncService.ts              ← driven sync engine: outbox flush + API pull
+    outboxHandlers.ts
   storage/
-    secureStorage.ts          ← expo-secure-store wrapper
+    secureStorage.ts preferences.ts credentialStore.ts  ← concrete single-impl wrappers (no port)
+    photoStorage.ts             ← implements the domain/ports/PhotoStore port
+  biometrics/biometrics.ts  logging/logger.ts           ← concrete single-impl wrappers (no port)
 ```
 
-`infrastructure/` imports nothing from `application/` or `domain/`. It satisfies ports defined in `domain/`.
+`adapters/` imports nothing from `application/`; it may import `domain/` (implementing its ports — the allowed inward direction). Only `photoStorage` and `SQLiteStore` implement a `domain/ports/` interface. The other wrappers (`secureStorage`, `preferences`, `credentialStore`, `biometrics`, `logger`, the `tokenHttpClient` singleton) stay **concrete with no port** — single implementations that don't leak into `domain/`, so a port would be boilerplate without a seam (ADR 0041 §3).
 
 ---
 
@@ -73,9 +84,9 @@ infrastructure/
 
 The app is fully offline-first. These rules govern *syncable application data* (vehicles, log entries) — the entities the user must be able to read and mutate offline. Online-only operations that are never persisted locally (auth, report tokens) are outside their scope and call api-client services directly, as the web does. For syncable data the rules apply without exception:
 
-1. **All reads come from local SQLite.** ViewModels never call the API to display data. They call repositories, which read from `SQLiteLocalDatabase`.
+1. **All reads come from local SQLite.** ViewModels never call the API to display data. They call repositories, which read via the `Store<T>` port (adapter: `SQLiteStore`).
 
-2. **All writes go to SQLite + outbox in a single transaction.** Repositories call `LocalDatabase.transaction()` to apply the entity change and enqueue an outbox entry atomically. If the transaction fails, neither change is committed.
+2. **All writes go to SQLite + outbox in a single transaction.** Repositories call `OutboxWriter<T>.save()/remove()` to apply the entity change and enqueue an outbox entry atomically in one transaction. If it fails, neither change is committed.
 
 3. **SyncService owns all network I/O.** It flushes the outbox to the API and pulls fresh data. Nothing outside `SyncService` initiates API calls for data sync.
 
@@ -115,7 +126,7 @@ Never use the `style={{}}` prop inline in JSX. Use `StyleSheet.create()` exclusi
 Screen components are logic-free and are not unit-tested. Unit tests cover viewmodels, repositories, and services only.
 
 - **ViewModels** — unit test all state transitions, effect logic, and validation paths
-- **Repositories** — unit test with a mock `LocalDatabase`; verify write + outbox enqueue in same transaction
+- **Repositories** — unit test with fake `Store<T>` / `OutboxWriter<T>` / `PhotoStore` ports injected; verify write + outbox enqueue in same transaction
 - **Services** (`packages/api-client`) — unit test with a mock `HttpClient`
 
 ### E2E tests (Appium)
@@ -136,7 +147,7 @@ pnpm --filter @maintenance-log/mobile test
 
 ## Token storage (non-negotiable)
 
-Always use `expo-secure-store` via `infrastructure/storage/secureStorage.ts` for auth tokens. Never store tokens in `AsyncStorage`, `MMKV`, or module-level variables that survive re-renders.
+Always use `expo-secure-store` via `adapters/storage/secureStorage.ts` for auth tokens. Never store tokens in `AsyncStorage`, `MMKV`, or module-level variables that survive re-renders.
 
 The `TokenHttpClient` reads tokens from secure storage and injects `Authorization: Bearer <accessToken>` on authenticated requests. On the refresh call (`POST /auth/refresh`) it injects `Refresh-Token: <refreshToken>` instead; on logout (`POST /auth/logout`) it injects *both* (Bearer to authenticate, Refresh-Token so the server can revoke it — ADR 0034). This is the only client-side auth mechanism.
 

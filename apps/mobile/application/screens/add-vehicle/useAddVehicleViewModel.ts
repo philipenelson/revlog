@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { createVehicleSchema } from '@maintenance-log/domain';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
-import type { PickedPhoto } from '@/infrastructure/storage/photoStorage';
+import type { PickedPhoto } from '@/domain/ports/PhotoStore';
 
 // Plain strings, not react-hook-form + zodResolver<CreateVehicleInput> — same
 // reasoning as Edit Vehicle's VehicleFormFields (the schema's nickname

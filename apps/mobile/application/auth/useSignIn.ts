@@ -2,11 +2,11 @@ import { useCallback } from 'react';
 import { ApiError, login as loginRequest } from '@maintenance-log/api-client';
 import type { Session } from '@maintenance-log/api-client';
 import type { LoginInput } from '@maintenance-log/domain';
-import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
+import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { credentialStore } from '@/infrastructure/storage/credentialStore';
+import { credentialStore } from '@/adapters/storage/credentialStore';
 import { buildOfflineSession, credentialForStore } from '@/application/auth/offlineSession';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 
 // The single sign-in path shared by the login screen (typed credentials) and
 // biometric unlock (credentials fetched from the store). Online-first, with a
