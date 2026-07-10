@@ -105,6 +105,19 @@ Use React Hook Form + Zod resolver. Validation schemas are imported from `@maint
 
 ---
 
+## ViewModel testing — Pure Functional Core + Framework Hook Shell (non-negotiable)
+
+ViewModels follow **Pure Functional Core, Framework Hook Shell** (ADR 0043), the same pattern as mobile. Run with `pnpm --filter @maintenance-log/web test` (vitest + jsdom).
+
+- **Pure functional core** — extract validations, conditional display calculations, data transformers, and business rules into **stateless pure functions** in a co-located `<screen>.logic.ts` (no React, no I/O; collaborators passed as args). Unit-test them **directly** in `<screen>.logic.test.ts` — this is where exhaustive branch coverage lives.
+- **Hook shell** — `use<Screen>ViewModel.ts` stays an idiomatic hook that uses `useState`/`useEffect`/`useMemo` (+ RHF/router/providers) **only** to bind those pure functions to React's lifecycle and handlers. No business rules inline in the hook.
+- **Hook-shell tests** — `use<Screen>ViewModel.test.tsx` uses the harness at `@/test/renderViewModel` (`renderHook` for logic-only hooks; `renderViewModelForm` to drive RHF `register`-bound submit paths) to verify state transitions, effects, and handler orchestration — not the business rules (already covered by the pure tests).
+- **Views stay dumb** — components are logic-free and are not unit-tested; Cypress covers the rendered whole.
+
+Example: `application/screens/login/` — `login.logic.ts` (`safeNextPath`, `isUserFacingError`, `resolvePostAuthRoute`, …) + `login.logic.test.ts`; `useLoginViewModel.ts` (shell) + `useLoginViewModel.test.tsx`.
+
+---
+
 ## Client-side state
 
 Access tokens are stored in React state (memory only) — never in `localStorage` or `sessionStorage`. This follows the XSS-safe pattern described in [ADR 0002](../../docs/adr/0002-custom-jwt-auth.md).

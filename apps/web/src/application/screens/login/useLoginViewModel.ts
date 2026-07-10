@@ -10,16 +10,19 @@ import {
   type RegisterInput,
   type LoginInput,
 } from "@maintenance-log/domain";
-import { ApiError, login as loginRequest, register as registerRequest } from "@maintenance-log/api-client";
+import { login as loginRequest, register as registerRequest } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";
-import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 import { logger } from "@/adapters/logging/logger";
-
-const SIGN_IN_USER_ERROR =
-  "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";
-const REGISTER_USER_ERROR = "Couldn't create your account. Check your details and try again.";
-const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
+import {
+  SIGN_IN_USER_ERROR,
+  REGISTER_USER_ERROR,
+  SERVICE_ERROR,
+  safeNextPath,
+  isUserFacingError,
+  resolvePostAuthRoute,
+  verifyEmailRoute,
+} from "./login.logic";
 
 export type Tab = "login" | "register";
 
@@ -42,17 +45,6 @@ export interface LoginViewModel {
   };
 }
 
-function safeNextPath(raw: string | null): string | null {
-  if (!raw) return null;
-  try {
-    const url = new URL(raw, "http://localhost");
-    if (url.hostname !== "localhost") return null;
-    return url.pathname + url.search;
-  } catch {
-    return null;
-  }
-}
-
 export function useLoginViewModel(): LoginViewModel {
   const [tab, setTab] = useState<Tab>("login");
   const router = useRouter();
@@ -66,7 +58,7 @@ export function useLoginViewModel(): LoginViewModel {
   // first, or every visitor would flash through the form before being routed away.
   useEffect(() => {
     if (isRestoring || !session) return;
-    router.replace(nextPath ?? routeForAccountStatus(session.account.status));
+    router.replace(resolvePostAuthRoute(nextPath, session.account.status));
   }, [session, isRestoring, router, nextPath]);
 
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -94,9 +86,9 @@ export function useLoginViewModel(): LoginViewModel {
     try {
       const session = await loginRequest(cookieHttpClient, data);
       setSession(session);
-      router.push(nextPath ?? routeForAccountStatus(session.account.status));
+      router.push(resolvePostAuthRoute(nextPath, session.account.status));
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setLoginError(SIGN_IN_USER_ERROR);
       } else {
         logger.error("login request failed", { err });
@@ -109,9 +101,9 @@ export function useLoginViewModel(): LoginViewModel {
     setRegisterError(null);
     try {
       await registerRequest(cookieHttpClient, data);
-      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+      router.push(verifyEmailRoute(data.email));
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setRegisterError(REGISTER_USER_ERROR);
       } else {
         logger.error("registration request failed", { err });
