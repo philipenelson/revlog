@@ -2,14 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { ApiError, logout as logoutRequest, type UserProfile } from '@maintenance-log/api-client';
-import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
+import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
-import { preferences } from '@/infrastructure/storage/preferences';
-import { biometrics } from '@/infrastructure/biometrics/biometrics';
-import { credentialStore } from '@/infrastructure/storage/credentialStore';
+import { preferences } from '@/adapters/storage/preferences';
+import { biometrics } from '@/adapters/biometrics/biometrics';
+import { credentialStore } from '@/adapters/storage/credentialStore';
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, localeLabel, type AppLocale } from '@/domain/locale';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 
 const LEGAL_URLS = {
   terms: 'https://revlog.dev/terms',

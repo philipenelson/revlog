@@ -10,7 +10,7 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(() => ({ vehicleId: 'v1' })),
 }));
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
-jest.mock('@/infrastructure/logging/logger', () => ({
+jest.mock('@/adapters/logging/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 jest.mock('@maintenance-log/api-client', () => ({

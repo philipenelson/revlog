@@ -1,4 +1,4 @@
-import { secureStorage } from '@/infrastructure/storage/secureStorage';
+import { secureStorage } from '@/adapters/storage/secureStorage';
 import { ApiError, TimeoutError } from '@maintenance-log/api-client/errors';
 import type { HttpClient, RequestOptions } from '@maintenance-log/api-client/HttpClient';
 

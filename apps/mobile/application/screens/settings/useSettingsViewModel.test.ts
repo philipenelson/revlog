@@ -15,14 +15,14 @@ jest.mock('expo-router', () => {
 });
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
 jest.mock('@/application/providers/AuthProvider', () => ({ useAuth: jest.fn() }));
-jest.mock('@/infrastructure/logging/logger', () => ({
+jest.mock('@/adapters/logging/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 jest.mock('@maintenance-log/api-client', () => ({
   ...jest.requireActual('@maintenance-log/api-client'),
   logout: jest.fn(),
 }));
-jest.mock('@/infrastructure/storage/preferences', () => ({
+jest.mock('@/adapters/storage/preferences', () => ({
   preferences: {
     getLocale: jest.fn(),
     setLocale: jest.fn(),
@@ -30,18 +30,18 @@ jest.mock('@/infrastructure/storage/preferences', () => ({
     setBiometricUnlockEnabled: jest.fn(),
   },
 }));
-jest.mock('@/infrastructure/biometrics/biometrics', () => ({
+jest.mock('@/adapters/biometrics/biometrics', () => ({
   biometrics: { isAvailable: jest.fn(), authenticate: jest.fn() },
 }));
-jest.mock('@/infrastructure/storage/credentialStore', () => ({
+jest.mock('@/adapters/storage/credentialStore', () => ({
   credentialStore: { has: jest.fn() },
 }));
 
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { preferences } from '@/infrastructure/storage/preferences';
-import { biometrics } from '@/infrastructure/biometrics/biometrics';
-import { credentialStore } from '@/infrastructure/storage/credentialStore';
+import { preferences } from '@/adapters/storage/preferences';
+import { biometrics } from '@/adapters/biometrics/biometrics';
+import { credentialStore } from '@/adapters/storage/credentialStore';
 
 const mockUseDatabase = useDatabase as jest.MockedFunction<typeof useDatabase>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;

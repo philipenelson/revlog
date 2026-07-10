@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ApiError, verifyEmail, resendVerification } from '@maintenance-log/api-client';
-import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
+import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { routeForAccountStatus } from '@/application/navigation/routeForAccountStatus';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 
 const INVALID_CODE_ERROR = "That code isn't right. Check it and try again.";
 const CODE_EXPIRED_ERROR = 'That code has expired or been used up. Request a new one.';

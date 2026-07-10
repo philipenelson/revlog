@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
-import { secureStorage } from '@/infrastructure/storage/secureStorage';
+import { secureStorage } from '@/adapters/storage/secureStorage';
 import { runMigrations } from './migrations';
 
 const DATABASE_NAME = 'revlog.db';

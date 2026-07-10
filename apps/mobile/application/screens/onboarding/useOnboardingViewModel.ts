@@ -5,8 +5,8 @@ import { createVehicleSchema } from '@maintenance-log/domain';
 import { ApiError, skipOnboarding } from '@maintenance-log/api-client';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
-import { logger } from '@/infrastructure/logging/logger';
+import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
+import { logger } from '@/adapters/logging/logger';
 import type { PickedPhoto } from '@/domain/ports/PhotoStore';
 
 export type OnboardingStep = 1 | 2 | 3;

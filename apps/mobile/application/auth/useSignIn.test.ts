@@ -4,15 +4,15 @@ import type { Session } from '@maintenance-log/api-client';
 import type { LoginInput } from '@maintenance-log/domain';
 import { useSignIn } from './useSignIn';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { credentialStore } from '@/infrastructure/storage/credentialStore';
-import { logger } from '@/infrastructure/logging/logger';
+import { credentialStore } from '@/adapters/storage/credentialStore';
+import { logger } from '@/adapters/logging/logger';
 
 jest.mock('@/application/providers/AuthProvider', () => ({ useAuth: jest.fn() }));
-jest.mock('@/infrastructure/http/TokenHttpClient', () => ({ tokenHttpClient: {} }));
-jest.mock('@/infrastructure/storage/credentialStore', () => ({
+jest.mock('@/adapters/http/TokenHttpClient', () => ({ tokenHttpClient: {} }));
+jest.mock('@/adapters/storage/credentialStore', () => ({
   credentialStore: { get: jest.fn(), save: jest.fn(), has: jest.fn(), clear: jest.fn() },
 }));
-jest.mock('@/infrastructure/logging/logger', () => ({
+jest.mock('@/adapters/logging/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 jest.mock('@maintenance-log/api-client', () => ({

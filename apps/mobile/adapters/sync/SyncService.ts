@@ -3,7 +3,7 @@ import type { VehicleRepository } from '@/domain/repositories/VehicleRepository'
 import type { LogEntryRepository } from '@/domain/repositories/LogEntryRepository';
 import type { OutboxRepository } from '@/domain/repositories/OutboxRepository';
 import type { ProfileRepository } from '@/domain/repositories/ProfileRepository';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 
 // Thrown by an outbox handler to mean "this failed for a retryable reason
 // (5xx, network, timeout) — stop the flush, leave this entry pending, try

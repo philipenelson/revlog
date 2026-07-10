@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, Share } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getReportToken, createReportToken, revokeReportToken } from '@maintenance-log/api-client';
-import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
+import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 
 const GENERATE_ERROR = "Couldn't generate a link. Check your connection and try again.";
 const REVOKE_ERROR = "Couldn't revoke the link. Check your connection and try again.";

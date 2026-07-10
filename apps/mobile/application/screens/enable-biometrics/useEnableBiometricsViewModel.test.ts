@@ -3,15 +3,15 @@ import { router } from 'expo-router';
 import type { Session } from '@maintenance-log/api-client';
 import { useEnableBiometricsViewModel } from './useEnableBiometricsViewModel';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { biometrics } from '@/infrastructure/biometrics/biometrics';
-import { preferences } from '@/infrastructure/storage/preferences';
+import { biometrics } from '@/adapters/biometrics/biometrics';
+import { preferences } from '@/adapters/storage/preferences';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('@/application/providers/AuthProvider', () => ({ useAuth: jest.fn() }));
-jest.mock('@/infrastructure/biometrics/biometrics', () => ({
+jest.mock('@/adapters/biometrics/biometrics', () => ({
   biometrics: { authenticate: jest.fn() },
 }));
-jest.mock('@/infrastructure/storage/preferences', () => ({
+jest.mock('@/adapters/storage/preferences', () => ({
   preferences: { setBiometricUnlockEnabled: jest.fn(), setHasPromptedBiometric: jest.fn() },
 }));
 

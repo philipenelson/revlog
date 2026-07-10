@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { routeForAccountStatus } from '@/application/navigation/routeForAccountStatus';
-import { biometrics } from '@/infrastructure/biometrics/biometrics';
-import { preferences } from '@/infrastructure/storage/preferences';
+import { biometrics } from '@/adapters/biometrics/biometrics';
+import { preferences } from '@/adapters/storage/preferences';
 
 const ENABLE_PROMPT = 'Enable biometric unlock for Revlog';
 

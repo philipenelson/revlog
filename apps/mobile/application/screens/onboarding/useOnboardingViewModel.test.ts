@@ -4,13 +4,13 @@ import { ApiError, skipOnboarding } from '@maintenance-log/api-client';
 import { useOnboardingViewModel } from './useOnboardingViewModel';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 import * as ImagePicker from 'expo-image-picker';
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('@/application/providers/DatabaseProvider', () => ({ useDatabase: jest.fn() }));
 jest.mock('@/application/providers/AuthProvider', () => ({ useAuth: jest.fn() }));
-jest.mock('@/infrastructure/logging/logger', () => ({
+jest.mock('@/adapters/logging/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 jest.mock('@maintenance-log/api-client', () => ({

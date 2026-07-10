@@ -6,14 +6,14 @@ import type { ResetPasswordInput } from '@maintenance-log/domain';
 import { renderViewModel } from '../../../test/renderViewModel';
 import { useResetPasswordViewModel, type ResetPasswordViewModel } from './useResetPasswordViewModel';
 import { useAuth } from '@/application/providers/AuthProvider';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), back: jest.fn() },
   useLocalSearchParams: jest.fn(),
 }));
 jest.mock('@/application/providers/AuthProvider', () => ({ useAuth: jest.fn() }));
-jest.mock('@/infrastructure/logging/logger', () => ({
+jest.mock('@/adapters/logging/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 jest.mock('@maintenance-log/api-client', () => ({

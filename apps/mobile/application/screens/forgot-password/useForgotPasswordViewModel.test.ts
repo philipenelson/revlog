@@ -4,10 +4,10 @@ import { ApiError, forgotPassword } from '@maintenance-log/api-client';
 import type { ForgotPasswordInput } from '@maintenance-log/domain';
 import { renderViewModel } from '../../../test/renderViewModel';
 import { useForgotPasswordViewModel, type ForgotPasswordViewModel } from './useForgotPasswordViewModel';
-import { logger } from '@/infrastructure/logging/logger';
+import { logger } from '@/adapters/logging/logger';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() } }));
-jest.mock('@/infrastructure/logging/logger', () => ({
+jest.mock('@/adapters/logging/logger', () => ({
   logger: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
 }));
 jest.mock('@maintenance-log/api-client', () => ({

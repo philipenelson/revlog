@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import type { UserProfile } from '@maintenance-log/api-client';
-import { openDatabase } from '@/infrastructure/database/openDatabase';
-import { createSQLiteStore, createOutboxWriter } from '@/infrastructure/database/SQLiteStore';
-import { vehiclesTable, outboxTable, logEntriesTable, userProfileTable } from '@/infrastructure/database/schema';
-import { photoStore } from '@/infrastructure/storage/photoStorage';
+import { openDatabase } from '@/adapters/database/openDatabase';
+import { createSQLiteStore, createOutboxWriter } from '@/adapters/database/SQLiteStore';
+import { vehiclesTable, outboxTable, logEntriesTable, userProfileTable } from '@/adapters/database/schema';
+import { photoStore } from '@/adapters/storage/photoStorage';
 import { createVehicleRepository, type VehicleRepository, type LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import {
   createOutboxRepository,

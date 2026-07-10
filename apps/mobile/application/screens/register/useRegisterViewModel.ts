@@ -4,8 +4,8 @@ import { useForm, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@maintenance-log/domain';
 import { ApiError, register as registerRequest } from '@maintenance-log/api-client';
-import { tokenHttpClient } from '@/infrastructure/http/TokenHttpClient';
-import { logger } from '@/infrastructure/logging/logger';
+import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
+import { logger } from '@/adapters/logging/logger';
 
 const REGISTER_USER_ERROR = "Couldn't create your account. Check your details and try again.";
 const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
