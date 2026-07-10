@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LogEntryService } from './log-entry.service';
 import { AppError } from '../middleware/error';
 import type { CreateLogEntryInput } from '@maintenance-log/domain';
-import type { LogEntryRepository, VehicleRepository, LogEntry, LogEntrySummary, Vehicle } from '../domain';
-import type { PrismaClient } from '../generated/prisma/client';
+import type { LogEntryRepository, VehicleRepository, MetadataRepository, LogEntry, LogEntrySummary, Vehicle } from '../domain';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
@@ -75,22 +74,17 @@ function makeFakeVehicleRepo(overrides: Partial<VehicleRepository> = {}): Vehicl
     setPhoto: vi.fn(),
     findDetailById: vi.fn().mockResolvedValue(null),
     update: vi.fn(),
+    delete: vi.fn(),
+    existsById: vi.fn().mockResolvedValue(true),
+    bumpMileageIfLower: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
 
-function makeFakeDb(overrides: Record<string, unknown> = {}): Pick<PrismaClient, 'vehicle' | 'logEntryType' | 'itemCategory'> {
+function makeFakeMetadataRepo(overrides: Partial<MetadataRepository> = {}): MetadataRepository {
   return {
-    vehicle: {
-      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-      findFirst: vi.fn().mockResolvedValue(mockVehicle),
-    } as unknown as PrismaClient['vehicle'],
-    logEntryType: {
-      findUnique: vi.fn().mockResolvedValue({ id: 'MAINTENANCE' }),
-    } as unknown as PrismaClient['logEntryType'],
-    itemCategory: {
-      findUnique: vi.fn().mockResolvedValue({ id: 'PART' }),
-    } as unknown as PrismaClient['itemCategory'],
+    logEntryTypeExists: vi.fn().mockResolvedValue(true),
+    itemCategoryExists: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }
@@ -98,15 +92,15 @@ function makeFakeDb(overrides: Record<string, unknown> = {}): Pick<PrismaClient,
 describe('LogEntryService.create', () => {
   let logEntryRepo: LogEntryRepository;
   let vehicleRepo: VehicleRepository;
-  let db: ReturnType<typeof makeFakeDb>;
+  let metadataRepo: MetadataRepository;
   let service: LogEntryService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     logEntryRepo = makeFakeLogEntryRepo();
     vehicleRepo = makeFakeVehicleRepo();
-    db = makeFakeDb();
-    service = new LogEntryService(logEntryRepo, vehicleRepo, db as Pick<PrismaClient, 'vehicle' | 'logEntryType' | 'itemCategory'>);
+    metadataRepo = makeFakeMetadataRepo();
+    service = new LogEntryService(logEntryRepo, vehicleRepo, metadataRepo);
   });
 
   it('creates entry for owned vehicle', async () => {
@@ -119,20 +113,17 @@ describe('LogEntryService.create', () => {
   it('updates vehicle mileage when entry mileage is higher', async () => {
     await service.create('vehicle-1', 'account-1', { ...validInput, mileage: 15000 });
 
-    expect(db.vehicle.updateMany).toHaveBeenCalledWith({
-      where: { id: 'vehicle-1', mileage: { lt: 15000 } },
-      data: { mileage: 15000 },
-    });
+    expect(vehicleRepo.bumpMileageIfLower).toHaveBeenCalledWith('vehicle-1', 15000);
   });
 
   it('does not update vehicle mileage when entry has no mileage', async () => {
     await service.create('vehicle-1', 'account-1', { ...validInput, mileage: null });
 
-    expect(db.vehicle.updateMany).not.toHaveBeenCalled();
+    expect(vehicleRepo.bumpMileageIfLower).not.toHaveBeenCalled();
   });
 
   it('throws AppError(400) for invalid typeId', async () => {
-    (db.logEntryType.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (metadataRepo.logEntryTypeExists as ReturnType<typeof vi.fn>).mockResolvedValue(false);
 
     await expect(service.create('vehicle-1', 'account-1', validInput)).rejects.toMatchObject({
       statusCode: 400,
@@ -141,7 +132,7 @@ describe('LogEntryService.create', () => {
 
   it('throws AppError(404) when vehicle does not exist', async () => {
     (vehicleRepo.findAllByAccountId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (db.vehicle.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (vehicleRepo.existsById as ReturnType<typeof vi.fn>).mockResolvedValue(false);
 
     await expect(service.create('vehicle-1', 'account-1', validInput)).rejects.toMatchObject({
       statusCode: 404,
@@ -150,7 +141,7 @@ describe('LogEntryService.create', () => {
 
   it('throws AppError(403) when vehicle belongs to another account', async () => {
     (vehicleRepo.findAllByAccountId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (db.vehicle.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'vehicle-1' });
+    (vehicleRepo.existsById as ReturnType<typeof vi.fn>).mockResolvedValue(true);
 
     await expect(service.create('vehicle-1', 'account-1', validInput)).rejects.toMatchObject({
       statusCode: 403,
@@ -161,15 +152,15 @@ describe('LogEntryService.create', () => {
 describe('LogEntryService.list', () => {
   let logEntryRepo: LogEntryRepository;
   let vehicleRepo: VehicleRepository;
-  let db: ReturnType<typeof makeFakeDb>;
+  let metadataRepo: MetadataRepository;
   let service: LogEntryService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     logEntryRepo = makeFakeLogEntryRepo();
     vehicleRepo = makeFakeVehicleRepo();
-    db = makeFakeDb();
-    service = new LogEntryService(logEntryRepo, vehicleRepo, db as Pick<PrismaClient, 'vehicle' | 'logEntryType' | 'itemCategory'>);
+    metadataRepo = makeFakeMetadataRepo();
+    service = new LogEntryService(logEntryRepo, vehicleRepo, metadataRepo);
   });
 
   it('returns list sorted by date desc', async () => {
@@ -189,15 +180,15 @@ describe('LogEntryService.list', () => {
 describe('LogEntryService.delete', () => {
   let logEntryRepo: LogEntryRepository;
   let vehicleRepo: VehicleRepository;
-  let db: ReturnType<typeof makeFakeDb>;
+  let metadataRepo: MetadataRepository;
   let service: LogEntryService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     logEntryRepo = makeFakeLogEntryRepo();
     vehicleRepo = makeFakeVehicleRepo();
-    db = makeFakeDb();
-    service = new LogEntryService(logEntryRepo, vehicleRepo, db as Pick<PrismaClient, 'vehicle' | 'logEntryType' | 'itemCategory'>);
+    metadataRepo = makeFakeMetadataRepo();
+    service = new LogEntryService(logEntryRepo, vehicleRepo, metadataRepo);
   });
 
   it('deletes an existing entry successfully', async () => {

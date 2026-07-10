@@ -61,6 +61,8 @@ function makeFakeVehicleRepo(overrides: Partial<VehicleRepository> = {}): Vehicl
     findDetailById: vi.fn().mockResolvedValue(mockVehicleDetail),
     update: vi.fn().mockResolvedValue(mockVehicle),
     delete: vi.fn().mockResolvedValue(undefined),
+    existsById: vi.fn().mockResolvedValue(true),
+    bumpMileageIfLower: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

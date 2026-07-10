@@ -72,6 +72,18 @@ export class PrismaVehicleRepository implements VehicleRepository {
     await this.db.vehicle.delete({ where: { id: vehicleId } });
   }
 
+  async existsById(vehicleId: string): Promise<boolean> {
+    const row = await this.db.vehicle.findFirst({ where: { id: vehicleId }, select: { id: true } });
+    return row !== null;
+  }
+
+  async bumpMileageIfLower(vehicleId: string, mileage: number): Promise<void> {
+    await this.db.vehicle.updateMany({
+      where: { id: vehicleId, mileage: { lt: mileage } },
+      data: { mileage },
+    });
+  }
+
   async findDetailById(vehicleId: string): Promise<VehicleDetail | null> {
     const now = new Date();
     const row = await this.db.vehicle.findUnique({

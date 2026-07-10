@@ -16,6 +16,7 @@ import { PrismaLogEntryRepository } from './repositories/log-entry.repository';
 import { PrismaInsuranceRepository } from './repositories/insurance.repository';
 import { PrismaNewsletterRepository } from './repositories/newsletter.repository';
 import { PrismaVehicleReportTokenRepository } from './repositories/vehicle-report-token.repository';
+import { PrismaMetadataRepository } from './repositories/metadata.repository';
 import { AuthService } from './services/auth.service';
 import { UserService } from './services/user.service';
 import { VehicleService } from './services/vehicle.service';
@@ -53,6 +54,7 @@ export function createApp(): Express {
   const insuranceRepo = new PrismaInsuranceRepository(prisma);
   const newsletterRepo = new PrismaNewsletterRepository(prisma);
   const vehicleReportTokenRepo = new PrismaVehicleReportTokenRepository(prisma);
+  const metadataRepo = new PrismaMetadataRepository(prisma);
   const emailSender = new NodemailerEmailSender();
   const tokenService = new JwtTokenService();
   const authService = new AuthService(userRepo, refreshTokenRepo, accountRepo, emailSender, tokenService);
@@ -66,7 +68,7 @@ export function createApp(): Express {
     process.env.APP_URL ?? 'http://localhost:3000',
   );
   const accountService = new AccountService(accountRepo);
-  const logEntryService = new LogEntryService(logEntryRepo, vehicleRepo, prisma);
+  const logEntryService = new LogEntryService(logEntryRepo, vehicleRepo, metadataRepo);
   const insuranceService = new InsuranceService(insuranceRepo, vehicleRepo);
   const newsletterService = new NewsletterService(newsletterRepo);
   const vehicleReportService = new VehicleReportService(

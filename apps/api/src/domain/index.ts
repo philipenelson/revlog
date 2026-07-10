@@ -21,3 +21,4 @@ export * from './ports/VehicleReportTokenRepository';
 export * from './ports/RefreshTokenRepository';
 export * from './ports/NewsletterRepository';
 export * from './ports/InsuranceRepository';
+export * from './ports/MetadataRepository';

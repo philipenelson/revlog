@@ -16,4 +16,10 @@ export interface VehicleRepository {
   findDetailById(vehicleId: string): Promise<VehicleDetail | null>;
   update(vehicleId: string, data: UpdateVehicleData): Promise<Vehicle>;
   delete(vehicleId: string): Promise<void>;
+  // Existence check across all accounts — used to distinguish 404 (no such
+  // vehicle) from 403 (exists but not the caller's) without exposing the row.
+  existsById(vehicleId: string): Promise<boolean>;
+  // Raises the vehicle's mileage to `mileage` only when it currently reads lower
+  // (odometers never run backwards); a no-op otherwise.
+  bumpMileageIfLower(vehicleId: string, mileage: number): Promise<void>;
 }

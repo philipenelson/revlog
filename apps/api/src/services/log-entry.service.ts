@@ -1,32 +1,29 @@
-import type { PrismaClient } from '../generated/prisma/client';
 import type { CreateLogEntryInput, UpdateLogEntryInput } from '@maintenance-log/domain';
-import type { LogEntryRepository, VehicleRepository, LogEntry, LogEntrySummary } from '../domain';
+import type {
+  LogEntryRepository,
+  VehicleRepository,
+  MetadataRepository,
+  LogEntry,
+  LogEntrySummary,
+} from '../domain';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
-
-type LogEntryLookupDb = Pick<PrismaClient, 'vehicle' | 'logEntryType' | 'itemCategory'>;
 
 export class LogEntryService {
   constructor(
     private readonly logEntryRepo: LogEntryRepository,
     private readonly vehicleRepo: VehicleRepository,
-    private readonly db: LogEntryLookupDb,
+    private readonly metadataRepo: MetadataRepository,
   ) {}
 
   private async assertVehicleOwnership(vehicleId: string, accountId: string): Promise<void> {
     const vehicles = await this.vehicleRepo.findAllByAccountId(accountId);
     const owned = vehicles.some((v) => v.id === vehicleId);
     if (!owned) {
-      // Check if vehicle exists at all to give the right error code
-      const allOwned = vehicles.map((v) => v.id);
-      if (allOwned.length === 0) {
-        // try direct lookup
-        const direct = await this.db.vehicle.findFirst({ where: { id: vehicleId } });
-        if (!direct) throw new AppError(404, 'Vehicle not found');
-        throw new AppError(403, 'Forbidden');
-      }
-      const direct = await this.db.vehicle.findFirst({ where: { id: vehicleId } });
-      if (!direct) throw new AppError(404, 'Vehicle not found');
+      // Not in the caller's garage: distinguish "no such vehicle" (404) from
+      // "exists but belongs to another account" (403).
+      const exists = await this.vehicleRepo.existsById(vehicleId);
+      if (!exists) throw new AppError(404, 'Vehicle not found');
       throw new AppError(403, 'Forbidden');
     }
   }
@@ -34,11 +31,11 @@ export class LogEntryService {
   async create(vehicleId: string, accountId: string, input: CreateLogEntryInput): Promise<LogEntry> {
     await this.assertVehicleOwnership(vehicleId, accountId);
 
-    const typeExists = await this.db.logEntryType.findUnique({ where: { id: input.typeId } });
+    const typeExists = await this.metadataRepo.logEntryTypeExists(input.typeId);
     if (!typeExists) throw new AppError(400, 'Invalid typeId');
 
     for (const item of input.items ?? []) {
-      const catExists = await this.db.itemCategory.findUnique({ where: { id: item.categoryId } });
+      const catExists = await this.metadataRepo.itemCategoryExists(item.categoryId);
       if (!catExists) throw new AppError(400, `Invalid categoryId: ${item.categoryId}`);
     }
 
@@ -58,10 +55,7 @@ export class LogEntryService {
     });
 
     if (input.mileage != null) {
-      await this.db.vehicle.updateMany({
-        where: { id: vehicleId, mileage: { lt: input.mileage } },
-        data: { mileage: input.mileage },
-      });
+      await this.vehicleRepo.bumpMileageIfLower(vehicleId, input.mileage);
     }
 
     logger.info({ vehicleId, accountId, entryId: entry.id }, 'log entry created');
@@ -89,13 +83,13 @@ export class LogEntryService {
     await this.assertVehicleOwnership(vehicleId, accountId);
 
     if (input.typeId !== undefined) {
-      const typeExists = await this.db.logEntryType.findUnique({ where: { id: input.typeId } });
+      const typeExists = await this.metadataRepo.logEntryTypeExists(input.typeId);
       if (!typeExists) throw new AppError(400, 'Invalid typeId');
     }
 
     if (input.items !== undefined) {
       for (const item of input.items ?? []) {
-        const catExists = await this.db.itemCategory.findUnique({ where: { id: item.categoryId } });
+        const catExists = await this.metadataRepo.itemCategoryExists(item.categoryId);
         if (!catExists) throw new AppError(400, `Invalid categoryId: ${item.categoryId}`);
       }
     }
@@ -124,10 +118,7 @@ export class LogEntryService {
     if (!entry) throw new AppError(404, 'Log entry not found');
 
     if (input.mileage != null) {
-      await this.db.vehicle.updateMany({
-        where: { id: vehicleId, mileage: { lt: input.mileage } },
-        data: { mileage: input.mileage },
-      });
+      await this.vehicleRepo.bumpMileageIfLower(vehicleId, input.mileage);
     }
 
     logger.info({ vehicleId, accountId, entryId }, 'log entry updated');
