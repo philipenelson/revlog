@@ -53,8 +53,7 @@ adapters/
   http/
     routers/     ← createXxxRouter(service) factories: parse/validate, call one
                    service method, map result → HTTP, pass errors to next(err)
-    middleware/  ← authenticate (uses TokenService), errorMiddleware + AppError
-    upload/      ← multer vehiclePhotoUpload (HTTP-only concern)
+    middleware/  ← authenticate (verifies via lib/tokens), errorMiddleware + AppError
   persistence/   ← PrismaXxxRepository: implement a domain/ports interface,
                    accept a db client in the constructor, return domain models
                    (never raw Prisma rows), no business logic
@@ -65,6 +64,15 @@ adapters/
 Driving adapters (`http/`) call into the application. Driven adapters (`persistence/`,
 `email/`, `token/`) implement ports the core defines. Adapters are the only code importing
 Express, Prisma, Nodemailer, or `jsonwebtoken`.
+
+### `lib/` — low-level infrastructure utilities (`src/lib/`)
+
+`logger` (pino), `prisma` (client), `tokens` (jose sign/verify), `email` (nodemailer
+transport), and `upload` (multer `vehiclePhotoUpload` + `UPLOADS_DIR`). These are the
+concrete transports the driven adapters wrap (`JwtTokenService` → `lib/tokens`,
+`NodemailerEmailSender` → `lib/email`); the HTTP layer uses `lib/upload` and `lib/tokens`
+directly. `lib/` never imports from `application/` except port DTO types (dependency
+inversion). `logger` is a permitted global; the Prisma client is instantiated once in `app.ts`.
 
 ---
 

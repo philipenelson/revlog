@@ -71,13 +71,14 @@ apps/api/src/
     http/                 Driving adapters
       routers/            createXxxRouter factories
       middleware/         authenticate, error middleware + AppError
-      upload/             multer (HTTP-only concern)
     persistence/          PrismaXxxRepository (driven)
     email/                NodemailerEmailSender (driven)
     token/                JwtTokenService (driven)
   app.ts                  Composition root (unchanged role)
   index.ts                Server bootstrap
-  lib/                    logger, prisma client (cross-cutting singletons)
+  lib/                    Low-level transports the adapters wrap + cross-cutting
+                          singletons: logger, prisma, tokens (jose), email
+                          (nodemailer), upload (multer)
 ```
 
 Dependency direction is one-way and inward: `adapters → application → domain`. `domain`
