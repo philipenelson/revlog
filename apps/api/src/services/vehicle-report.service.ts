@@ -1,4 +1,4 @@
-import type { IVehicleReportTokenRepository, IVehicleRepository, MechanicPrintout } from '@maintenance-log/domain';
+import type { VehicleReportTokenRepository, VehicleRepository, MechanicPrintout } from '../domain';
 import type { MechanicPrintoutEmailParams } from '../lib/email';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
@@ -9,8 +9,8 @@ export interface VehicleReportEmailer {
 
 export class VehicleReportService {
   constructor(
-    private readonly reportTokenRepo: IVehicleReportTokenRepository,
-    private readonly vehicleRepo: IVehicleRepository,
+    private readonly reportTokenRepo: VehicleReportTokenRepository,
+    private readonly vehicleRepo: VehicleRepository,
     private readonly emailer: VehicleReportEmailer,
     private readonly appUrl: string,
   ) {}

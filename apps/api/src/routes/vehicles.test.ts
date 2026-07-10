@@ -6,7 +6,7 @@ import { AppError, errorMiddleware } from '../middleware/error';
 import { signAccessToken } from '../lib/tokens';
 import type { VehicleService } from '../services/vehicle.service';
 import type { VehicleTransferService } from '../services/vehicle-transfer.service';
-import type { DomainVehicle, DomainVehicleDetail, DomainVehicleInsurance } from '@maintenance-log/domain';
+import type { Vehicle, VehicleDetail, VehicleInsurance } from '../domain';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
@@ -66,7 +66,7 @@ function buildApp() {
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
-const mockVehicle: DomainVehicle = {
+const mockVehicle: Vehicle = {
   id: 'vehicle-1',
   accountId: 'account-1',
   nickname: 'Daily ride',
@@ -79,9 +79,9 @@ const mockVehicle: DomainVehicle = {
   updatedAt: fixedNow,
 };
 
-const mockVehicleWithPhoto: DomainVehicle = { ...mockVehicle, photoPath: 'abc123.jpg' };
+const mockVehicleWithPhoto: Vehicle = { ...mockVehicle, photoPath: 'abc123.jpg' };
 
-const mockInsurance: DomainVehicleInsurance = {
+const mockInsurance: VehicleInsurance = {
   company: 'State Farm',
   policyNumber: 'SF-12345',
   startDate: '2025-01-01',
@@ -104,7 +104,7 @@ const mockLogEntry = {
   totalCost: '45.00',
 };
 
-const mockVehicleDetail: DomainVehicleDetail = {
+const mockVehicleDetail: VehicleDetail = {
   id: 'vehicle-1',
   accountId: 'account-1',
   nickname: 'Daily ride',

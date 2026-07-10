@@ -1,5 +1,6 @@
 import type { PrismaClient } from '../generated/prisma/client';
-import type { DomainVehicleInsurance, UpsertInsuranceInput } from '@maintenance-log/domain';
+import type { UpsertInsuranceInput } from '@maintenance-log/domain';
+import type { VehicleInsurance, InsuranceRepository } from '../domain';
 
 type InsuranceDb = Pick<PrismaClient, 'vehicleInsurance'>;
 
@@ -19,7 +20,7 @@ type InsuranceRow = {
   notes: string | null;
 };
 
-function mapRow(row: InsuranceRow): DomainVehicleInsurance {
+function mapRow(row: InsuranceRow): VehicleInsurance {
   return {
     company: row.company,
     policyNumber: row.policyNumber,
@@ -32,22 +33,16 @@ function mapRow(row: InsuranceRow): DomainVehicleInsurance {
   };
 }
 
-export interface IInsuranceRepository {
-  findByVehicleId(vehicleId: string): Promise<DomainVehicleInsurance | null>;
-  upsert(vehicleId: string, input: UpsertInsuranceInput): Promise<DomainVehicleInsurance>;
-  delete(vehicleId: string): Promise<boolean>;
-}
-
-export class PrismaInsuranceRepository implements IInsuranceRepository {
+export class PrismaInsuranceRepository implements InsuranceRepository {
   constructor(private readonly db: InsuranceDb) {}
 
-  async findByVehicleId(vehicleId: string): Promise<DomainVehicleInsurance | null> {
+  async findByVehicleId(vehicleId: string): Promise<VehicleInsurance | null> {
     const row = await this.db.vehicleInsurance.findUnique({ where: { vehicleId } });
     if (!row) return null;
     return mapRow(row);
   }
 
-  async upsert(vehicleId: string, input: UpsertInsuranceInput): Promise<DomainVehicleInsurance> {
+  async upsert(vehicleId: string, input: UpsertInsuranceInput): Promise<VehicleInsurance> {
     const data = {
       company: input.company ?? null,
       policyNumber: input.policyNumber ?? null,

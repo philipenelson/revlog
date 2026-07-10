@@ -1,16 +1,17 @@
 import type { PrismaClient } from '../generated/prisma/client';
-import type { IAccountRepository, DomainAccount, AccountType } from '@maintenance-log/domain';
+import type { AccountType } from '@maintenance-log/domain';
+import type { AccountRepository, Account } from '../domain';
 
 type AccountDb = Pick<PrismaClient, 'account'>;
 
-export class PrismaAccountRepository implements IAccountRepository {
+export class PrismaAccountRepository implements AccountRepository {
   constructor(private readonly db: AccountDb) {}
 
-  async create(type: AccountType): Promise<DomainAccount> {
+  async create(type: AccountType): Promise<Account> {
     return this.db.account.create({ data: { type } });
   }
 
-  async findById(id: string): Promise<DomainAccount | null> {
+  async findById(id: string): Promise<Account | null> {
     return this.db.account.findUnique({ where: { id } });
   }
 

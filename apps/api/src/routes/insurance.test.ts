@@ -5,7 +5,7 @@ import { createInsuranceRouter } from './insurance';
 import { AppError, errorMiddleware } from '../middleware/error';
 import { signAccessToken } from '../lib/tokens';
 import type { InsuranceService } from '../services/insurance.service';
-import type { DomainVehicleInsurance } from '@maintenance-log/domain';
+import type { VehicleInsurance } from '../domain';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
@@ -23,7 +23,7 @@ function buildApp() {
   return app;
 }
 
-const mockInsurance: DomainVehicleInsurance = {
+const mockInsurance: VehicleInsurance = {
   company: 'State Farm',
   policyNumber: 'SF-12345',
   startDate: '2025-01-01',

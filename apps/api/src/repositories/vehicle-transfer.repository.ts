@@ -1,10 +1,5 @@
 import type { PrismaClient } from '../generated/prisma/client';
-import type {
-  IVehicleTransferRepository,
-  DomainVehicleTransfer,
-  CreateTransferData,
-  VehicleTransferStatus,
-} from '@maintenance-log/domain';
+import type { VehicleTransferRepository, VehicleTransfer, CreateTransferData, VehicleTransferStatus } from '../domain';
 
 type TransferDb = Pick<PrismaClient, 'vehicleTransfer' | 'vehicle'>;
 
@@ -19,7 +14,7 @@ function mapTransfer(row: {
   expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
-}): DomainVehicleTransfer {
+}): VehicleTransfer {
   return {
     id: row.id,
     vehicleId: row.vehicleId,
@@ -34,27 +29,27 @@ function mapTransfer(row: {
   };
 }
 
-export class PrismaVehicleTransferRepository implements IVehicleTransferRepository {
+export class PrismaVehicleTransferRepository implements VehicleTransferRepository {
   constructor(private readonly db: TransferDb) {}
 
-  async create(data: CreateTransferData): Promise<DomainVehicleTransfer> {
+  async create(data: CreateTransferData): Promise<VehicleTransfer> {
     const row = await this.db.vehicleTransfer.create({ data });
     return mapTransfer(row);
   }
 
-  async findByToken(token: string): Promise<DomainVehicleTransfer | null> {
+  async findByToken(token: string): Promise<VehicleTransfer | null> {
     const row = await this.db.vehicleTransfer.findUnique({ where: { token } });
     return row ? mapTransfer(row) : null;
   }
 
-  async findPendingByVehicleId(vehicleId: string): Promise<DomainVehicleTransfer | null> {
+  async findPendingByVehicleId(vehicleId: string): Promise<VehicleTransfer | null> {
     const row = await this.db.vehicleTransfer.findFirst({
       where: { vehicleId, status: 'PENDING' },
     });
     return row ? mapTransfer(row) : null;
   }
 
-  async updateStatus(id: string, status: VehicleTransferStatus): Promise<DomainVehicleTransfer> {
+  async updateStatus(id: string, status: VehicleTransferStatus): Promise<VehicleTransfer> {
     const row = await this.db.vehicleTransfer.update({
       where: { id },
       data: { status },

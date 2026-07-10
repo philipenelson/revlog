@@ -1,17 +1,7 @@
 import bcrypt from 'bcrypt';
 import { randomInt } from 'node:crypto';
-import type {
-  RegisterInput,
-  LoginInput,
-  VerifyEmailInput,
-  ResendVerificationInput,
-  ForgotPasswordInput,
-  ResetPasswordInput,
-  IUserRepository,
-  IRefreshTokenRepository,
-  IAccountRepository,
-  AccountStatus,
-} from '@maintenance-log/domain';
+import type { RegisterInput, LoginInput, VerifyEmailInput, ResendVerificationInput, ForgotPasswordInput, ResetPasswordInput, AccountStatus } from '@maintenance-log/domain';
+import type { UserRepository, RefreshTokenRepository, AccountRepository } from '../domain';
 import { signAccessToken, generateRefreshToken, hashRefreshToken } from '../lib/tokens';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
@@ -59,9 +49,9 @@ export interface VerifyEmailResult {
 
 export class AuthService {
   constructor(
-    private readonly userRepo: IUserRepository,
-    private readonly refreshTokenRepo: IRefreshTokenRepository,
-    private readonly accountRepo: IAccountRepository,
+    private readonly userRepo: UserRepository,
+    private readonly refreshTokenRepo: RefreshTokenRepository,
+    private readonly accountRepo: AccountRepository,
     private readonly emailService: IEmailService,
   ) {}
 

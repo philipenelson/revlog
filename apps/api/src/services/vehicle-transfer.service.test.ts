@@ -1,21 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleTransferService } from './vehicle-transfer.service';
 import { AppError } from '../middleware/error';
-import type {
-  IVehicleTransferRepository,
-  IVehicleRepository,
-  IUserRepository,
-  DomainVehicleTransfer,
-  DomainVehicleDetail,
-  DomainUser,
-} from '@maintenance-log/domain';
+import type { VehicleTransferRepository, VehicleRepository, UserRepository, VehicleTransfer, VehicleDetail, User } from '../domain';
 import type { VehicleTransferEmailDeps } from './vehicle-transfer.service';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 const pastDate = new Date(Date.now() - 1000);
 
-const mockSenderUser: DomainUser = {
+const mockSenderUser: User = {
   id: 'user-1',
   accountId: 'account-1',
   fullName: 'Alex Morgan',
@@ -33,7 +26,7 @@ const mockSenderUser: DomainUser = {
   updatedAt: fixedNow,
 };
 
-const mockRecipientUser: DomainUser = {
+const mockRecipientUser: User = {
   id: 'user-2',
   accountId: 'account-2',
   fullName: 'Jordan Lee',
@@ -51,7 +44,7 @@ const mockRecipientUser: DomainUser = {
   updatedAt: fixedNow,
 };
 
-const mockVehicleDetail: DomainVehicleDetail = {
+const mockVehicleDetail: VehicleDetail = {
   id: 'vehicle-1',
   accountId: 'account-1',
   nickname: 'Blackbird',
@@ -79,7 +72,7 @@ const mockVehicleDetail: DomainVehicleDetail = {
   pendingTransfer: null,
 };
 
-const mockTransfer: DomainVehicleTransfer = {
+const mockTransfer: VehicleTransfer = {
   id: 'transfer-1',
   vehicleId: 'vehicle-1',
   senderAccountId: 'account-1',
@@ -92,7 +85,7 @@ const mockTransfer: DomainVehicleTransfer = {
   updatedAt: fixedNow,
 };
 
-function makeFakeTransferRepo(overrides: Partial<IVehicleTransferRepository> = {}): IVehicleTransferRepository {
+function makeFakeTransferRepo(overrides: Partial<VehicleTransferRepository> = {}): VehicleTransferRepository {
   return {
     create: vi.fn().mockResolvedValue(mockTransfer),
     findByToken: vi.fn().mockResolvedValue(mockTransfer),
@@ -103,7 +96,7 @@ function makeFakeTransferRepo(overrides: Partial<IVehicleTransferRepository> = {
   };
 }
 
-function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
+function makeFakeVehicleRepo(overrides: Partial<VehicleRepository> = {}): VehicleRepository {
   return {
     create: vi.fn(),
     findAllByAccountId: vi.fn().mockResolvedValue([]),
@@ -114,7 +107,7 @@ function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehi
   };
 }
 
-function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserRepository {
+function makeFakeUserRepo(overrides: Partial<UserRepository> = {}): UserRepository {
   return {
     findById: vi.fn().mockImplementation((id: string) =>
       Promise.resolve(id === 'user-1' ? mockSenderUser : id === 'user-2' ? mockRecipientUser : null),
@@ -154,9 +147,9 @@ const APP_URL = 'http://localhost:3000';
 // ── initiate ──────────────────────────────────────────────────────────────
 
 describe('VehicleTransferService.initiate', () => {
-  let transferRepo: IVehicleTransferRepository;
-  let vehicleRepo: IVehicleRepository;
-  let userRepo: IUserRepository;
+  let transferRepo: VehicleTransferRepository;
+  let vehicleRepo: VehicleRepository;
+  let userRepo: UserRepository;
   let email: VehicleTransferEmailDeps;
   let service: VehicleTransferService;
 
@@ -236,9 +229,9 @@ describe('VehicleTransferService.initiate', () => {
 // ── accept ─────────────────────────────────────────────────────────────────
 
 describe('VehicleTransferService.accept', () => {
-  let transferRepo: IVehicleTransferRepository;
-  let vehicleRepo: IVehicleRepository;
-  let userRepo: IUserRepository;
+  let transferRepo: VehicleTransferRepository;
+  let vehicleRepo: VehicleRepository;
+  let userRepo: UserRepository;
   let email: VehicleTransferEmailDeps;
   let service: VehicleTransferService;
 
@@ -294,9 +287,9 @@ describe('VehicleTransferService.accept', () => {
 // ── decline ────────────────────────────────────────────────────────────────
 
 describe('VehicleTransferService.decline', () => {
-  let transferRepo: IVehicleTransferRepository;
-  let vehicleRepo: IVehicleRepository;
-  let userRepo: IUserRepository;
+  let transferRepo: VehicleTransferRepository;
+  let vehicleRepo: VehicleRepository;
+  let userRepo: UserRepository;
   let email: VehicleTransferEmailDeps;
   let service: VehicleTransferService;
 
@@ -342,9 +335,9 @@ describe('VehicleTransferService.decline', () => {
 // ── cancel ─────────────────────────────────────────────────────────────────
 
 describe('VehicleTransferService.cancel', () => {
-  let transferRepo: IVehicleTransferRepository;
-  let vehicleRepo: IVehicleRepository;
-  let userRepo: IUserRepository;
+  let transferRepo: VehicleTransferRepository;
+  let vehicleRepo: VehicleRepository;
+  let userRepo: UserRepository;
   let email: VehicleTransferEmailDeps;
   let service: VehicleTransferService;
 
@@ -394,9 +387,9 @@ describe('VehicleTransferService.cancel', () => {
 // ── getTransferDetails (lazy expiry) ──────────────────────────────────────
 
 describe('VehicleTransferService.getTransferDetails', () => {
-  let transferRepo: IVehicleTransferRepository;
-  let vehicleRepo: IVehicleRepository;
-  let userRepo: IUserRepository;
+  let transferRepo: VehicleTransferRepository;
+  let vehicleRepo: VehicleRepository;
+  let userRepo: UserRepository;
   let email: VehicleTransferEmailDeps;
   let service: VehicleTransferService;
 

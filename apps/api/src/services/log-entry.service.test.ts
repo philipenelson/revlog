@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LogEntryService } from './log-entry.service';
 import { AppError } from '../middleware/error';
-import type { ILogEntryRepository, IVehicleRepository, DomainLogEntry, LogEntrySummary, DomainVehicle, CreateLogEntryInput } from '@maintenance-log/domain';
+import type { CreateLogEntryInput } from '@maintenance-log/domain';
+import type { LogEntryRepository, VehicleRepository, LogEntry, LogEntrySummary, Vehicle } from '../domain';
 import type { PrismaClient } from '../generated/prisma/client';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
-const mockVehicle: DomainVehicle = {
+const mockVehicle: Vehicle = {
   id: 'vehicle-1',
   accountId: 'account-1',
   nickname: 'My Bike',
@@ -19,7 +20,7 @@ const mockVehicle: DomainVehicle = {
   updatedAt: fixedNow,
 };
 
-const mockEntry: DomainLogEntry = {
+const mockEntry: LogEntry = {
   id: 'entry-1',
   vehicleId: 'vehicle-1',
   typeId: 'MAINTENANCE',
@@ -56,7 +57,7 @@ const validInput: CreateLogEntryInput = {
   media: [],
 };
 
-function makeFakeLogEntryRepo(overrides: Partial<ILogEntryRepository> = {}): ILogEntryRepository {
+function makeFakeLogEntryRepo(overrides: Partial<LogEntryRepository> = {}): LogEntryRepository {
   return {
     create: vi.fn().mockResolvedValue(mockEntry),
     findAllByVehicleId: vi.fn().mockResolvedValue([mockSummary]),
@@ -67,7 +68,7 @@ function makeFakeLogEntryRepo(overrides: Partial<ILogEntryRepository> = {}): ILo
   };
 }
 
-function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
+function makeFakeVehicleRepo(overrides: Partial<VehicleRepository> = {}): VehicleRepository {
   return {
     create: vi.fn(),
     findAllByAccountId: vi.fn().mockResolvedValue([mockVehicle]),
@@ -95,8 +96,8 @@ function makeFakeDb(overrides: Record<string, unknown> = {}): Pick<PrismaClient,
 }
 
 describe('LogEntryService.create', () => {
-  let logEntryRepo: ILogEntryRepository;
-  let vehicleRepo: IVehicleRepository;
+  let logEntryRepo: LogEntryRepository;
+  let vehicleRepo: VehicleRepository;
   let db: ReturnType<typeof makeFakeDb>;
   let service: LogEntryService;
 
@@ -158,8 +159,8 @@ describe('LogEntryService.create', () => {
 });
 
 describe('LogEntryService.list', () => {
-  let logEntryRepo: ILogEntryRepository;
-  let vehicleRepo: IVehicleRepository;
+  let logEntryRepo: LogEntryRepository;
+  let vehicleRepo: VehicleRepository;
   let db: ReturnType<typeof makeFakeDb>;
   let service: LogEntryService;
 
@@ -186,8 +187,8 @@ describe('LogEntryService.list', () => {
 });
 
 describe('LogEntryService.delete', () => {
-  let logEntryRepo: ILogEntryRepository;
-  let vehicleRepo: IVehicleRepository;
+  let logEntryRepo: LogEntryRepository;
+  let vehicleRepo: VehicleRepository;
   let db: ReturnType<typeof makeFakeDb>;
   let service: LogEntryService;
 

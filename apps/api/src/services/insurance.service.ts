@@ -1,12 +1,12 @@
-import type { DomainVehicleInsurance, IVehicleRepository, UpsertInsuranceInput } from '@maintenance-log/domain';
-import type { IInsuranceRepository } from '../repositories/insurance.repository';
+import type { UpsertInsuranceInput } from '@maintenance-log/domain';
+import type { VehicleInsurance, VehicleRepository, InsuranceRepository } from '../domain';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 
 export class InsuranceService {
   constructor(
-    private readonly insuranceRepo: IInsuranceRepository,
-    private readonly vehicleRepo: IVehicleRepository,
+    private readonly insuranceRepo: InsuranceRepository,
+    private readonly vehicleRepo: VehicleRepository,
   ) {}
 
   private async assertVehicleOwnership(vehicleId: string, accountId: string): Promise<void> {
@@ -15,7 +15,7 @@ export class InsuranceService {
     if (detail.accountId !== accountId) throw new AppError(403, 'Forbidden');
   }
 
-  async getInsurance(vehicleId: string, accountId: string): Promise<DomainVehicleInsurance> {
+  async getInsurance(vehicleId: string, accountId: string): Promise<VehicleInsurance> {
     await this.assertVehicleOwnership(vehicleId, accountId);
     const insurance = await this.insuranceRepo.findByVehicleId(vehicleId);
     if (!insurance) throw new AppError(404, 'No insurance on file');
@@ -27,7 +27,7 @@ export class InsuranceService {
     vehicleId: string,
     accountId: string,
     input: UpsertInsuranceInput,
-  ): Promise<DomainVehicleInsurance> {
+  ): Promise<VehicleInsurance> {
     await this.assertVehicleOwnership(vehicleId, accountId);
     const insurance = await this.insuranceRepo.upsert(vehicleId, input);
     logger.info({ accountId, vehicleId }, 'insurance upserted');

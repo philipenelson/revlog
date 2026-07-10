@@ -1,4 +1,4 @@
-export interface DomainLogEntryItem {
+export interface LogEntryItem {
   id: string;
   categoryId: string;
   description: string;
@@ -8,7 +8,7 @@ export interface DomainLogEntryItem {
   sortOrder: number;
 }
 
-export interface DomainLogEntryMedia {
+export interface LogEntryMedia {
   id: string;
   path: string;
   mediaType: 'IMAGE' | 'VIDEO';
@@ -16,7 +16,7 @@ export interface DomainLogEntryMedia {
   sortOrder: number;
 }
 
-export interface DomainLogEntry {
+export interface LogEntry {
   id: string;
   vehicleId: string;
   typeId: string;
@@ -25,8 +25,8 @@ export interface DomainLogEntry {
   time: string | null; // "HH:mm"
   mileage: number | null;
   notes: string | null;
-  items: DomainLogEntryItem[];
-  media: DomainLogEntryMedia[];
+  items: LogEntryItem[];
+  media: LogEntryMedia[];
   totalCost: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -67,11 +67,3 @@ export interface CreateLogEntryData {
 }
 
 export type UpdateLogEntryData = Partial<CreateLogEntryData>;
-
-export interface ILogEntryRepository {
-  create(vehicleId: string, data: CreateLogEntryData): Promise<DomainLogEntry>;
-  findAllByVehicleId(vehicleId: string, typeId?: string): Promise<LogEntrySummary[]>;
-  findById(vehicleId: string, entryId: string): Promise<DomainLogEntry | null>;
-  update(vehicleId: string, entryId: string, data: UpdateLogEntryData): Promise<DomainLogEntry | null>;
-  delete(vehicleId: string, entryId: string): Promise<boolean>;
-}

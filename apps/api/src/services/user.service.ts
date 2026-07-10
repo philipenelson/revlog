@@ -1,4 +1,4 @@
-import type { IUserRepository } from '@maintenance-log/domain';
+import type { UserRepository } from '../domain';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 
@@ -12,7 +12,7 @@ export interface UserProfile {
 }
 
 export class UserService {
-  constructor(private readonly userRepo: IUserRepository) {}
+  constructor(private readonly userRepo: UserRepository) {}
 
   // The "current user" for GET /users/me — the caller resolved from the
   // access token's `sub`, never an arbitrary id (see ADR 0033).

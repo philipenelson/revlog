@@ -1,8 +1,9 @@
-import type { INewsletterRepository, NewsletterSubscribeInput } from '@maintenance-log/domain';
+import type { NewsletterSubscribeInput } from '@maintenance-log/domain';
+import type { NewsletterRepository } from '../domain';
 import { logger } from '../lib/logger';
 
 export class NewsletterService {
-  constructor(private readonly newsletterRepo: INewsletterRepository) {}
+  constructor(private readonly newsletterRepo: NewsletterRepository) {}
 
   async subscribe(input: NewsletterSubscribeInput): Promise<{ created: boolean }> {
     const existing = await this.newsletterRepo.findByEmail(input.email);

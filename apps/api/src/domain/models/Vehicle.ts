@@ -1,4 +1,6 @@
-export interface DomainVehicle {
+import type { LogEntrySummary } from './LogEntry';
+
+export interface Vehicle {
   id: string;
   accountId: string;
   nickname: string | null;
@@ -24,9 +26,7 @@ export interface CreateVehicleData {
   photoPath: string | null;
 }
 
-import type { LogEntrySummary } from '../log-entry';
-
-export interface DomainVehicleInsurance {
+export interface VehicleInsurance {
   company: string | null;
   policyNumber: string | null;
   startDate: string | null;
@@ -37,8 +37,8 @@ export interface DomainVehicleInsurance {
   notes: string | null;
 }
 
-export interface DomainVehicleDetail extends DomainVehicle {
-  insurance: DomainVehicleInsurance | null;
+export interface VehicleDetail extends Vehicle {
+  insurance: VehicleInsurance | null;
   logEntries: LogEntrySummary[];
   stats: {
     totalSpent: string;
@@ -57,17 +57,4 @@ export interface UpdateVehicleData {
   model?: string;
   year?: number;
   mileage?: number;
-}
-
-export interface IVehicleRepository {
-  create(data: CreateVehicleData): Promise<DomainVehicle>;
-  // Ordered by updatedAt desc — see garage-list-api.md "Sort order proxy".
-  findAllByAccountId(accountId: string): Promise<(DomainVehicle & { logEntryCount: number })[]>;
-  // Scoped update — returns null when the vehicle does not exist or
-  // belongs to a different account (guards the photo upload endpoint).
-  setPhoto(vehicleId: string, accountId: string, photoPath: string): Promise<DomainVehicle | null>;
-  // Full detail fetch — includes insurance and log entry summaries.
-  findDetailById(vehicleId: string): Promise<DomainVehicleDetail | null>;
-  update(vehicleId: string, data: UpdateVehicleData): Promise<DomainVehicle>;
-  delete(vehicleId: string): Promise<void>;
 }

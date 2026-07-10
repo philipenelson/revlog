@@ -1,12 +1,6 @@
 import type { PrismaClient } from '../generated/prisma/client';
-import type {
-  ILogEntryRepository,
-  IVehicleRepository,
-  DomainLogEntry,
-  LogEntrySummary,
-  CreateLogEntryInput,
-  UpdateLogEntryInput,
-} from '@maintenance-log/domain';
+import type { CreateLogEntryInput, UpdateLogEntryInput } from '@maintenance-log/domain';
+import type { LogEntryRepository, VehicleRepository, LogEntry, LogEntrySummary } from '../domain';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 
@@ -14,8 +8,8 @@ type LogEntryLookupDb = Pick<PrismaClient, 'vehicle' | 'logEntryType' | 'itemCat
 
 export class LogEntryService {
   constructor(
-    private readonly logEntryRepo: ILogEntryRepository,
-    private readonly vehicleRepo: IVehicleRepository,
+    private readonly logEntryRepo: LogEntryRepository,
+    private readonly vehicleRepo: VehicleRepository,
     private readonly db: LogEntryLookupDb,
   ) {}
 
@@ -37,7 +31,7 @@ export class LogEntryService {
     }
   }
 
-  async create(vehicleId: string, accountId: string, input: CreateLogEntryInput): Promise<DomainLogEntry> {
+  async create(vehicleId: string, accountId: string, input: CreateLogEntryInput): Promise<LogEntry> {
     await this.assertVehicleOwnership(vehicleId, accountId);
 
     const typeExists = await this.db.logEntryType.findUnique({ where: { id: input.typeId } });
@@ -79,7 +73,7 @@ export class LogEntryService {
     return this.logEntryRepo.findAllByVehicleId(vehicleId, typeId);
   }
 
-  async getById(vehicleId: string, accountId: string, entryId: string): Promise<DomainLogEntry> {
+  async getById(vehicleId: string, accountId: string, entryId: string): Promise<LogEntry> {
     await this.assertVehicleOwnership(vehicleId, accountId);
     const entry = await this.logEntryRepo.findById(vehicleId, entryId);
     if (!entry) throw new AppError(404, 'Log entry not found');
@@ -91,7 +85,7 @@ export class LogEntryService {
     accountId: string,
     entryId: string,
     input: UpdateLogEntryInput,
-  ): Promise<DomainLogEntry> {
+  ): Promise<LogEntry> {
     await this.assertVehicleOwnership(vehicleId, accountId);
 
     if (input.typeId !== undefined) {

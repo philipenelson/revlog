@@ -1,9 +1,4 @@
-import type {
-  IVehicleTransferRepository,
-  DomainVehicleTransfer,
-  IVehicleRepository,
-  IUserRepository,
-} from '@maintenance-log/domain';
+import type { VehicleTransferRepository, VehicleTransfer, VehicleRepository, UserRepository } from '../domain';
 import { AppError } from '../middleware/error';
 import { logger } from '../lib/logger';
 import type {
@@ -51,9 +46,9 @@ function vehicleDisplayName(make: string, model: string, nickname: string | null
 
 export class VehicleTransferService {
   constructor(
-    private readonly transferRepo: IVehicleTransferRepository,
-    private readonly vehicleRepo: IVehicleRepository,
-    private readonly userRepo: IUserRepository,
+    private readonly transferRepo: VehicleTransferRepository,
+    private readonly vehicleRepo: VehicleRepository,
+    private readonly userRepo: UserRepository,
     private readonly email: VehicleTransferEmailDeps,
     private readonly appUrl: string,
   ) {}
@@ -63,7 +58,7 @@ export class VehicleTransferService {
     senderAccountId: string,
     senderUserId: string,
     recipientEmail: string,
-  ): Promise<DomainVehicleTransfer> {
+  ): Promise<VehicleTransfer> {
     const vehicle = await this.vehicleRepo.findDetailById(vehicleId);
     if (!vehicle) throw new AppError(404, 'Vehicle not found');
     if (vehicle.accountId !== senderAccountId) throw new AppError(403, 'Forbidden');

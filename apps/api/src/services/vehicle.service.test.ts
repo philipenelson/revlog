@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleService } from './vehicle.service';
 import { AppError } from '../middleware/error';
-import type { IVehicleRepository, IAccountRepository, DomainVehicle, DomainVehicleDetail, DomainAccount, CreateVehicleInput, UpdateVehicleInput } from '@maintenance-log/domain';
+import type { CreateVehicleInput, UpdateVehicleInput } from '@maintenance-log/domain';
+import type { VehicleRepository, AccountRepository, Vehicle, VehicleDetail, Account } from '../domain';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
-const mockAccount: DomainAccount = {
+const mockAccount: Account = {
   id: 'account-1',
   type: 'PERSONAL',
   status: 'ONBOARDING',
@@ -13,7 +14,7 @@ const mockAccount: DomainAccount = {
   updatedAt: fixedNow,
 };
 
-const mockVehicle: DomainVehicle = {
+const mockVehicle: Vehicle = {
   id: 'vehicle-1',
   accountId: 'account-1',
   nickname: 'Daily ride',
@@ -34,7 +35,7 @@ const validInput: CreateVehicleInput = {
   mileage: 14230,
 };
 
-const mockVehicleDetail: DomainVehicleDetail = {
+const mockVehicleDetail: VehicleDetail = {
   id: 'vehicle-1',
   accountId: 'account-1',
   nickname: 'Daily ride',
@@ -52,7 +53,7 @@ const mockVehicleDetail: DomainVehicleDetail = {
   pendingTransfer: null,
 };
 
-function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
+function makeFakeVehicleRepo(overrides: Partial<VehicleRepository> = {}): VehicleRepository {
   return {
     create: vi.fn().mockResolvedValue(mockVehicle),
     findAllByAccountId: vi.fn().mockResolvedValue([{ ...mockVehicle, logEntryCount: 0 }]),
@@ -64,7 +65,7 @@ function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehi
   };
 }
 
-function makeFakeAccountRepo(overrides: Partial<IAccountRepository> = {}): IAccountRepository {
+function makeFakeAccountRepo(overrides: Partial<AccountRepository> = {}): AccountRepository {
   return {
     create: vi.fn().mockResolvedValue(mockAccount),
     findById: vi.fn().mockResolvedValue(mockAccount),
@@ -74,8 +75,8 @@ function makeFakeAccountRepo(overrides: Partial<IAccountRepository> = {}): IAcco
 }
 
 describe('VehicleService.createVehicle', () => {
-  let vehicleRepo: IVehicleRepository;
-  let accountRepo: IAccountRepository;
+  let vehicleRepo: VehicleRepository;
+  let accountRepo: AccountRepository;
   let service: VehicleService;
 
   beforeEach(() => {
@@ -123,8 +124,8 @@ describe('VehicleService.createVehicle', () => {
 });
 
 describe('VehicleService.listVehicles', () => {
-  let vehicleRepo: IVehicleRepository;
-  let accountRepo: IAccountRepository;
+  let vehicleRepo: VehicleRepository;
+  let accountRepo: AccountRepository;
   let service: VehicleService;
 
   beforeEach(() => {
@@ -175,8 +176,8 @@ describe('VehicleService.listVehicles', () => {
 });
 
 describe('VehicleService.setVehiclePhoto', () => {
-  let vehicleRepo: IVehicleRepository;
-  let accountRepo: IAccountRepository;
+  let vehicleRepo: VehicleRepository;
+  let accountRepo: AccountRepository;
   let service: VehicleService;
 
   beforeEach(() => {
@@ -210,8 +211,8 @@ describe('VehicleService.setVehiclePhoto', () => {
 });
 
 describe('VehicleService.getDetail', () => {
-  let vehicleRepo: IVehicleRepository;
-  let accountRepo: IAccountRepository;
+  let vehicleRepo: VehicleRepository;
+  let accountRepo: AccountRepository;
   let service: VehicleService;
 
   beforeEach(() => {
@@ -248,8 +249,8 @@ describe('VehicleService.getDetail', () => {
 });
 
 describe('VehicleService.updateVehicle', () => {
-  let vehicleRepo: IVehicleRepository;
-  let accountRepo: IAccountRepository;
+  let vehicleRepo: VehicleRepository;
+  let accountRepo: AccountRepository;
   let service: VehicleService;
   const updateInput: UpdateVehicleInput = { make: 'Yamaha' };
 
@@ -316,8 +317,8 @@ describe('VehicleService.updateVehicle', () => {
 });
 
 describe('VehicleService.deleteVehicle', () => {
-  let vehicleRepo: IVehicleRepository;
-  let accountRepo: IAccountRepository;
+  let vehicleRepo: VehicleRepository;
+  let accountRepo: AccountRepository;
   let service: VehicleService;
 
   beforeEach(() => {

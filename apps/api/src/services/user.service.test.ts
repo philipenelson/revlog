@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserService } from './user.service';
-import type { IUserRepository, DomainUser } from '@maintenance-log/domain';
+import type { UserRepository, User } from '../domain';
 import { AppError } from '../middleware/error';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
-const mockUser: DomainUser = {
+const mockUser: User = {
   id: 'user-1',
   accountId: 'account-1',
   fullName: 'Philip Russo',
@@ -23,7 +23,7 @@ const mockUser: DomainUser = {
   updatedAt: fixedNow,
 };
 
-function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserRepository {
+function makeFakeUserRepo(overrides: Partial<UserRepository> = {}): UserRepository {
   return {
     findById: vi.fn().mockResolvedValue(mockUser),
     findByAccountId: vi.fn().mockResolvedValue(mockUser),
@@ -43,7 +43,7 @@ function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserReposi
 }
 
 describe('UserService.getCurrentUser', () => {
-  let userRepo: IUserRepository;
+  let userRepo: UserRepository;
   let service: UserService;
 
   beforeEach(() => {

@@ -3,14 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AuthService } from './auth.service';
 import type { IEmailService } from './auth.service';
 import { AppError } from '../middleware/error';
-import type {
-  IUserRepository,
-  IRefreshTokenRepository,
-  IAccountRepository,
-  DomainUser,
-  DomainAccount,
-  DomainRefreshToken,
-} from '@maintenance-log/domain';
+import type { UserRepository, RefreshTokenRepository, AccountRepository, User, Account, RefreshToken } from '../domain';
 
 // JWT signing requires a secret at module evaluation time
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
@@ -20,7 +13,7 @@ const fixedNow = new Date('2026-01-01T00:00:00Z');
 // Low rounds keep fixture hashing fast — these tests exercise our login logic, not bcrypt's cost factor
 const BCRYPT_ROUNDS_FOR_FIXTURES = 4;
 
-const mockAccount: DomainAccount = {
+const mockAccount: Account = {
   id: 'account-1',
   type: 'PERSONAL',
   status: 'ONBOARDING',
@@ -33,7 +26,7 @@ const mockAccount: DomainAccount = {
 // fixedNow-based expiry would read as already-lapsed against the real clock.
 const CORRECT_CODE = '123456';
 
-const mockUser: DomainUser = {
+const mockUser: User = {
   id: 'user-1',
   accountId: 'account-1',
   fullName: 'Test User',
@@ -53,7 +46,7 @@ const mockUser: DomainUser = {
 
 const CORRECT_PASSWORD = 'SecurePass1';
 
-const mockVerifiedUser: DomainUser = {
+const mockVerifiedUser: User = {
   ...mockUser,
   id: 'user-2',
   email: 'verified@example.com',
@@ -69,7 +62,7 @@ const mockVerifiedUser: DomainUser = {
 const RESET_CODE = '654321';
 const NEW_PASSWORD = 'BrandNewPass9';
 
-const mockResetUser: DomainUser = {
+const mockResetUser: User = {
   ...mockVerifiedUser,
   id: 'user-3',
   email: 'reset@example.com',
@@ -78,7 +71,7 @@ const mockResetUser: DomainUser = {
   passwordResetAttemptsRemaining: 4,
 };
 
-const mockRefreshTokenRecord: DomainRefreshToken = {
+const mockRefreshTokenRecord: RefreshToken = {
   id: 'rt-1',
   userId: 'user-1',
   tokenHash: 'hashed',
@@ -86,7 +79,7 @@ const mockRefreshTokenRecord: DomainRefreshToken = {
   createdAt: fixedNow,
 };
 
-function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserRepository {
+function makeFakeUserRepo(overrides: Partial<UserRepository> = {}): UserRepository {
   return {
     findById: vi.fn().mockResolvedValue(null),
     findByAccountId: vi.fn().mockResolvedValue(null),
@@ -105,7 +98,7 @@ function makeFakeUserRepo(overrides: Partial<IUserRepository> = {}): IUserReposi
   };
 }
 
-function makeFakeRefreshTokenRepo(overrides: Partial<IRefreshTokenRepository> = {}): IRefreshTokenRepository {
+function makeFakeRefreshTokenRepo(overrides: Partial<RefreshTokenRepository> = {}): RefreshTokenRepository {
   return {
     create: vi.fn().mockResolvedValue(mockRefreshTokenRecord),
     findByTokenHash: vi.fn().mockResolvedValue(null),
@@ -115,7 +108,7 @@ function makeFakeRefreshTokenRepo(overrides: Partial<IRefreshTokenRepository> = 
   };
 }
 
-function makeFakeAccountRepo(overrides: Partial<IAccountRepository> = {}): IAccountRepository {
+function makeFakeAccountRepo(overrides: Partial<AccountRepository> = {}): AccountRepository {
   return {
     create: vi.fn().mockResolvedValue(mockAccount),
     findById: vi.fn().mockResolvedValue(mockAccount),
@@ -140,9 +133,9 @@ const validInput = {
 };
 
 describe('AuthService.register', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let emailService: IEmailService;
   let service: AuthService;
 
@@ -233,9 +226,9 @@ describe('AuthService.register', () => {
 });
 
 describe('AuthService.verifyEmail', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let service: AuthService;
 
   const validVerify = { email: mockUser.email, code: CORRECT_CODE };
@@ -348,9 +341,9 @@ describe('AuthService.verifyEmail', () => {
 });
 
 describe('AuthService.resendVerification', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let emailService: IEmailService;
   let service: AuthService;
 
@@ -400,9 +393,9 @@ describe('AuthService.resendVerification', () => {
 });
 
 describe('AuthService.forgotPassword', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let emailService: IEmailService;
   let service: AuthService;
 
@@ -457,9 +450,9 @@ describe('AuthService.forgotPassword', () => {
 });
 
 describe('AuthService.resetPassword', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let service: AuthService;
 
   const email = makeEmailService();
@@ -568,9 +561,9 @@ describe('AuthService.resetPassword', () => {
 });
 
 describe('AuthService.login', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let service: AuthService;
 
   const validInput = { email: mockVerifiedUser.email, password: CORRECT_PASSWORD };
@@ -659,14 +652,14 @@ describe('AuthService.login', () => {
 });
 
 describe('AuthService.refresh', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let service: AuthService;
 
   const RAW_TOKEN = 'c'.repeat(64);
 
-  const mockValidRecord: DomainRefreshToken = {
+  const mockValidRecord: RefreshToken = {
     id: 'rt-valid',
     userId: mockVerifiedUser.id,
     tokenHash: 'stored-hash-irrelevant-to-the-fake-repo',
@@ -674,7 +667,7 @@ describe('AuthService.refresh', () => {
     createdAt: fixedNow,
   };
 
-  const mockExpiredRecord: DomainRefreshToken = {
+  const mockExpiredRecord: RefreshToken = {
     ...mockValidRecord,
     id: 'rt-expired',
     expiresAt: new Date(Date.now() - 1000),
@@ -786,14 +779,14 @@ describe('AuthService.refresh', () => {
 });
 
 describe('AuthService.logout', () => {
-  let userRepo: IUserRepository;
-  let refreshTokenRepo: IRefreshTokenRepository;
-  let accountRepo: IAccountRepository;
+  let userRepo: UserRepository;
+  let refreshTokenRepo: RefreshTokenRepository;
+  let accountRepo: AccountRepository;
   let service: AuthService;
 
   const RAW_TOKEN = 'd'.repeat(64);
 
-  const mockRecord: DomainRefreshToken = {
+  const mockRecord: RefreshToken = {
     id: 'rt-logout',
     userId: mockVerifiedUser.id,
     tokenHash: 'stored-hash',

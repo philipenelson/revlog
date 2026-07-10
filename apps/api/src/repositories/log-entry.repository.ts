@@ -1,13 +1,5 @@
 import { PrismaClient } from '../generated/prisma/client';
-import type {
-  ILogEntryRepository,
-  DomainLogEntry,
-  DomainLogEntryItem,
-  DomainLogEntryMedia,
-  LogEntrySummary,
-  CreateLogEntryData,
-  UpdateLogEntryData,
-} from '@maintenance-log/domain';
+import type { LogEntryRepository, LogEntry, LogEntryItem, LogEntryMedia, LogEntrySummary, CreateLogEntryData, UpdateLogEntryData } from '../domain';
 
 type TransactionClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$use' | '$extends'>;
 type LogEntryDb = Pick<PrismaClient, 'logEntry' | 'logItem' | 'logMedia'>;
@@ -37,7 +29,7 @@ function toItemDomain(item: {
   quantity: unknown;
   unitCost: unknown;
   sortOrder: number;
-}): DomainLogEntryItem {
+}): LogEntryItem {
   const q = item.quantity != null ? String(item.quantity) : null;
   const u = item.unitCost != null ? String(item.unitCost) : null;
   let totalCost: string | null = null;
@@ -61,7 +53,7 @@ function toMediaDomain(m: {
   mediaType: string;
   caption: string | null;
   sortOrder: number;
-}): DomainLogEntryMedia {
+}): LogEntryMedia {
   return {
     id: m.id,
     path: m.path,
@@ -84,9 +76,9 @@ function toEntryDomain(
     createdAt: Date;
     updatedAt: Date;
   },
-  items: DomainLogEntryItem[],
-  media: DomainLogEntryMedia[],
-): DomainLogEntry {
+  items: LogEntryItem[],
+  media: LogEntryMedia[],
+): LogEntry {
   return {
     id: entry.id,
     vehicleId: entry.vehicleId,
@@ -104,10 +96,10 @@ function toEntryDomain(
   };
 }
 
-export class PrismaLogEntryRepository implements ILogEntryRepository {
+export class PrismaLogEntryRepository implements LogEntryRepository {
   constructor(private readonly db: LogEntryDb) {}
 
-  async create(vehicleId: string, data: CreateLogEntryData): Promise<DomainLogEntry> {
+  async create(vehicleId: string, data: CreateLogEntryData): Promise<LogEntry> {
     const entry = await this.db.logEntry.create({
       data: {
         vehicleId,
@@ -169,7 +161,7 @@ export class PrismaLogEntryRepository implements ILogEntryRepository {
     }));
   }
 
-  async findById(vehicleId: string, entryId: string): Promise<DomainLogEntry | null> {
+  async findById(vehicleId: string, entryId: string): Promise<LogEntry | null> {
     const entry = await this.db.logEntry.findFirst({
       where: { id: entryId, vehicleId },
       include: {
@@ -185,7 +177,7 @@ export class PrismaLogEntryRepository implements ILogEntryRepository {
     return toEntryDomain(entry, items, media);
   }
 
-  async update(vehicleId: string, entryId: string, data: UpdateLogEntryData): Promise<DomainLogEntry | null> {
+  async update(vehicleId: string, entryId: string, data: UpdateLogEntryData): Promise<LogEntry | null> {
     // Verify the entry belongs to this vehicle
     const existing = await this.db.logEntry.findFirst({ where: { id: entryId, vehicleId } });
     if (!existing) return null;

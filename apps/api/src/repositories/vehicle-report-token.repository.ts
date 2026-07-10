@@ -1,10 +1,5 @@
 import type { PrismaClient } from '../generated/prisma/client';
-import type {
-  IVehicleReportTokenRepository,
-  DomainVehicleReportToken,
-  MechanicPrintout,
-  PrintoutLogEntry,
-} from '@maintenance-log/domain';
+import type { VehicleReportTokenRepository, VehicleReportToken, MechanicPrintout, PrintoutLogEntry } from '../domain';
 
 type Db = Pick<PrismaClient, 'vehicleReportToken' | 'vehicle'>;
 
@@ -12,10 +7,10 @@ function dateToIso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export class PrismaVehicleReportTokenRepository implements IVehicleReportTokenRepository {
+export class PrismaVehicleReportTokenRepository implements VehicleReportTokenRepository {
   constructor(private readonly db: Db) {}
 
-  async upsertByVehicleId(vehicleId: string): Promise<DomainVehicleReportToken> {
+  async upsertByVehicleId(vehicleId: string): Promise<VehicleReportToken> {
     await this.db.vehicleReportToken.deleteMany({ where: { vehicleId } });
     return this.db.vehicleReportToken.create({ data: { vehicleId } });
   }
@@ -25,11 +20,11 @@ export class PrismaVehicleReportTokenRepository implements IVehicleReportTokenRe
     return result.count > 0;
   }
 
-  async findByToken(token: string): Promise<DomainVehicleReportToken | null> {
+  async findByToken(token: string): Promise<VehicleReportToken | null> {
     return this.db.vehicleReportToken.findUnique({ where: { token } });
   }
 
-  async findByVehicleId(vehicleId: string): Promise<DomainVehicleReportToken | null> {
+  async findByVehicleId(vehicleId: string): Promise<VehicleReportToken | null> {
     return this.db.vehicleReportToken.findUnique({ where: { vehicleId } });
   }
 

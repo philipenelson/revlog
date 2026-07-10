@@ -1,5 +1,6 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { createVehicleSchema, updateVehicleSchema, initiateTransferSchema, type DomainVehicle, type DomainVehicleDetail } from '@maintenance-log/domain';
+import { createVehicleSchema, updateVehicleSchema, initiateTransferSchema } from '@maintenance-log/domain';
+import type { Vehicle, VehicleDetail } from '../domain';
 import type { VehicleService } from '../services/vehicle.service';
 import type { VehicleTransferService } from '../services/vehicle-transfer.service';
 import { authenticate } from '../middleware/auth';
@@ -10,7 +11,7 @@ function buildPhotoUrl(req: Request, photoPath: string | null): string | null {
   return `${req.protocol}://${req.get('host')}/uploads/vehicles/${photoPath}`;
 }
 
-function toVehicleResponse(req: Request, vehicle: DomainVehicle) {
+function toVehicleResponse(req: Request, vehicle: Vehicle) {
   return {
     id: vehicle.id,
     nickname: vehicle.nickname,
@@ -22,7 +23,7 @@ function toVehicleResponse(req: Request, vehicle: DomainVehicle) {
   };
 }
 
-function toVehicleDetailResponse(req: Request, detail: DomainVehicleDetail) {
+function toVehicleDetailResponse(req: Request, detail: VehicleDetail) {
   return {
     id: detail.id,
     nickname: detail.nickname,
@@ -39,7 +40,7 @@ function toVehicleDetailResponse(req: Request, detail: DomainVehicleDetail) {
   };
 }
 
-function toVehicleListItemResponse(req: Request, vehicle: DomainVehicle & { logEntryCount: number }) {
+function toVehicleListItemResponse(req: Request, vehicle: Vehicle & { logEntryCount: number }) {
   return { ...toVehicleResponse(req, vehicle), logEntryCount: vehicle.logEntryCount };
 }
 

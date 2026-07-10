@@ -1,13 +1,6 @@
 import type { PrismaClient } from '../generated/prisma/client';
-import type {
-  IVehicleRepository,
-  DomainVehicle,
-  CreateVehicleData,
-  UpdateVehicleData,
-  DomainVehicleDetail,
-  DomainVehicleInsurance,
-} from '@maintenance-log/domain';
-import type { LogEntrySummary } from '@maintenance-log/domain';
+import type { VehicleRepository, Vehicle, CreateVehicleData, UpdateVehicleData, VehicleDetail, VehicleInsurance } from '../domain';
+import type { LogEntrySummary } from '../domain';
 
 type VehicleDb = Pick<PrismaClient, 'vehicle'>;
 
@@ -25,7 +18,7 @@ function mapInsurance(row: {
   premiumPeriod: 'MONTHLY' | 'QUARTERLY' | 'BIANNUAL' | 'ANNUAL' | null;
   towNumber: string | null;
   notes: string | null;
-} | null): DomainVehicleInsurance | null {
+} | null): VehicleInsurance | null {
   if (!row) return null;
   return {
     company: row.company,
@@ -39,10 +32,10 @@ function mapInsurance(row: {
   };
 }
 
-export class PrismaVehicleRepository implements IVehicleRepository {
+export class PrismaVehicleRepository implements VehicleRepository {
   constructor(private readonly db: VehicleDb) {}
 
-  async create(data: CreateVehicleData): Promise<DomainVehicle> {
+  async create(data: CreateVehicleData): Promise<Vehicle> {
     if (!data.id) {
       return this.db.vehicle.create({ data });
     }
@@ -53,7 +46,7 @@ export class PrismaVehicleRepository implements IVehicleRepository {
     return this.db.vehicle.upsert({ where: { id: data.id }, create: data, update: {} });
   }
 
-  async findAllByAccountId(accountId: string): Promise<(DomainVehicle & { logEntryCount: number })[]> {
+  async findAllByAccountId(accountId: string): Promise<(Vehicle & { logEntryCount: number })[]> {
     const rows = await this.db.vehicle.findMany({
       where: { accountId },
       orderBy: { updatedAt: 'desc' },
@@ -62,16 +55,16 @@ export class PrismaVehicleRepository implements IVehicleRepository {
     return rows.map(({ _count, ...vehicle }) => ({ ...vehicle, logEntryCount: _count.logEntries }));
   }
 
-  async setPhoto(vehicleId: string, accountId: string, photoPath: string): Promise<DomainVehicle | null> {
+  async setPhoto(vehicleId: string, accountId: string, photoPath: string): Promise<Vehicle | null> {
     const updated = await this.db.vehicle.updateMany({
       where: { id: vehicleId, accountId },
       data: { photoPath },
     });
     if (updated.count === 0) return null;
-    return this.db.vehicle.findUnique({ where: { id: vehicleId } }) as Promise<DomainVehicle>;
+    return this.db.vehicle.findUnique({ where: { id: vehicleId } }) as Promise<Vehicle>;
   }
 
-  async update(vehicleId: string, data: UpdateVehicleData): Promise<DomainVehicle> {
+  async update(vehicleId: string, data: UpdateVehicleData): Promise<Vehicle> {
     return this.db.vehicle.update({ where: { id: vehicleId }, data });
   }
 
@@ -79,7 +72,7 @@ export class PrismaVehicleRepository implements IVehicleRepository {
     await this.db.vehicle.delete({ where: { id: vehicleId } });
   }
 
-  async findDetailById(vehicleId: string): Promise<DomainVehicleDetail | null> {
+  async findDetailById(vehicleId: string): Promise<VehicleDetail | null> {
     const now = new Date();
     const row = await this.db.vehicle.findUnique({
       where: { id: vehicleId },

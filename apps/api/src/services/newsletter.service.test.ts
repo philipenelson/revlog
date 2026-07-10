@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NewsletterService } from './newsletter.service';
-import type { INewsletterRepository, DomainNewsletterSubscriber } from '@maintenance-log/domain';
+import type { NewsletterRepository, NewsletterSubscriber } from '../domain';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
-const mockSubscriber: DomainNewsletterSubscriber = {
+const mockSubscriber: NewsletterSubscriber = {
   id: 'sub-1',
   email: 'test@example.com',
   createdAt: fixedNow,
 };
 
-function makeFakeNewsletterRepo(overrides: Partial<INewsletterRepository> = {}): INewsletterRepository {
+function makeFakeNewsletterRepo(overrides: Partial<NewsletterRepository> = {}): NewsletterRepository {
   return {
     findByEmail: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue(mockSubscriber),
@@ -19,7 +19,7 @@ function makeFakeNewsletterRepo(overrides: Partial<INewsletterRepository> = {}):
 }
 
 describe('NewsletterService.subscribe', () => {
-  let newsletterRepo: INewsletterRepository;
+  let newsletterRepo: NewsletterRepository;
   let service: NewsletterService;
 
   beforeEach(() => {

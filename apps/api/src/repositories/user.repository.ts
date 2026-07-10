@@ -1,31 +1,23 @@
 import type { PrismaClient } from '../generated/prisma/client';
-import type {
-  IUserRepository,
-  DomainUser,
-  CreateUserData,
-  NewUserRegistrationData,
-  VerificationCodeData,
-  PasswordResetCodeData,
-  DomainAccount,
-} from '@maintenance-log/domain';
+import type { UserRepository, User, CreateUserData, NewUserRegistrationData, VerificationCodeData, PasswordResetCodeData, Account } from '../domain';
 import type { AccountType } from '@maintenance-log/domain';
 
-export class PrismaUserRepository implements IUserRepository {
+export class PrismaUserRepository implements UserRepository {
   constructor(private readonly db: PrismaClient) {}
 
-  async findById(id: string): Promise<DomainUser | null> {
+  async findById(id: string): Promise<User | null> {
     return this.db.user.findUnique({ where: { id } });
   }
 
-  async findByAccountId(accountId: string): Promise<DomainUser | null> {
+  async findByAccountId(accountId: string): Promise<User | null> {
     return this.db.user.findFirst({ where: { accountId } });
   }
 
-  async findByEmail(email: string): Promise<DomainUser | null> {
+  async findByEmail(email: string): Promise<User | null> {
     return this.db.user.findUnique({ where: { email } });
   }
 
-  async create(data: CreateUserData): Promise<DomainUser> {
+  async create(data: CreateUserData): Promise<User> {
     return this.db.user.create({ data });
   }
 
@@ -116,7 +108,7 @@ export class PrismaUserRepository implements IUserRepository {
   async createWithAccount(
     accountType: AccountType,
     userData: NewUserRegistrationData,
-  ): Promise<{ account: DomainAccount; user: DomainUser }> {
+  ): Promise<{ account: Account; user: User }> {
     return this.db.$transaction(async (tx) => {
       const account = await tx.account.create({ data: { type: accountType } });
       const user = await tx.user.create({ data: { ...userData, accountId: account.id } });

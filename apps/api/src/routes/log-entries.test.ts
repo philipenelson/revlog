@@ -5,13 +5,13 @@ import { createLogEntryRouter } from './log-entries';
 import { AppError, errorMiddleware } from '../middleware/error';
 import { signAccessToken } from '../lib/tokens';
 import type { LogEntryService } from '../services/log-entry.service';
-import type { DomainLogEntry, LogEntrySummary } from '@maintenance-log/domain';
+import type { LogEntry, LogEntrySummary } from '../domain';
 
 process.env['JWT_SECRET'] = 'test-secret-long-enough-for-hs256';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
-const mockEntry: DomainLogEntry = {
+const mockEntry: LogEntry = {
   id: 'entry-1',
   vehicleId: 'vehicle-1',
   typeId: 'MAINTENANCE',

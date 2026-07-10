@@ -1,24 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleReportService } from './vehicle-report.service';
-import type {
-  IVehicleReportTokenRepository,
-  IVehicleRepository,
-  DomainVehicleReportToken,
-  DomainVehicleDetail,
-  MechanicPrintout,
-} from '@maintenance-log/domain';
+import type { VehicleReportTokenRepository, VehicleRepository, VehicleReportToken, VehicleDetail, MechanicPrintout } from '../domain';
 import type { VehicleReportEmailer } from './vehicle-report.service';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');
 
-const mockToken: DomainVehicleReportToken = {
+const mockToken: VehicleReportToken = {
   id: 'token-id-1',
   vehicleId: 'vehicle-1',
   token: 'share-token-abc',
   createdAt: fixedNow,
 };
 
-const mockVehicleDetail: DomainVehicleDetail = {
+const mockVehicleDetail: VehicleDetail = {
   id: 'vehicle-1',
   accountId: 'account-1',
   nickname: 'Blackbird',
@@ -40,7 +34,7 @@ const mockPrintout: MechanicPrintout = {
   logEntries: [],
 };
 
-function makeFakeTokenRepo(overrides: Partial<IVehicleReportTokenRepository> = {}): IVehicleReportTokenRepository {
+function makeFakeTokenRepo(overrides: Partial<VehicleReportTokenRepository> = {}): VehicleReportTokenRepository {
   return {
     upsertByVehicleId: vi.fn().mockResolvedValue(mockToken),
     deleteByVehicleId: vi.fn().mockResolvedValue(true),
@@ -51,7 +45,7 @@ function makeFakeTokenRepo(overrides: Partial<IVehicleReportTokenRepository> = {
   };
 }
 
-function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehicleRepository {
+function makeFakeVehicleRepo(overrides: Partial<VehicleRepository> = {}): VehicleRepository {
   return {
     create: vi.fn(),
     findAllByAccountId: vi.fn(),
@@ -59,7 +53,7 @@ function makeFakeVehicleRepo(overrides: Partial<IVehicleRepository> = {}): IVehi
     findDetailById: vi.fn().mockResolvedValue(mockVehicleDetail),
     update: vi.fn(),
     ...overrides,
-  } as unknown as IVehicleRepository;
+  } as unknown as VehicleRepository;
 }
 
 function makeFakeEmailer(): VehicleReportEmailer {
@@ -69,8 +63,8 @@ function makeFakeEmailer(): VehicleReportEmailer {
 const APP_URL = 'https://app.revlog.io';
 
 describe('VehicleReportService.createToken', () => {
-  let tokenRepo: IVehicleReportTokenRepository;
-  let vehicleRepo: IVehicleRepository;
+  let tokenRepo: VehicleReportTokenRepository;
+  let vehicleRepo: VehicleRepository;
   let emailer: VehicleReportEmailer;
   let service: VehicleReportService;
 
@@ -115,8 +109,8 @@ describe('VehicleReportService.createToken', () => {
 });
 
 describe('VehicleReportService.revokeToken', () => {
-  let tokenRepo: IVehicleReportTokenRepository;
-  let vehicleRepo: IVehicleRepository;
+  let tokenRepo: VehicleReportTokenRepository;
+  let vehicleRepo: VehicleRepository;
   let emailer: VehicleReportEmailer;
   let service: VehicleReportService;
 
@@ -159,8 +153,8 @@ describe('VehicleReportService.revokeToken', () => {
 });
 
 describe('VehicleReportService.emailLink', () => {
-  let tokenRepo: IVehicleReportTokenRepository;
-  let vehicleRepo: IVehicleRepository;
+  let tokenRepo: VehicleReportTokenRepository;
+  let vehicleRepo: VehicleRepository;
   let emailer: VehicleReportEmailer;
   let service: VehicleReportService;
 
@@ -201,8 +195,8 @@ describe('VehicleReportService.emailLink', () => {
 });
 
 describe('VehicleReportService.getByShareToken', () => {
-  let tokenRepo: IVehicleReportTokenRepository;
-  let vehicleRepo: IVehicleRepository;
+  let tokenRepo: VehicleReportTokenRepository;
+  let vehicleRepo: VehicleRepository;
   let emailer: VehicleReportEmailer;
   let service: VehicleReportService;
 
