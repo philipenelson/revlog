@@ -9,12 +9,8 @@ import { routeForAccountStatus } from '@/application/navigation/routeForAccountS
 import { biometrics } from '@/adapters/biometrics/biometrics';
 import { credentialStore } from '@/adapters/storage/credentialStore';
 import { preferences } from '@/adapters/storage/preferences';
+import { signInErrorMessage, shouldOfferBiometricEnrolment } from './login.logic';
 
-const SIGN_IN_USER_ERROR =
-  "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";
-const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
-const OFFLINE_MISMATCH_ERROR =
-  "You're offline, and these credentials don't match your last sign-in on this device.";
 const BIOMETRIC_PROMPT = 'Unlock Revlog';
 
 export interface LoginViewModel {
@@ -53,7 +49,7 @@ export function useLoginViewModel(): LoginViewModel {
       preferences.getBiometricUnlockEnabled(),
       biometrics.isAvailable(),
     ]);
-    if (!prompted && !enabled && available) {
+    if (shouldOfferBiometricEnrolment(prompted, enabled, available)) {
       router.replace('/(auth)/enable-biometrics');
     } else {
       router.replace(routeForAccountStatus(session.account.status));
@@ -61,22 +57,16 @@ export function useLoginViewModel(): LoginViewModel {
   }
 
   function handleResult(result: SignInResult): void {
-    switch (result.status) {
-      case 'online':
-        void routeAfterOnlineLogin(result.session);
-        return;
-      case 'offline':
-        router.replace(routeForAccountStatus(result.session.account.status));
-        return;
-      case 'invalidCredentials':
-        setError(SIGN_IN_USER_ERROR);
-        return;
-      case 'offlineUnavailable':
-        setError(OFFLINE_MISMATCH_ERROR);
-        return;
-      case 'serviceError':
-        setError(SERVICE_ERROR);
+    if (result.status === 'online') {
+      void routeAfterOnlineLogin(result.session);
+      return;
     }
+    if (result.status === 'offline') {
+      router.replace(routeForAccountStatus(result.session.account.status));
+      return;
+    }
+    // Remaining statuses are all failures — the pure mapping gives their copy.
+    setError(signInErrorMessage(result.status));
   }
 
   async function onSubmit(data: LoginInput): Promise<void> {

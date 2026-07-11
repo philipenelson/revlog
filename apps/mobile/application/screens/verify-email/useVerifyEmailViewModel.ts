@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ApiError, verifyEmail, resendVerification } from '@maintenance-log/api-client';
+import { verifyEmail, resendVerification } from '@maintenance-log/api-client';
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { routeForAccountStatus } from '@/application/navigation/routeForAccountStatus';
 import { logger } from '@/adapters/logging/logger';
-
-const INVALID_CODE_ERROR = "That code isn't right. Check it and try again.";
-const CODE_EXPIRED_ERROR = 'That code has expired or been used up. Request a new one.';
-const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
+import { mapOtpSubmitError } from '@/domain/apiError';
+import { normalizeOtpCode, isCompleteOtpCode } from './verify-email.logic';
 
 type ResendState = 'idle' | 'sending' | 'sent';
 
@@ -24,16 +22,6 @@ export interface VerifyEmailViewModel {
   submit: () => void;
 }
 
-// The server's 400s carry a machine-readable slug in the JSON body (ADR 0037);
-// ApiError exposes that parsed body, not a per-slug message.
-function apiErrorSlug(err: unknown): string | null {
-  if (err instanceof ApiError && err.body && typeof err.body === 'object' && 'error' in err.body) {
-    const slug = (err.body as { error: unknown }).error;
-    return typeof slug === 'string' ? slug : null;
-  }
-  return null;
-}
-
 export function useVerifyEmailViewModel(): VerifyEmailViewModel {
   const params = useLocalSearchParams<{ email?: string }>();
   const email = typeof params.email === 'string' ? params.email : '';
@@ -45,14 +33,11 @@ export function useVerifyEmailViewModel(): VerifyEmailViewModel {
   const [resendState, setResendState] = useState<ResendState>('idle');
 
   function onChangeCode(value: string): void {
-    // The field is a 6-digit numeric OTP — strip anything else so paste and
-    // autofill can't push a malformed value past the client gate.
-    const digits = value.replace(/\D/g, '').slice(0, 6);
-    setCode(digits);
+    setCode(normalizeOtpCode(value));
     if (error) setError(null);
   }
 
-  const canSubmit = /^\d{6}$/.test(code) && !isSubmitting;
+  const canSubmit = isCompleteOtpCode(code) && !isSubmitting;
 
   // Verify is an online-only operation, never persisted locally — so it calls
   // the api-client service directly with tokenHttpClient, mirroring login and
@@ -67,17 +52,9 @@ export function useVerifyEmailViewModel(): VerifyEmailViewModel {
       setSession(session);
       router.replace(routeForAccountStatus(session.account.status));
     } catch (err) {
-      const slug = apiErrorSlug(err);
-      if (slug === 'invalid_code') {
-        setError(INVALID_CODE_ERROR);
-      } else if (slug === 'code_expired') {
-        setError(CODE_EXPIRED_ERROR);
-      } else {
-        if (!(err instanceof ApiError && err.status < 500)) {
-          logger.error('verify-email request failed', { err });
-        }
-        setError(SERVICE_ERROR);
-      }
+      const { message, shouldLog } = mapOtpSubmitError(err);
+      if (shouldLog) logger.error('verify-email request failed', { err });
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

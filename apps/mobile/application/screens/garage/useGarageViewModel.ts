@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import type { VehicleSummary } from '@maintenance-log/api-client';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useSync } from '@/application/providers/SyncProvider';
+import { deriveGarageLoading } from './garage.logic';
 
 export interface GarageViewModel {
   vehicles: VehicleSummary[];
@@ -40,8 +41,7 @@ export function useGarageViewModel(): GarageViewModel {
   // regardless of sync status. UC-MOB-GARAGE-2: an empty table shows loading
   // only until the first sync attempt concludes (success or failure) —
   // after that, an empty result is a real, renderable empty state.
-  const hasCompletedOneSyncAttempt = lastSyncedAt !== null || syncStatus === 'error';
-  const isLoading = vehicles.length === 0 && !hasCompletedOneSyncAttempt;
+  const isLoading = deriveGarageLoading(vehicles.length, lastSyncedAt, syncStatus);
 
   async function onRefresh(): Promise<void> {
     setIsRefreshing(true);

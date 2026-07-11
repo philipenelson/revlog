@@ -3,15 +3,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useForm, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordSchema, type ResetPasswordInput } from '@maintenance-log/domain';
-import { ApiError, resetPassword, forgotPassword } from '@maintenance-log/api-client';
+import { resetPassword, forgotPassword } from '@maintenance-log/api-client';
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { routeForAccountStatus } from '@/application/navigation/routeForAccountStatus';
 import { logger } from '@/adapters/logging/logger';
-
-const INVALID_CODE_ERROR = "That code isn't right. Check it and try again.";
-const CODE_EXPIRED_ERROR = 'That code has expired or been used up. Request a new one.';
-const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
+import { mapOtpSubmitError } from '@/domain/apiError';
 
 type ResendState = 'idle' | 'sending' | 'sent';
 
@@ -25,16 +22,6 @@ export interface ResetPasswordViewModel {
   onResend: () => void;
   onBackToRequest: () => void;
   submit: () => void;
-}
-
-// The server's 400s carry a machine-readable slug in the JSON body (ADR 0038);
-// ApiError exposes that parsed body, not a per-slug message.
-function apiErrorSlug(err: unknown): string | null {
-  if (err instanceof ApiError && err.body && typeof err.body === 'object' && 'error' in err.body) {
-    const slug = (err.body as { error: unknown }).error;
-    return typeof slug === 'string' ? slug : null;
-  }
-  return null;
 }
 
 export function useResetPasswordViewModel(): ResetPasswordViewModel {
@@ -68,17 +55,9 @@ export function useResetPasswordViewModel(): ResetPasswordViewModel {
       setSession(session);
       router.replace(routeForAccountStatus(session.account.status));
     } catch (err) {
-      const slug = apiErrorSlug(err);
-      if (slug === 'invalid_code') {
-        setError(INVALID_CODE_ERROR);
-      } else if (slug === 'code_expired') {
-        setError(CODE_EXPIRED_ERROR);
-      } else {
-        if (!(err instanceof ApiError && err.status < 500)) {
-          logger.error('reset-password request failed', { err });
-        }
-        setError(SERVICE_ERROR);
-      }
+      const { message, shouldLog } = mapOtpSubmitError(err);
+      if (shouldLog) logger.error('reset-password request failed', { err });
+      setError(message);
     }
   }
 
