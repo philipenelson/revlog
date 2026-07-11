@@ -2,14 +2,18 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, createVehicle, createVehicleWithPhoto } from "@maintenance-log/api-client";
+import { createVehicle, createVehicleWithPhoto } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/adapters/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
+import { isUserFacingError } from "@/domain/apiError";
+import { vehicleDisplayLabel, isVehicleDraftComplete, buildVehiclePayload } from "@/domain/vehicleForm";
 
 const EMPTY_DRAFT: VehicleDraft = { nickname: "", make: "", model: "", year: "", mileage: "" };
+const SAVE_USER_ERROR = "Couldn't save your vehicle. Check the details and try again.";
+const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
 
 export interface AddVehicleViewModel {
   draft: VehicleDraft;
@@ -67,13 +71,8 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
     setSubmitting(true);
 
     try {
-      const payload = {
-        nickname: draft.nickname.trim() || undefined,
-        make: draft.make.trim(),
-        model: draft.model.trim(),
-        year: Number(draft.year.trim()),
-        mileage: Number(draft.mileage.trim().replace(/,/g, "")),
-      };
+      const { nickname, ...rest } = buildVehiclePayload(draft);
+      const payload = { ...rest, nickname: nickname ?? undefined };
       if (photoFile) {
         await createVehicleWithPhoto(cookieHttpClient, payload, photoFile);
       } else {
@@ -81,23 +80,19 @@ export function useAddVehicleViewModel(): AddVehicleViewModel {
       }
       router.push("/garage");
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
-        setSubmitError("Couldn't save your vehicle. Check the details and try again.");
+      if (isUserFacingError(err)) {
+        setSubmitError(SAVE_USER_ERROR);
       } else {
         logger.error("failed to add vehicle", { err });
-        setSubmitError("We stalled. Our mechanics are on it — try again in a moment.");
+        setSubmitError(SERVICE_ERROR);
       }
     } finally {
       setSubmitting(false);
     }
   }
 
-  const displayName =
-    draft.nickname.trim() ||
-    (draft.make.trim() && draft.model.trim() ? `${draft.make.trim()} ${draft.model.trim()}` : null);
-  const isComplete = Boolean(
-    draft.make.trim() && draft.model.trim() && draft.year.trim() && draft.mileage.trim(),
-  );
+  const displayName = vehicleDisplayLabel(draft.nickname, draft.make, draft.model);
+  const isComplete = isVehicleDraftComplete(draft);
 
   return {
     draft,
