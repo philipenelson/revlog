@@ -13,6 +13,12 @@ export function isUserFacingError(err: unknown): boolean {
   return err instanceof ApiError && err.status < 500;
 }
 
+// A caught error's own message when it is an Error, else a supplied fallback —
+// used by flows that surface the thrown message directly (e.g. log-entry save).
+export function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
 // The server's 400s carry a machine-readable slug in the JSON body
 // (ADR 0037/0038); ApiError exposes that parsed body. Returns the slug or null.
 export function apiErrorSlug(err: unknown): string | null {

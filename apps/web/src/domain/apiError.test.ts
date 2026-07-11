@@ -4,6 +4,7 @@ import {
   isUserFacingError,
   apiErrorSlug,
   mapOtpSubmitError,
+  errorMessage,
   SERVICE_ERROR,
   OTP_INVALID_CODE,
   OTP_CODE_EXPIRED,
@@ -58,6 +59,16 @@ describe("apiError", () => {
     it("maps a 5xx / network failure to the service error and logs it", () => {
       expect(mapOtpSubmitError(new ApiError(500, {}))).toEqual({ message: SERVICE_ERROR, shouldLog: true });
       expect(mapOtpSubmitError(new Error("network"))).toEqual({ message: SERVICE_ERROR, shouldLog: true });
+    });
+  });
+
+  describe("errorMessage", () => {
+    it("returns an Error's own message", () => {
+      expect(errorMessage(new Error("boom"), "fallback")).toBe("boom");
+    });
+    it("returns the fallback for a non-Error", () => {
+      expect(errorMessage("nope", "fallback")).toBe("fallback");
+      expect(errorMessage(undefined, "fallback")).toBe("fallback");
     });
   });
 });

@@ -37,6 +37,39 @@ export const MAX_MEDIA_FILES = 10;
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB
 
+/* ── Pure rules (ADR 0043) ──────────────────────────────────────── */
+
+// A log entry can be saved once it has a type and a non-blank title, and no
+// save is in flight. Pure — the hook shell binds it to state + isSaving.
+export function canSaveLogEntry(state: LogEntryFormState, isSaving: boolean): boolean {
+  return state.typeId.length > 0 && state.title.trim().length > 0 && !isSaving;
+}
+
+// Validate a batch of picked files against the count cap and per-file size
+// limits (images 10 MB, videos 100 MB). Returns the accepted files plus the
+// last violation message (or null). Pure: the hook turns accepted files into
+// object-URL-backed drafts.
+export function classifyMediaFiles(
+  existingCount: number,
+  files: File[],
+): { acceptedFiles: File[]; error: string | null } {
+  if (existingCount + files.length > MAX_MEDIA_FILES) {
+    return { acceptedFiles: [], error: `Maximum ${MAX_MEDIA_FILES} files allowed` };
+  }
+  const acceptedFiles: File[] = [];
+  let error: string | null = null;
+  for (const file of files) {
+    const isVideo = file.type.startsWith("video/");
+    const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    if (file.size > maxBytes) {
+      error = `"${file.name}" exceeds the ${isVideo ? "100 MB" : "10 MB"} limit`;
+      continue;
+    }
+    acceptedFiles.push(file);
+  }
+  return { acceptedFiles, error };
+}
+
 /* ── Construction ───────────────────────────────────────────────── */
 
 export function emptyLogEntryFormState(): LogEntryFormState {
