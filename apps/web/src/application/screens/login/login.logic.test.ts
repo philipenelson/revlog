@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ApiError } from "@maintenance-log/api-client";
-import {
-  safeNextPath,
-  isUserFacingError,
-  resolvePostAuthRoute,
-  verifyEmailRoute,
-} from "./login.logic";
+import { safeNextPath, resolvePostAuthRoute, verifyEmailRoute } from "./login.logic";
 
 describe("login.logic", () => {
   describe("safeNextPath", () => {
@@ -26,25 +20,6 @@ describe("login.logic", () => {
 
     it("strips the origin from an absolute same-origin URL, keeping path+search", () => {
       expect(safeNextPath("http://localhost/garage?x=1")).toBe("/garage?x=1");
-    });
-  });
-
-  describe("isUserFacingError", () => {
-    it("is true for a 4xx ApiError", () => {
-      expect(isUserFacingError(new ApiError(400, {}))).toBe(true);
-      expect(isUserFacingError(new ApiError(401, {}))).toBe(true);
-      expect(isUserFacingError(new ApiError(409, {}))).toBe(true);
-    });
-
-    it("is false for a 5xx ApiError", () => {
-      expect(isUserFacingError(new ApiError(500, {}))).toBe(false);
-      expect(isUserFacingError(new ApiError(503, {}))).toBe(false);
-    });
-
-    it("is false for a non-ApiError (network/unknown)", () => {
-      expect(isUserFacingError(new Error("boom"))).toBe(false);
-      expect(isUserFacingError("nope")).toBe(false);
-      expect(isUserFacingError(undefined)).toBe(false);
     });
   });
 

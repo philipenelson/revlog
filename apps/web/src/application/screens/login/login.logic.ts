@@ -1,14 +1,16 @@
-import { ApiError } from "@maintenance-log/api-client";
 import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 
 // Pure functional core for the Login/Register screen (ADR 0043). No React, no
 // I/O — every function here is deterministic and unit-tested directly. The
 // useLoginViewModel hook is the thin coordination shell around these.
 
+// Shared API-error helpers live in domain/apiError; re-exported so the hook and
+// its tests import everything from one screen-logic surface.
+export { isUserFacingError, SERVICE_ERROR } from "@/domain/apiError";
+
 export const SIGN_IN_USER_ERROR =
   "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";
 export const REGISTER_USER_ERROR = "Couldn't create your account. Check your details and try again.";
-export const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
 
 // Constrain an untrusted `?next=` param to a same-origin path (pathname +
 // search), or null if it's absent, malformed, or points off-origin — an
@@ -22,12 +24,6 @@ export function safeNextPath(raw: string | null): string | null {
   } catch {
     return null;
   }
-}
-
-// A 4xx is user-correctable (show a friendly message); anything else — 5xx,
-// network failure, a non-ApiError — is a service error the shell should log.
-export function isUserFacingError(err: unknown): boolean {
-  return err instanceof ApiError && err.status < 500;
 }
 
 // Where to send a freshly-authenticated user: an explicit, safe `?next=` wins;

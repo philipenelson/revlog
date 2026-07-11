@@ -6,11 +6,11 @@ import { useForm } from "react-hook-form";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@maintenance-log/domain";
-import { ApiError, forgotPassword } from "@maintenance-log/api-client";
+import { forgotPassword } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
-
-const SERVICE_ERROR_COPY = "We stalled. Our mechanics are on it — try again in a moment.";
+import { isUserFacingError, SERVICE_ERROR } from "@/domain/apiError";
+import { resetPasswordRoute } from "./forgot-password.logic";
 
 export interface ForgotPasswordViewModel {
   field: UseFormRegister<ForgotPasswordInput>;
@@ -40,12 +40,12 @@ export function useForgotPasswordViewModel(): ForgotPasswordViewModel {
     setFormError(null);
     try {
       await forgotPassword(cookieHttpClient, data);
-      router.push(`/reset-password?email=${encodeURIComponent(data.email)}`);
+      router.push(resetPasswordRoute(data.email));
     } catch (err) {
-      if (!(err instanceof ApiError && err.status < 500)) {
+      if (!isUserFacingError(err)) {
         logger.error("forgot-password request failed", { err });
       }
-      setFormError(SERVICE_ERROR_COPY);
+      setFormError(SERVICE_ERROR);
     }
   }
 

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError, listVehicles, type VehicleSummary } from "@maintenance-log/api-client";
+import { listVehicles, type VehicleSummary } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
+import { isUserFacingError } from "@/domain/apiError";
+import { deriveGarageFlags, type GarageLoadState } from "./garage.logic";
 
-export type GarageLoadState = "loading" | "loaded" | "error";
+export type { GarageLoadState };
 
 export interface GarageViewModel {
   loadState: GarageLoadState;
@@ -25,18 +27,14 @@ export function useGarageViewModel(): GarageViewModel {
         setLoadState("loaded");
       })
       .catch((err) => {
-        //TODO: refactor 500 error handling through out
-        if (!(err instanceof ApiError && err.status < 500)) {
+        if (!isUserFacingError(err)) {
           logger.error("failed to load garage vehicles", { err });
         }
         setLoadState("error");
       });
-
   }, []);
 
-  const hasLoaded = loadState === "loaded";
-  const isEmpty = hasLoaded && vehicles.length === 0;
-  const isPopulated = hasLoaded && !isEmpty;
+  const { isEmpty, isPopulated } = deriveGarageFlags(loadState, vehicles.length);
 
   return { loadState, vehicles, isEmpty, isPopulated };
 }
