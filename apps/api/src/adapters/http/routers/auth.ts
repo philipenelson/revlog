@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { registerSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, resetPasswordSchema } from '@maintenance-log/domain';
+import { registerSchema, loginSchema, verifyEmailSchema, resendVerificationSchema, forgotPasswordSchema, resetPasswordSchema } from '@maintenance-log/contracts';
 import type { AuthService } from '../../../application/services/auth.service';
 import { authenticate } from '../middleware/auth';
 

@@ -103,7 +103,7 @@ export const ITEM_CATEGORY = {
 export type ItemCategoryId = typeof ITEM_CATEGORY[keyof typeof ITEM_CATEGORY];
 ```
 
-These consts are exported from `@maintenance-log/domain`. Any app that needs a type-safe reference to an entry type or category imports from here rather than using raw strings.
+These consts are exported from `@maintenance-log/contracts`. Any app that needs a type-safe reference to an entry type or category imports from here rather than using raw strings.
 
 ---
 
@@ -120,7 +120,7 @@ The handlers return static arrays — no DB read, no service, no auth. Per ADR 0
 - [ ] `GET /log-entry-types` returns 200 with the 7 type IDs in seed order, no auth required
 - [ ] `GET /item-categories` returns 200 with the 4 category IDs in seed order, no auth required
 - [ ] Both handlers live in `apps/api/src/routes/lookup.ts`, not inline in `app.ts`
-- [ ] `LOG_ENTRY_TYPE` and `ITEM_CATEGORY` consts exported from `@maintenance-log/domain`
+- [ ] `LOG_ENTRY_TYPE` and `ITEM_CATEGORY` consts exported from `@maintenance-log/contracts`
 - [ ] `LogEntryTypeId` and `ItemCategoryId` types exported alongside consts
 - [ ] Unit tests: both endpoints return 200 with correct payloads
 - [ ] `docs/milestones/v1.md` items marked `[x]`

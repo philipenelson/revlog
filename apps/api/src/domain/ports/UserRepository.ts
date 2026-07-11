@@ -1,4 +1,4 @@
-import type { AccountType } from '@maintenance-log/domain';
+import type { AccountType } from '@maintenance-log/contracts';
 import type {
   User,
   CreateUserData,

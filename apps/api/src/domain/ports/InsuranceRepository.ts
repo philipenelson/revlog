@@ -1,4 +1,4 @@
-import type { UpsertInsuranceInput } from '@maintenance-log/domain';
+import type { UpsertInsuranceInput } from '@maintenance-log/contracts';
 import type { VehicleInsurance } from '../models/Vehicle';
 
 export interface InsuranceRepository {

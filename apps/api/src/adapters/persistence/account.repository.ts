@@ -1,5 +1,5 @@
 import type { PrismaClient } from '../../generated/prisma/client';
-import type { AccountType } from '@maintenance-log/domain';
+import type { AccountType } from '@maintenance-log/contracts';
 import type { AccountRepository, Account } from '../../domain';
 
 type AccountDb = Pick<PrismaClient, 'account'>;

@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import type { VehicleSummary } from '@maintenance-log/api-client';
-import { useGarageViewModel } from './useGarageViewModel';
+import { useGarageViewModel, deriveGarageLoading } from './useGarageViewModel';
 
 // useFocusEffect stands in for a plain useEffect here: the test renderer has
 // no navigation container to actually gain/lose focus, and the real
@@ -152,5 +152,19 @@ describe('useGarageViewModel', () => {
     result.current.onOpenSettings();
 
     expect(mockPush).toHaveBeenCalledWith('/settings');
+  });
+});
+
+describe('garage pure logic — deriveGarageLoading', () => {
+  it('is never loading once vehicles are present', () => {
+    expect(deriveGarageLoading(2, null, 'idle')).toBe(false);
+  });
+  it('is loading when empty and no sync attempt has completed', () => {
+    expect(deriveGarageLoading(0, null, 'idle')).toBe(true);
+    expect(deriveGarageLoading(0, null, 'syncing')).toBe(true);
+  });
+  it('stops loading once a sync attempt concludes (synced or errored)', () => {
+    expect(deriveGarageLoading(0, new Date(), 'idle')).toBe(false);
+    expect(deriveGarageLoading(0, null, 'error')).toBe(false);
   });
 });

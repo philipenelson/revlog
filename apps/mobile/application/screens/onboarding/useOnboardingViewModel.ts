@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { createVehicleSchema } from '@maintenance-log/domain';
-import { ApiError, skipOnboarding } from '@maintenance-log/api-client';
+import { createVehicleSchema } from '@maintenance-log/contracts';
+import { skipOnboarding } from '@maintenance-log/api-client';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { logger } from '@/adapters/logging/logger';
 import type { PickedPhoto } from '@/domain/ports/PhotoStore';
+import { isUserFacingError, SERVICE_ERROR } from '@/domain/apiError';
+import { vehicleDisplayLabel, collectFieldErrors } from '@/domain/vehicleForm';
 
 export type OnboardingStep = 1 | 2 | 3;
 
@@ -27,7 +29,6 @@ const EMPTY_FIELDS: VehicleFormFields = { nickname: '', make: '', model: '', yea
 
 const VEHICLE_SAVE_ERROR = "Couldn't save your vehicle. Try again in a moment.";
 const SKIP_ERROR = "Couldn't skip right now. Try again in a moment.";
-const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
 
 export interface OnboardingViewModel {
   step: OnboardingStep;
@@ -110,14 +111,7 @@ export function useOnboardingViewModel(): OnboardingViewModel {
     });
 
     if (!result.success) {
-      const nextErrors: VehicleFormErrors = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0];
-        if (typeof field === 'string' && !(field in nextErrors)) {
-          nextErrors[field as keyof VehicleFormFields] = issue.message;
-        }
-      }
-      setErrors(nextErrors);
+      setErrors(collectFieldErrors(result.error.issues) as VehicleFormErrors);
       return;
     }
 
@@ -147,7 +141,7 @@ export function useOnboardingViewModel(): OnboardingViewModel {
       resolveOnboarding();
       router.replace('/garage');
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setSkipError(SKIP_ERROR);
       } else {
         logger.error('skip onboarding failed', { err });
@@ -159,7 +153,7 @@ export function useOnboardingViewModel(): OnboardingViewModel {
   }
 
   const readyHeadline = savedVehicle
-    ? `${savedVehicle.nickname.trim() || `${savedVehicle.make.trim()} ${savedVehicle.model.trim()}`.trim()} is in your garage`
+    ? `${vehicleDisplayLabel(savedVehicle.nickname, savedVehicle.make, savedVehicle.model) ?? ''} is in your garage`
     : '';
 
   return {

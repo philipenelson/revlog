@@ -88,7 +88,7 @@ Design file: [`revlog-mobile-log-entry.html`](../../designs/mobile/revlog-mobile
 - [x] Delete shows confirmation dialog; removes from SQLite + adds outbox entry
 - [x] Create succeeds when device is offline; outbox entry is flushed when reconnected (UC-MOB-LOG-4). Update/delete follow the same outbox path (`UPDATE_LOG_ENTRY`/`DELETE_LOG_ENTRY` handlers), verified via unit tests rather than a dedicated offline E2E scenario.
 - [x] Title, date, and mileage are required; validation errors shown inline
-- [x] Log entry type/category ids come from the shared `LogEntryTypeId`/`ItemCategoryId` enum (`@maintenance-log/domain`'s `lookup-constants.ts`); displayed labels are UI-layer constants, not DB-backed
+- [x] Log entry type/category ids come from the shared `LogEntryTypeId`/`ItemCategoryId` enum (`@maintenance-log/contracts`'s `lookup-constants.ts`); displayed labels are UI-layer constants, not DB-backed
 
 ---
 
@@ -98,7 +98,7 @@ Design file: [`revlog-mobile-log-entry.html`](../../designs/mobile/revlog-mobile
 |---|---|---|
 | Native date picker | `@react-native-community/datetimepicker` | Platform-native date input is significantly better UX than a custom picker on mobile |
 | Media attachment | V2 | Keeps V1 scope tight; OPFS not available on mobile — FileSystemMediaStore adapter is a V2 item |
-| Log entry type/category labels | Shared `LogEntryTypeId`/`ItemCategoryId` enum (`@maintenance-log/domain`'s `lookup-constants.ts`) for the ids; `TYPE_LABELS`/`CATEGORY_LABELS` display constants local to `NewLogEntryScreen.tsx` (and duplicated in `EditLogEntryScreen.tsx`) for the label text | Ids are a plain shared enum, not a database concept. Rendered label text is a UI-layer concern — same approach as the web screen's own `TYPE_META`/`CATEGORY_META` constants |
+| Log entry type/category labels | Shared `LogEntryTypeId`/`ItemCategoryId` enum (`@maintenance-log/contracts`'s `lookup-constants.ts`) for the ids; `TYPE_LABELS`/`CATEGORY_LABELS` display constants local to `NewLogEntryScreen.tsx` (and duplicated in `EditLogEntryScreen.tsx`) for the label text | Ids are a plain shared enum, not a database concept. Rendered label text is a UI-layer concern — same approach as the web screen's own `TYPE_META`/`CATEGORY_META` constants |
 | Local detail cache (notes + items) for Edit | `log_entries` gains `notes`/`items_json`/`detail_fetched` columns; `create()`/`update()` populate them immediately, `SyncService.pull()` fetches them via `GET /vehicles/:vehicleId/log/:entryId` only for entries not yet cached | `GET /vehicles/:vehicleId` (the only pull source for Log Entries) returns summaries only — never notes or item rows — so Edit's pre-fill and `PATCH`'s full-array item replacement both needed a real local cache, not just a missing nice-to-have. See ADR 0027's 2026-07-04 update for the full option comparison and reasoning |
 | Log Entry deletion navigates via `router.back()`, not `dismissTo()` | Edit Log Entry pops back to the same Vehicle Detail instance it was pushed from | Unlike deleting a Vehicle (which removes the whole Detail screen), deleting a Log Entry only removes one entry from a Vehicle Detail that's still valid to show; its own `useFocusEffect` re-reads local Log Entries on return |
 

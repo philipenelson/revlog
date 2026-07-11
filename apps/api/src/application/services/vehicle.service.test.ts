@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VehicleService } from './vehicle.service';
 import { AppError } from '../../adapters/http/middleware/error';
-import type { CreateVehicleInput, UpdateVehicleInput } from '@maintenance-log/domain';
+import type { CreateVehicleInput, UpdateVehicleInput } from '@maintenance-log/contracts';
 import type { VehicleRepository, AccountRepository, Vehicle, VehicleDetail, Account } from '../../domain';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');

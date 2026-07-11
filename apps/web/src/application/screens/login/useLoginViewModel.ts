@@ -9,17 +9,46 @@ import {
   loginSchema,
   type RegisterInput,
   type LoginInput,
-} from "@maintenance-log/domain";
-import { ApiError, login as loginRequest, register as registerRequest } from "@maintenance-log/api-client";
+} from "@maintenance-log/contracts";
+import { login as loginRequest, register as registerRequest } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";
-import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
 import { logger } from "@/adapters/logging/logger";
+import { routeForAccountStatus } from "@/application/navigation/routeForAccountStatus";
+import { isUserFacingError, SERVICE_ERROR } from "@/domain/apiError";
 
-const SIGN_IN_USER_ERROR =
+export const SIGN_IN_USER_ERROR =
   "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";
-const REGISTER_USER_ERROR = "Couldn't create your account. Check your details and try again.";
-const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
+export const REGISTER_USER_ERROR = "Couldn't create your account. Check your details and try again.";
+
+// Constrain an untrusted `?next=` param to a same-origin path (pathname +
+// search), or null if it's absent, malformed, or points off-origin — an
+// open-redirect guard.
+export function safeNextPath(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw, "http://localhost");
+    if (url.hostname !== "localhost") return null;
+    return url.pathname + url.search;
+  } catch {
+    return null;
+  }
+}
+
+// Where to send a freshly-authenticated user: an explicit, safe `?next=` wins;
+// otherwise route by account status.
+export function resolvePostAuthRoute(
+  nextPath: string | null,
+  status: Parameters<typeof routeForAccountStatus>[0],
+): string {
+  return nextPath ?? routeForAccountStatus(status);
+}
+
+// The post-registration destination: the verify-email screen, carrying the
+// email so the OTP screen can prefill it.
+export function verifyEmailRoute(email: string): string {
+  return `/verify-email?email=${encodeURIComponent(email)}`;
+}
 
 export type Tab = "login" | "register";
 
@@ -42,17 +71,6 @@ export interface LoginViewModel {
   };
 }
 
-function safeNextPath(raw: string | null): string | null {
-  if (!raw) return null;
-  try {
-    const url = new URL(raw, "http://localhost");
-    if (url.hostname !== "localhost") return null;
-    return url.pathname + url.search;
-  } catch {
-    return null;
-  }
-}
-
 export function useLoginViewModel(): LoginViewModel {
   const [tab, setTab] = useState<Tab>("login");
   const router = useRouter();
@@ -66,7 +84,7 @@ export function useLoginViewModel(): LoginViewModel {
   // first, or every visitor would flash through the form before being routed away.
   useEffect(() => {
     if (isRestoring || !session) return;
-    router.replace(nextPath ?? routeForAccountStatus(session.account.status));
+    router.replace(resolvePostAuthRoute(nextPath, session.account.status));
   }, [session, isRestoring, router, nextPath]);
 
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -94,9 +112,9 @@ export function useLoginViewModel(): LoginViewModel {
     try {
       const session = await loginRequest(cookieHttpClient, data);
       setSession(session);
-      router.push(nextPath ?? routeForAccountStatus(session.account.status));
+      router.push(resolvePostAuthRoute(nextPath, session.account.status));
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setLoginError(SIGN_IN_USER_ERROR);
       } else {
         logger.error("login request failed", { err });
@@ -109,9 +127,9 @@ export function useLoginViewModel(): LoginViewModel {
     setRegisterError(null);
     try {
       await registerRequest(cookieHttpClient, data);
-      router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+      router.push(verifyEmailRoute(data.email));
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setRegisterError(REGISTER_USER_ERROR);
       } else {
         logger.error("registration request failed", { err });

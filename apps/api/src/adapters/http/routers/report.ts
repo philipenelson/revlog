@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import type { VehicleReportService } from '../../../application/services/vehicle-report.service';
 import { authenticate } from '../middleware/auth';
-import { reportEmailSchema } from '@maintenance-log/domain';
+import { reportEmailSchema } from '@maintenance-log/contracts';
 
 function buildPhotoUrl(req: Request, photoPath: string | null): string | null {
   if (!photoPath) return null;

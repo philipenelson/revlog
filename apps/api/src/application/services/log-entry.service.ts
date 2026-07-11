@@ -1,4 +1,4 @@
-import type { CreateLogEntryInput, UpdateLogEntryInput } from '@maintenance-log/domain';
+import type { CreateLogEntryInput, UpdateLogEntryInput } from '@maintenance-log/contracts';
 import type {
   LogEntryRepository,
   VehicleRepository,

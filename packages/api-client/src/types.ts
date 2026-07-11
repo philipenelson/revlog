@@ -1,4 +1,4 @@
-import type { AccountStatus } from '@maintenance-log/domain';
+import type { AccountStatus } from '@maintenance-log/contracts';
 
 /* ── Auth ───────────────────────────────────────────────────────── */
 

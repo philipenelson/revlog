@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { ApiError, login as loginRequest } from '@maintenance-log/api-client';
 import type { Session } from '@maintenance-log/api-client';
-import type { LoginInput } from '@maintenance-log/domain';
+import type { LoginInput } from '@maintenance-log/contracts';
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { credentialStore } from '@/adapters/storage/credentialStore';

@@ -2,19 +2,46 @@ import { useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useForm, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginInput } from '@maintenance-log/domain';
+import { loginSchema, type LoginInput } from '@maintenance-log/contracts';
 import type { Session } from '@maintenance-log/api-client';
 import { useSignIn, type SignInResult } from '@/application/auth/useSignIn';
 import { routeForAccountStatus } from '@/application/navigation/routeForAccountStatus';
 import { biometrics } from '@/adapters/biometrics/biometrics';
 import { credentialStore } from '@/adapters/storage/credentialStore';
 import { preferences } from '@/adapters/storage/preferences';
+import { SERVICE_ERROR } from '@/domain/apiError';
 
-const SIGN_IN_USER_ERROR =
+export const SIGN_IN_USER_ERROR =
   "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";
-const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
-const OFFLINE_MISMATCH_ERROR =
+export const OFFLINE_MISMATCH_ERROR =
   "You're offline, and these credentials don't match your last sign-in on this device.";
+
+// The error message for a non-successful sign-in status, or null for the two
+// success statuses (online / offline) which route instead of showing an error.
+export function signInErrorMessage(status: string): string | null {
+  switch (status) {
+    case 'invalidCredentials':
+      return SIGN_IN_USER_ERROR;
+    case 'offlineUnavailable':
+      return OFFLINE_MISMATCH_ERROR;
+    case 'serviceError':
+      return SERVICE_ERROR;
+    default:
+      return null;
+  }
+}
+
+// After an online login, offer biometric enrolment once — only when the
+// hardware is available and the Owner hasn't been prompted or already opted in
+// (ADR 0036).
+export function shouldOfferBiometricEnrolment(
+  prompted: boolean,
+  enabled: boolean,
+  available: boolean,
+): boolean {
+  return !prompted && !enabled && available;
+}
+
 const BIOMETRIC_PROMPT = 'Unlock Revlog';
 
 export interface LoginViewModel {
@@ -53,7 +80,7 @@ export function useLoginViewModel(): LoginViewModel {
       preferences.getBiometricUnlockEnabled(),
       biometrics.isAvailable(),
     ]);
-    if (!prompted && !enabled && available) {
+    if (shouldOfferBiometricEnrolment(prompted, enabled, available)) {
       router.replace('/(auth)/enable-biometrics');
     } else {
       router.replace(routeForAccountStatus(session.account.status));
@@ -61,22 +88,16 @@ export function useLoginViewModel(): LoginViewModel {
   }
 
   function handleResult(result: SignInResult): void {
-    switch (result.status) {
-      case 'online':
-        void routeAfterOnlineLogin(result.session);
-        return;
-      case 'offline':
-        router.replace(routeForAccountStatus(result.session.account.status));
-        return;
-      case 'invalidCredentials':
-        setError(SIGN_IN_USER_ERROR);
-        return;
-      case 'offlineUnavailable':
-        setError(OFFLINE_MISMATCH_ERROR);
-        return;
-      case 'serviceError':
-        setError(SERVICE_ERROR);
+    if (result.status === 'online') {
+      void routeAfterOnlineLogin(result.session);
+      return;
     }
+    if (result.status === 'offline') {
+      router.replace(routeForAccountStatus(result.session.account.status));
+      return;
+    }
+    // Remaining statuses are all failures — the pure mapping gives their copy.
+    setError(signInErrorMessage(result.status));
   }
 
   async function onSubmit(data: LoginInput): Promise<void> {

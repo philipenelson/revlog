@@ -10,7 +10,7 @@
 
 Backend implementation of vehicle creation — `POST /vehicles`. This is the endpoint the [onboarding wizard](../onboarding/onboarding-wizard.md) Step 2 submits to (see that spec's "Next steps — Wire Step 2 to the real Vehicle creation endpoint"), and is also the foundation for the future Add Vehicle screen reachable from the Garage (see `docs/milestones/v1.md` — Vehicle).
 
-Validation uses a Zod schema (`createVehicleSchema`) from `@maintenance-log/domain` (see [ADR 0010](../../adr/0010-zod-validation.md)). The route requires authentication via the existing `authenticate` middleware (`apps/api/src/middleware/auth.ts`) — this is its first real usage in the codebase.
+Validation uses a Zod schema (`createVehicleSchema`) from `@maintenance-log/contracts` (see [ADR 0010](../../adr/0010-zod-validation.md)). The route requires authentication via the existing `authenticate` middleware (`apps/api/src/middleware/auth.ts`) — this is its first real usage in the codebase.
 
 Creating a Vehicle also resolves onboarding for the owning Account — see "Side effects" below and [ADR 0015](../../adr/0015-account-status-state-machine.md).
 
