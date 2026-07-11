@@ -13,6 +13,21 @@ import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
 import { useAuth } from "@/application/providers/AuthProvider";
 
+export type TransferLoadOutcome = "not-found" | "error";
+
+// A 404 means the transfer token is unknown/consumed (show not-found); any
+// other load failure is a genuine error worth logging.
+export function classifyTransferLoadError(err: unknown): TransferLoadOutcome {
+  return err instanceof ApiError && err.status === 404 ? "not-found" : "error";
+}
+
+// The message for a failed accept/decline: an ApiError surfaces its own message
+// (with a per-action fallback); anything else is a generic retry prompt.
+export function transferActionError(err: unknown, apiFallback: string): string {
+  if (err instanceof ApiError) return err.message ?? apiFallback;
+  return "Something went wrong. Try again.";
+}
+
 export type TransferLoadState =
   | "loading"
   | "pending"
@@ -58,12 +73,9 @@ export function useTransferViewModel(): TransferViewModel {
         setLoadState("pending");
       })
       .catch((err) => {
-        if (err instanceof ApiError && err.status === 404) {
-          setLoadState("not-found");
-        } else {
-          logger.error("failed to load transfer", { err });
-          setLoadState("error");
-        }
+        const outcome = classifyTransferLoadError(err);
+        if (outcome === "error") logger.error("failed to load transfer", { err });
+        setLoadState(outcome);
       });
   }, [token, session, isRestoring, router]);
 
@@ -75,11 +87,7 @@ export function useTransferViewModel(): TransferViewModel {
       setLoadState("accepted");
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message ?? "Failed to accept transfer."
-          : "Something went wrong. Try again.";
-      setActionError(msg);
+      setActionError(transferActionError(err, "Failed to accept transfer."));
       setAccepting(false);
     }
   }
@@ -91,11 +99,7 @@ export function useTransferViewModel(): TransferViewModel {
       await declineTransfer(cookieHttpClient, token);
       setLoadState("declined");
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message ?? "Failed to decline transfer."
-          : "Something went wrong. Try again.";
-      setActionError(msg);
+      setActionError(transferActionError(err, "Failed to decline transfer."));
       setDeclining(false);
     }
   }

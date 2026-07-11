@@ -11,6 +11,7 @@ import {
   saveDraftMedia,
   type LogEntryFormState,
 } from "@/domain/logEntryDraft";
+import { errorMessage } from "@/domain/apiError";
 
 export interface EditLogEntryViewModel {
   vehicleId: string;
@@ -51,7 +52,7 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load log entry");
+        setError(errorMessage(err, "Failed to load log entry"));
         setIsLoading(false);
       });
 
@@ -72,7 +73,7 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
       await updateLogEntry(cookieHttpClient, vehicleId, entryId, payload);
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong — please try again");
+      setError(errorMessage(err, "Something went wrong — please try again"));
     } finally {
       setIsSaving(false);
     }
@@ -85,7 +86,7 @@ export function useEditLogEntryViewModel(): EditLogEntryViewModel {
       await deleteLogEntry(cookieHttpClient, vehicleId, entryId);
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete entry");
+      setError(errorMessage(err, "Failed to delete entry"));
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }

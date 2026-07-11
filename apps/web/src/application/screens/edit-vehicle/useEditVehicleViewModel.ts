@@ -2,12 +2,17 @@
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ApiError, getVehicle, updateVehicle, setVehiclePhoto, deleteVehicle } from "@maintenance-log/api-client";
+import { getVehicle, updateVehicle, setVehiclePhoto, deleteVehicle } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/adapters/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
+import { isUserFacingError } from "@/domain/apiError";
+import { vehicleDisplayLabel, buildVehiclePayload, classifyVehicleLoadError } from "@/domain/vehicleForm";
+
+const SAVE_USER_ERROR = "Couldn't save changes. Check the details and try again.";
+const SERVICE_ERROR = "We stalled. Our mechanics are on it — try again in a moment.";
 
 export type EditVehicleLoadState = "loading" | "ready" | "not-found" | "error";
 
@@ -72,18 +77,15 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
           mileage: String(vehicle.mileage),
         });
         setVehicleDisplayName(
-          vehicle.nickname || `${vehicle.make} ${vehicle.model}`,
+          vehicleDisplayLabel(vehicle.nickname ?? "", vehicle.make, vehicle.model) ?? "",
         );
         setSavedPhotoUrl(vehicle.photoUrl);
         setLoadState("ready");
       })
       .catch((err) => {
-        if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
-          setLoadState("not-found");
-        } else {
-          logger.error("failed to load vehicle for edit", { err });
-          setLoadState("error");
-        }
+        const outcome = classifyVehicleLoadError(err);
+        if (outcome === "error") logger.error("failed to load vehicle for edit", { err });
+        setLoadState(outcome);
       });
   }, [vehicleId]);
 
@@ -118,19 +120,13 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
     setSubmitting(true);
 
     try {
-      await updateVehicle(cookieHttpClient, vehicleId, {
-        nickname: fields.nickname.trim() || null,
-        make: fields.make.trim(),
-        model: fields.model.trim(),
-        year: Number(fields.year.trim()),
-        mileage: Number(fields.mileage.trim().replace(/,/g, "")),
-      });
+      await updateVehicle(cookieHttpClient, vehicleId, buildVehiclePayload(fields));
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
-        setSubmitError("Couldn't save changes. Check the details and try again.");
+      if (isUserFacingError(err)) {
+        setSubmitError(SAVE_USER_ERROR);
       } else {
         logger.error("failed to update vehicle", { err });
-        setSubmitError("We stalled. Our mechanics are on it — try again in a moment.");
+        setSubmitError(SERVICE_ERROR);
       }
       setSubmitting(false);
       return;

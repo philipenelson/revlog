@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import {
-  ApiError,
   getVehicle,
   saveInsurance,
   initiateTransfer,
@@ -15,6 +14,13 @@ import {
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { vehicleDisplayName } from "@/domain/types";
 import { logger } from "@/adapters/logging/logger";
+import { classifyVehicleLoadError } from "@/domain/vehicleForm";
+
+// The log entries shown for the active type filter: "ALL" shows everything,
+// otherwise only entries of that type. Deterministic given the inputs.
+export function filterLogEntries(entries: LogEntrySummary[], typeFilter: string): LogEntrySummary[] {
+  return typeFilter === "ALL" ? entries : entries.filter((e) => e.typeId === typeFilter);
+}
 
 export type VehicleDetailLoadState = "loading" | "loaded" | "error" | "not-found";
 
@@ -66,12 +72,9 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
         setLoadState("loaded");
       })
       .catch((err) => {
-        if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
-          setLoadState("not-found");
-        } else {
-          logger.error("failed to load vehicle detail", { err });
-          setLoadState("error");
-        }
+        const outcome = classifyVehicleLoadError(err);
+        if (outcome === "error") logger.error("failed to load vehicle detail", { err });
+        setLoadState(outcome);
       });
   }, [vehicleId, retryCount]);
 
@@ -87,10 +90,7 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
 
   const displayName = vehicle ? vehicleDisplayName(vehicle) : "Vehicle";
 
-  const filteredEntries =
-    vehicle && typeFilter !== "ALL"
-      ? vehicle.logEntries.filter((e) => e.typeId === typeFilter)
-      : vehicle?.logEntries ?? [];
+  const filteredEntries = filterLogEntries(vehicle?.logEntries ?? [], typeFilter);
 
   async function handleInitiateTransfer(recipientEmail: string): Promise<void> {
     const transfer = await initiateTransfer(cookieHttpClient, vehicleId, recipientEmail);
