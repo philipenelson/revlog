@@ -5,6 +5,8 @@ import { getReportToken, createReportToken, revokeReportToken } from '@maintenan
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { logger } from '@/adapters/logging/logger';
+import { vehicleDisplayLabel } from '@/domain/vehicleForm';
+import { reportStateFromShareUrl, buildSharePayload } from './mechanicPrintout.logic';
 
 const GENERATE_ERROR = "Couldn't generate a link. Check your connection and try again.";
 const REVOKE_ERROR = "Couldn't revoke the link. Check your connection and try again.";
@@ -53,7 +55,7 @@ export function useMechanicPrintoutViewModel(): MechanicPrintoutViewModel {
   useEffect(() => {
     if (!vehicleRepository || !vehicleId) return;
     void vehicleRepository.findById(vehicleId).then((vehicle) => {
-      if (vehicle) setVehicleDisplayName(vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`);
+      if (vehicle) setVehicleDisplayName(vehicleDisplayLabel(vehicle.nickname ?? '', vehicle.make, vehicle.model) ?? '');
     });
   }, [vehicleRepository, vehicleId]);
 
@@ -69,13 +71,8 @@ export function useMechanicPrintoutViewModel(): MechanicPrintoutViewModel {
     setActionError(null);
     try {
       const token = await getReportToken(tokenHttpClient, vehicleId);
-      if (token.shareUrl) {
-        setShareUrl(token.shareUrl);
-        setState('has-token');
-      } else {
-        setShareUrl(null);
-        setState('no-token');
-      }
+      setShareUrl(token.shareUrl);
+      setState(reportStateFromShareUrl(token.shareUrl));
     } catch (err) {
       logger.error('failed to load report token', { err: String(err) });
       setState('error');
@@ -107,11 +104,7 @@ export function useMechanicPrintoutViewModel(): MechanicPrintoutViewModel {
     try {
       // iOS renders a rich preview from `url`; Android's share sheet ignores
       // `url`, so the link is folded into the message there instead.
-      await Share.share(
-        Platform.OS === 'ios'
-          ? { url: shareUrl, message: SHARE_MESSAGE }
-          : { message: `${SHARE_MESSAGE}\n${shareUrl}` },
-      );
+      await Share.share(buildSharePayload(Platform.OS === 'ios', shareUrl, SHARE_MESSAGE));
     } catch (err) {
       // Dismissing the sheet resolves normally; this only fires if the sheet
       // fails to present -- log and move on, there's nothing to surface.

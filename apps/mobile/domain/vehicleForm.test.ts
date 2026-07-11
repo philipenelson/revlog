@@ -1,4 +1,4 @@
-import { vehicleDisplayLabel, collectFieldErrors } from './vehicleForm';
+import { vehicleDisplayLabel, collectFieldErrors, buildVehicleParseInput } from './vehicleForm';
 
 describe('vehicleForm', () => {
   describe('vehicleDisplayLabel', () => {
@@ -25,6 +25,14 @@ describe('vehicleForm', () => {
     });
     it('ignores issues without a string field path', () => {
       expect(collectFieldErrors([{ path: [], message: 'root' }])).toEqual({});
+    });
+  });
+
+  describe('buildVehicleParseInput', () => {
+    it('strips thousands commas from mileage, passing everything else through', () => {
+      expect(
+        buildVehicleParseInput({ nickname: 'x', make: 'Honda', model: 'CB', year: '2019', mileage: '12,500' }),
+      ).toEqual({ nickname: 'x', make: 'Honda', model: 'CB', year: '2019', mileage: '12500' });
     });
   });
 });

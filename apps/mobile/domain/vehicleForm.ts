@@ -11,6 +11,21 @@ export function vehicleDisplayLabel(nickname: string, make: string, model: strin
   return mk && md ? `${mk} ${md}` : null;
 }
 
+export interface VehicleFormFields {
+  nickname: string;
+  make: string;
+  model: string;
+  year: string;
+  mileage: string;
+}
+
+// The object to hand to createVehicleSchema.safeParse: fields as typed, but
+// mileage's thousands commas stripped (an Owner may type "12,500"). Pure; the
+// schema call itself stays in the hook.
+export function buildVehicleParseInput(fields: VehicleFormFields): VehicleFormFields {
+  return { ...fields, mileage: fields.mileage.replace(/,/g, '') };
+}
+
 // Collapse a Zod safeParse issue list into one message per top-level field
 // (first issue wins) — the shape the vehicle-form viewmodels store as errors.
 export function collectFieldErrors(
