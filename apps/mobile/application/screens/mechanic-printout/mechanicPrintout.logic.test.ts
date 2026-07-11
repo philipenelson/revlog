@@ -1,4 +1,4 @@
-import { reportStateFromShareUrl, buildSharePayload } from './mechanicPrintout.logic';
+import { reportStateFromShareUrl, buildSharePayload } from './useMechanicPrintoutViewModel';
 
 describe('mechanicPrintout.logic', () => {
   describe('reportStateFromShareUrl', () => {

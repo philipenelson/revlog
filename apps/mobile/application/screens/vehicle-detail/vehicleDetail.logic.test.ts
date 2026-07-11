@@ -1,4 +1,4 @@
-import { deriveDetailLoadState, entryCountText } from './vehicleDetail.logic';
+import { deriveDetailLoadState, entryCountText } from './useVehicleDetailViewModel';
 
 describe('vehicleDetail.logic', () => {
   describe('deriveDetailLoadState', () => {

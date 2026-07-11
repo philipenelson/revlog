@@ -4,7 +4,7 @@ import {
   shouldOfferBiometricEnrolment,
   SIGN_IN_USER_ERROR,
   OFFLINE_MISMATCH_ERROR,
-} from './login.logic';
+} from './useLoginViewModel';
 
 describe('login.logic', () => {
   describe('signInErrorMessage', () => {

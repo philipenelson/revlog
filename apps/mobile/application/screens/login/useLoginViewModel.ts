@@ -9,7 +9,38 @@ import { routeForAccountStatus } from '@/application/navigation/routeForAccountS
 import { biometrics } from '@/adapters/biometrics/biometrics';
 import { credentialStore } from '@/adapters/storage/credentialStore';
 import { preferences } from '@/adapters/storage/preferences';
-import { signInErrorMessage, shouldOfferBiometricEnrolment } from './login.logic';
+import { SERVICE_ERROR } from '@/domain/apiError';
+
+export const SIGN_IN_USER_ERROR =
+  "Couldn't sign you in. Check your email and password — or your inbox if you haven't confirmed your account yet.";
+export const OFFLINE_MISMATCH_ERROR =
+  "You're offline, and these credentials don't match your last sign-in on this device.";
+
+// The error message for a non-successful sign-in status, or null for the two
+// success statuses (online / offline) which route instead of showing an error.
+export function signInErrorMessage(status: string): string | null {
+  switch (status) {
+    case 'invalidCredentials':
+      return SIGN_IN_USER_ERROR;
+    case 'offlineUnavailable':
+      return OFFLINE_MISMATCH_ERROR;
+    case 'serviceError':
+      return SERVICE_ERROR;
+    default:
+      return null;
+  }
+}
+
+// After an online login, offer biometric enrolment once — only when the
+// hardware is available and the Owner hasn't been prompted or already opted in
+// (ADR 0036).
+export function shouldOfferBiometricEnrolment(
+  prompted: boolean,
+  enabled: boolean,
+  available: boolean,
+): boolean {
+  return !prompted && !enabled && available;
+}
 
 const BIOMETRIC_PROMPT = 'Unlock Revlog';
 

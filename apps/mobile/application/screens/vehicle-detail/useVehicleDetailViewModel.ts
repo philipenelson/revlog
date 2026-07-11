@@ -6,7 +6,20 @@ import { useSync } from '@/application/providers/SyncProvider';
 import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import { formatCurrencyWhole, formatShortDate } from '@/utils/format';
 import { vehicleDisplayLabel } from '@/domain/vehicleForm';
-import { deriveDetailLoadState, entryCountText } from './vehicleDetail.logic';
+// loading until the first local read completes; then loaded if the vehicle was
+// found, not-found otherwise.
+export function deriveDetailLoadState(
+  hasLoadedOnce: boolean,
+  hasVehicle: boolean,
+): 'loading' | 'loaded' | 'not-found' {
+  if (!hasLoadedOnce) return 'loading';
+  return hasVehicle ? 'loaded' : 'not-found';
+}
+
+// The log-entry count chip: the number, or "None" when there are no entries.
+export function entryCountText(count: number): string {
+  return count > 0 ? String(count) : 'None';
+}
 
 type LoadState = 'loading' | 'not-found' | 'loaded';
 

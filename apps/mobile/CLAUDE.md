@@ -123,11 +123,11 @@ Never use the `style={{}}` prop inline in JSX. Use `StyleSheet.create()` exclusi
 
 ### ViewModels — Pure Functional Core + Framework Hook Shell (ADR 0043)
 
-ViewModels follow the same pattern as web: extract validations, calculations, data transforms, and business rules into **stateless pure functions** in a co-located `<screen>.logic.ts` (or a shared `domain/*` module — e.g. `domain/apiError.ts`, `domain/vehicleForm.ts`, `domain/logEntryForm.ts`), and keep `use<Screen>ViewModel.ts` a thin coordination shell that only binds them to React's lifecycle.
+ViewModels follow the same pattern as web: extract validations, calculations, data transforms, and business rules into **stateless pure functions** at **module scope in the same `use<Screen>ViewModel.ts` file** (outside the hook body), exported for their test — *not* a separate `<screen>.logic.ts` file, which only splits the screen's code. Logic that is **shared across screens** moves to its own `domain/*` module (e.g. `domain/apiError.ts`, `domain/vehicleForm.ts`, `domain/logEntryForm.ts`). The hook stays a thin coordination shell binding them to React's lifecycle.
 
-- **Pure logic** → unit-tested **directly** in `<screen>.logic.ts` / `domain/*.test.ts` (no framework) — where exhaustive branch coverage lives.
+- **Pure logic** → unit-tested **directly** (a `*.logic.test.ts` importing the module-scope exports from the viewmodel file, or `domain/*.test.ts` for shared cores) — where exhaustive branch coverage lives.
 - **Hook shell** → tested via the `renderViewModel` harness (`apps/mobile/test/renderViewModel.tsx`, `@testing-library/react-native`) for state transitions, effects, and handler orchestration — not the business rules.
-- A viewmodel that is pure coordination (e.g. `welcome`, `enable-biometrics`) has no `.logic.ts` — its hook-shell test is enough.
+- A viewmodel that is pure coordination (e.g. `welcome`, `enable-biometrics`) exports no pure functions — its hook-shell test is enough.
 
 Screen components are logic-free and are not unit-tested.
 

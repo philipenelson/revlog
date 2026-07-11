@@ -1,4 +1,4 @@
-import { deriveGarageLoading } from './garage.logic';
+import { deriveGarageLoading } from './useGarageViewModel';
 
 describe('garage.logic — deriveGarageLoading', () => {
   it('is never loading once vehicles are present', () => {

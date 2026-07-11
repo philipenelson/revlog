@@ -6,7 +6,20 @@ import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { logger } from '@/adapters/logging/logger';
 import { vehicleDisplayLabel } from '@/domain/vehicleForm';
-import { reportStateFromShareUrl, buildSharePayload } from './mechanicPrintout.logic';
+export function reportStateFromShareUrl(shareUrl: string | null): 'has-token' | 'no-token' {
+  return shareUrl ? 'has-token' : 'no-token';
+}
+
+export interface SharePayload {
+  message: string;
+  url?: string;
+}
+
+// iOS renders a rich preview from `url`; Android's share sheet ignores it, so
+// the link is folded into the message there instead.
+export function buildSharePayload(isIos: boolean, shareUrl: string, message: string): SharePayload {
+  return isIos ? { url: shareUrl, message } : { message: `${message}\n${shareUrl}` };
+}
 
 const GENERATE_ERROR = "Couldn't generate a link. Check your connection and try again.";
 const REVOKE_ERROR = "Couldn't revoke the link. Check your connection and try again.";

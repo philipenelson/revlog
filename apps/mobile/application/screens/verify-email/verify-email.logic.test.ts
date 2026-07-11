@@ -1,4 +1,4 @@
-import { normalizeOtpCode, isCompleteOtpCode } from './verify-email.logic';
+import { normalizeOtpCode, isCompleteOtpCode } from './useVerifyEmailViewModel';
 
 describe('verify-email.logic', () => {
   describe('normalizeOtpCode', () => {
