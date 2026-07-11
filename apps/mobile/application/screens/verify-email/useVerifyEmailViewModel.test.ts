@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ApiError, verifyEmail, resendVerification } from '@maintenance-log/api-client';
 import type { Session } from '@maintenance-log/api-client';
-import { useVerifyEmailViewModel } from './useVerifyEmailViewModel';
+import { useVerifyEmailViewModel, normalizeOtpCode, isCompleteOtpCode } from './useVerifyEmailViewModel';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { logger } from '@/adapters/logging/logger';
 
@@ -170,5 +170,24 @@ describe('useVerifyEmailViewModel', () => {
 
     await waitFor(() => expect(getVm().resendState).toBe('sent'));
     expect(logger.error).toHaveBeenCalledWith('verification resend failed', expect.anything());
+  });
+});
+
+describe('verify-email pure logic', () => {
+  describe('normalizeOtpCode', () => {
+    it('strips non-digits and caps at 6', () => {
+      expect(normalizeOtpCode('1a2b3c')).toBe('123');
+      expect(normalizeOtpCode('12 34 56')).toBe('123456');
+      expect(normalizeOtpCode('1234567890')).toBe('123456');
+      expect(normalizeOtpCode('abc')).toBe('');
+    });
+  });
+  describe('isCompleteOtpCode', () => {
+    it('is true only for exactly six digits', () => {
+      expect(isCompleteOtpCode('123456')).toBe(true);
+      expect(isCompleteOtpCode('12345')).toBe(false);
+      expect(isCompleteOtpCode('1234567')).toBe(false);
+      expect(isCompleteOtpCode('12345a')).toBe(false);
+    });
   });
 });

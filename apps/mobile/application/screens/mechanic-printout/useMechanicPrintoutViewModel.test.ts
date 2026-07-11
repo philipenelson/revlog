@@ -3,7 +3,11 @@ import { Share } from 'react-native';
 import { router } from 'expo-router';
 import { getReportToken, createReportToken, revokeReportToken } from '@maintenance-log/api-client';
 import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
-import { useMechanicPrintoutViewModel } from './useMechanicPrintoutViewModel';
+import {
+  useMechanicPrintoutViewModel,
+  reportStateFromShareUrl,
+  buildSharePayload,
+} from './useMechanicPrintoutViewModel';
 
 jest.mock('expo-router', () => ({
   router: { back: jest.fn() },
@@ -196,5 +200,22 @@ describe('useMechanicPrintoutViewModel', () => {
     result.current.onBack();
 
     expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('mechanic-printout pure logic', () => {
+  describe('reportStateFromShareUrl', () => {
+    it('is has-token when a url exists, no-token otherwise', () => {
+      expect(reportStateFromShareUrl('https://x/r/abc')).toBe('has-token');
+      expect(reportStateFromShareUrl(null)).toBe('no-token');
+    });
+  });
+  describe('buildSharePayload', () => {
+    it('passes url + message on iOS', () => {
+      expect(buildSharePayload(true, 'https://x/r/abc', 'History')).toEqual({ url: 'https://x/r/abc', message: 'History' });
+    });
+    it('folds the link into the message on Android', () => {
+      expect(buildSharePayload(false, 'https://x/r/abc', 'History')).toEqual({ message: 'History\nhttps://x/r/abc' });
+    });
   });
 });
