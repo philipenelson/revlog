@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { useForm, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, type RegisterInput } from '@maintenance-log/domain';
+import { registerSchema, type RegisterInput } from '@maintenance-log/contracts';
 import { register as registerRequest } from '@maintenance-log/api-client';
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { logger } from '@/adapters/logging/logger';
