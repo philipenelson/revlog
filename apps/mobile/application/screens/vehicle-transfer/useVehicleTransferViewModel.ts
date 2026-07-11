@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { initiateTransferSchema } from '@maintenance-log/contracts';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
+import { vehicleDisplayLabel } from '@/domain/vehicleForm';
 
 type LoadState = 'loading' | 'not-found' | 'ready';
 
@@ -39,7 +40,7 @@ export function useVehicleTransferViewModel(): VehicleTransferViewModel {
         setLoadState('not-found');
         return;
       }
-      setVehicleDisplayName(vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`);
+      setVehicleDisplayName(vehicleDisplayLabel(vehicle.nickname ?? '', vehicle.make, vehicle.model) ?? '');
       setVehicleSubMeta(`${vehicle.year} ${vehicle.make} ${vehicle.model}`);
       setLoadState('ready');
     });

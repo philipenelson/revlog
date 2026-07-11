@@ -3,8 +3,8 @@ import { Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { type LogEntryTypeId, ITEM_CATEGORY, type ItemCategoryId } from '@maintenance-log/contracts';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
-import type { CreateLogEntryItemData } from '@/domain/repositories/LogEntryRepository';
 import { todayIso, toIsoDate } from '@/utils/date';
+import { itemRowTotal, itemsGrandTotal, validateLogEntryFields, buildLogItemsData } from '@/domain/logEntryForm';
 
 export interface LogItemDraft {
   id: string; // local key, for list rendering/removal — never sent to the repository
@@ -116,37 +116,16 @@ export function useNewLogEntryViewModel(): NewLogEntryViewModel {
     setItems((current) => current.filter((item) => item.id !== id));
   }
 
-  function validate(): NewLogEntryFormErrors {
-    const nextErrors: NewLogEntryFormErrors = {};
-    if (!fields.typeId) nextErrors.typeId = 'Select a type';
-    if (!fields.title.trim()) nextErrors.title = 'Title is required';
-    else if (fields.title.trim().length > 100) nextErrors.title = 'Title must be 100 characters or fewer';
-    if (!fields.date) nextErrors.date = 'Date is required';
-    const mileageDigits = fields.mileage.replace(/,/g, '').trim();
-    if (!mileageDigits) nextErrors.mileage = 'Mileage is required';
-    else if (!/^\d+$/.test(mileageDigits)) nextErrors.mileage = 'Enter a valid mileage';
-    return nextErrors;
-  }
-
   async function handleSubmit(): Promise<void> {
     if (!logEntryRepository || !vehicleId) return;
 
-    const nextErrors = validate();
+    const nextErrors = validateLogEntryFields(fields);
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
     }
 
-    // Rows left blank after the Owner backs out of an "add item" tap are
-    // silently dropped, same as the web draft's buildLogEntryPayload().
-    const itemsData: CreateLogEntryItemData[] = items
-      .filter((item) => item.description.trim())
-      .map((item) => ({
-        categoryId: item.categoryId,
-        description: item.description.trim(),
-        quantity: item.quantity.trim() ? parseFloat(item.quantity) : null,
-        unitCost: item.unitCost.trim() ? parseFloat(item.unitCost) : null,
-      }));
+    const itemsData = buildLogItemsData(items);
 
     setErrors({});
     setSubmitError(null);
@@ -194,26 +173,4 @@ export function useNewLogEntryViewModel(): NewLogEntryViewModel {
     submit: () => void handleSubmit(),
     onCancel: () => router.back(),
   };
-}
-
-// Mirrors the web draft's itemRowTotal()/itemsGrandTotal()
-// (apps/web/src/domain/logEntryDraft.ts).
-function itemRowTotal(item: LogItemDraft): string | null {
-  const q = parseFloat(item.quantity);
-  const u = parseFloat(item.unitCost);
-  if (!isNaN(q) && !isNaN(u)) return (q * u).toFixed(2);
-  return null;
-}
-
-function itemsGrandTotal(items: LogItemDraft[]): string | null {
-  let sum = 0;
-  let hasAny = false;
-  for (const item of items) {
-    const t = itemRowTotal(item);
-    if (t !== null) {
-      sum += parseFloat(t);
-      hasAny = true;
-    }
-  }
-  return hasAny ? sum.toFixed(2) : null;
 }

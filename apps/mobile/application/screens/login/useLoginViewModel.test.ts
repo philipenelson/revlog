@@ -3,7 +3,15 @@ import { router } from 'expo-router';
 import type { Session } from '@maintenance-log/api-client';
 import type { LoginInput } from '@maintenance-log/contracts';
 import { renderViewModel } from '../../../test/renderViewModel';
-import { useLoginViewModel, type LoginViewModel } from './useLoginViewModel';
+import {
+  useLoginViewModel,
+  type LoginViewModel,
+  signInErrorMessage,
+  shouldOfferBiometricEnrolment,
+  SIGN_IN_USER_ERROR,
+  OFFLINE_MISMATCH_ERROR,
+} from './useLoginViewModel';
+import { SERVICE_ERROR } from '@/domain/apiError';
 import { useSignIn, type SignInResult } from '@/application/auth/useSignIn';
 import { biometrics } from '@/adapters/biometrics/biometrics';
 import { credentialStore } from '@/adapters/storage/credentialStore';
@@ -207,5 +215,28 @@ describe('useLoginViewModel — biometric unlock', () => {
     expect(mockSignIn).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
     expect(getVm().error).toBeNull();
+  });
+});
+
+describe('login pure logic', () => {
+  describe('signInErrorMessage', () => {
+    it('returns null for the success statuses', () => {
+      expect(signInErrorMessage('online')).toBeNull();
+      expect(signInErrorMessage('offline')).toBeNull();
+    });
+    it('maps each failure status to its copy', () => {
+      expect(signInErrorMessage('invalidCredentials')).toBe(SIGN_IN_USER_ERROR);
+      expect(signInErrorMessage('offlineUnavailable')).toBe(OFFLINE_MISMATCH_ERROR);
+      expect(signInErrorMessage('serviceError')).toBe(SERVICE_ERROR);
+    });
+  });
+
+  describe('shouldOfferBiometricEnrolment', () => {
+    it('offers only when available and neither prompted nor already enabled', () => {
+      expect(shouldOfferBiometricEnrolment(false, false, true)).toBe(true);
+      expect(shouldOfferBiometricEnrolment(true, false, true)).toBe(false);
+      expect(shouldOfferBiometricEnrolment(false, true, true)).toBe(false);
+      expect(shouldOfferBiometricEnrolment(false, false, false)).toBe(false);
+    });
   });
 });

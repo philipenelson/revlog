@@ -121,11 +121,16 @@ Never use the `style={{}}` prop inline in JSX. Use `StyleSheet.create()` exclusi
 
 ## Testing (non-negotiable)
 
-### Humble object pattern
+### ViewModels — Pure Functional Core + Framework Hook Shell (ADR 0043)
 
-Screen components are logic-free and are not unit-tested. Unit tests cover viewmodels, repositories, and services only.
+ViewModels follow the same pattern as web: extract validations, calculations, data transforms, and business rules into **stateless pure functions** at **module scope in the same `use<Screen>ViewModel.ts` file** (outside the hook body), exported for their test — *not* a separate `<screen>.logic.ts` file, which only splits the screen's code. Logic that is **shared across screens** moves to its own `domain/*` module (e.g. `domain/apiError.ts`, `domain/vehicleForm.ts`, `domain/logEntryForm.ts`). The hook stays a thin coordination shell binding them to React's lifecycle.
 
-- **ViewModels** — unit test all state transitions, effect logic, and validation paths
+- **Pure logic** → unit-tested **directly** (a `*.logic.test.ts` importing the module-scope exports from the viewmodel file, or `domain/*.test.ts` for shared cores) — where exhaustive branch coverage lives.
+- **Hook shell** → tested via the `renderViewModel` harness (`apps/mobile/test/renderViewModel.tsx`, `@testing-library/react-native`) for state transitions, effects, and handler orchestration — not the business rules.
+- A viewmodel that is pure coordination (e.g. `welcome`, `enable-biometrics`) exports no pure functions — its hook-shell test is enough.
+
+Screen components are logic-free and are not unit-tested.
+
 - **Repositories** — unit test with fake `Store<T>` / `OutboxWriter<T>` / `PhotoStore` ports injected; verify write + outbox enqueue in same transaction
 - **Services** (`packages/api-client`) — unit test with a mock `HttpClient`
 

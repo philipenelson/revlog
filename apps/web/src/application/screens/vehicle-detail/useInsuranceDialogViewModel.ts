@@ -14,6 +14,21 @@ export interface InsuranceDialogDraft {
   notes: string;
 }
 
+// Normalise the string draft into the API input: trim text (empty → null),
+// dates pass through (empty → null), premium parses to a number (empty → null).
+export function buildInsuranceInput(draft: InsuranceDialogDraft): InsuranceInput {
+  return {
+    company: draft.company.trim() || null,
+    policyNumber: draft.policyNumber.trim() || null,
+    startDate: draft.startDate || null,
+    expiryDate: draft.expiryDate || null,
+    premium: draft.premium ? parseFloat(draft.premium) : null,
+    premiumPeriod: (draft.premiumPeriod as InsuranceInput["premiumPeriod"]) || null,
+    towNumber: draft.towNumber.trim() || null,
+    notes: draft.notes.trim() || null,
+  };
+}
+
 export interface InsuranceDialogViewModel {
   editMode: boolean;
   startEditing: () => void;
@@ -54,16 +69,7 @@ export function useInsuranceDialogViewModel(
     setSaveError(null);
     setIsSaving(true);
     try {
-      await onSave({
-        company: draft.company.trim() || null,
-        policyNumber: draft.policyNumber.trim() || null,
-        startDate: draft.startDate || null,
-        expiryDate: draft.expiryDate || null,
-        premium: draft.premium ? parseFloat(draft.premium) : null,
-        premiumPeriod: (draft.premiumPeriod as InsuranceInput["premiumPeriod"]) || null,
-        towNumber: draft.towNumber.trim() || null,
-        notes: draft.notes.trim() || null,
-      });
+      await onSave(buildInsuranceInput(draft));
       onClose();
     } catch {
       setSaveError("Couldn't save insurance details. Please try again.");

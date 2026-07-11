@@ -5,12 +5,18 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { forgotPasswordSchema, type ForgotPasswordInput } from "@maintenance-log/contracts";
-import { ApiError, forgotPassword } from "@maintenance-log/api-client";
+import { forgotPasswordSchema, type ForgotPasswordInput } from "@maintenance-log/domain";
+import { forgotPassword } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
+import { isUserFacingError, SERVICE_ERROR } from "@/domain/apiError";
 
-const SERVICE_ERROR_COPY = "We stalled. Our mechanics are on it — try again in a moment.";
+// Where a successful request advances to: the reset screen, carrying the email
+// so the OTP screen prefills it. The endpoint is enumeration-safe (always 200),
+// so this runs regardless of whether the account exists (ADR 0038).
+export function resetPasswordRoute(email: string): string {
+  return `/reset-password?email=${encodeURIComponent(email)}`;
+}
 
 export interface ForgotPasswordViewModel {
   field: UseFormRegister<ForgotPasswordInput>;
@@ -40,12 +46,12 @@ export function useForgotPasswordViewModel(): ForgotPasswordViewModel {
     setFormError(null);
     try {
       await forgotPassword(cookieHttpClient, data);
-      router.push(`/reset-password?email=${encodeURIComponent(data.email)}`);
+      router.push(resetPasswordRoute(data.email));
     } catch (err) {
-      if (!(err instanceof ApiError && err.status < 500)) {
+      if (!isUserFacingError(err)) {
         logger.error("forgot-password request failed", { err });
       }
-      setFormError(SERVICE_ERROR_COPY);
+      setFormError(SERVICE_ERROR);
     }
   }
 

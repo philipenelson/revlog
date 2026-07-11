@@ -1,11 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError, listVehicles, type VehicleSummary } from "@maintenance-log/api-client";
+import { listVehicles, type VehicleSummary } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
+import { isUserFacingError } from "@/domain/apiError";
 
 export type GarageLoadState = "loading" | "loaded" | "error";
+
+// The empty/populated flags the view branches on. Both are false until the load
+// settles as "loaded", so the view shows neither the empty state nor the grid
+// while loading or on error.
+export function deriveGarageFlags(
+  loadState: GarageLoadState,
+  vehicleCount: number,
+): { isEmpty: boolean; isPopulated: boolean } {
+  const hasLoaded = loadState === "loaded";
+  const isEmpty = hasLoaded && vehicleCount === 0;
+  return { isEmpty, isPopulated: hasLoaded && !isEmpty };
+}
 
 export interface GarageViewModel {
   loadState: GarageLoadState;
@@ -25,18 +38,14 @@ export function useGarageViewModel(): GarageViewModel {
         setLoadState("loaded");
       })
       .catch((err) => {
-        //TODO: refactor 500 error handling through out
-        if (!(err instanceof ApiError && err.status < 500)) {
+        if (!isUserFacingError(err)) {
           logger.error("failed to load garage vehicles", { err });
         }
         setLoadState("error");
       });
-
   }, []);
 
-  const hasLoaded = loadState === "loaded";
-  const isEmpty = hasLoaded && vehicles.length === 0;
-  const isPopulated = hasLoaded && !isEmpty;
+  const { isEmpty, isPopulated } = deriveGarageFlags(loadState, vehicles.length);
 
   return { loadState, vehicles, isEmpty, isPopulated };
 }
