@@ -16,7 +16,7 @@ vi.mock("@/adapters/logging/logger", () => ({
   logger: { error: loggerError, warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-import { useGarageViewModel } from "./useGarageViewModel";
+import { useGarageViewModel, deriveGarageFlags } from "./useGarageViewModel";
 
 const vehicle = { id: "v1", nickname: "Blackbird", make: "Honda", model: "CB650R", year: 2019, mileage: 4200, photoUrl: null, logEntryCount: 3 };
 
@@ -60,5 +60,24 @@ describe("useGarageViewModel (hook shell)", () => {
     const { result } = renderHook(() => useGarageViewModel());
     await waitFor(() => expect(result.current.loadState).toBe("error"));
     expect(loggerError).not.toHaveBeenCalled();
+  });
+});
+
+describe("garage.logic — deriveGarageFlags", () => {
+  it("is neither empty nor populated while loading", () => {
+    expect(deriveGarageFlags("loading", 0)).toEqual({ isEmpty: false, isPopulated: false });
+    expect(deriveGarageFlags("loading", 3)).toEqual({ isEmpty: false, isPopulated: false });
+  });
+
+  it("is neither empty nor populated on error", () => {
+    expect(deriveGarageFlags("error", 0)).toEqual({ isEmpty: false, isPopulated: false });
+  });
+
+  it("is empty when loaded with no vehicles", () => {
+    expect(deriveGarageFlags("loaded", 0)).toEqual({ isEmpty: true, isPopulated: false });
+  });
+
+  it("is populated when loaded with vehicles", () => {
+    expect(deriveGarageFlags("loaded", 2)).toEqual({ isEmpty: false, isPopulated: true });
   });
 });

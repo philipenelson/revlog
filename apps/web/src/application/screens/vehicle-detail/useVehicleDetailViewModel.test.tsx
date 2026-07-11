@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ApiError } from "@maintenance-log/api-client";
+import { ApiError, type LogEntrySummary } from "@maintenance-log/api-client";
 import { renderHook, act, waitFor } from "@/test/renderViewModel";
 
 const { getVehicle, saveInsurance, initiateTransfer, cancelTransfer } = vi.hoisted(() => ({
@@ -20,7 +20,7 @@ vi.mock("@maintenance-log/api-client", async (importActual) => ({
 vi.mock("@/adapters/http/CookieHttpClient", () => ({ cookieHttpClient: {} }));
 vi.mock("@/adapters/logging/logger", () => ({ logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() } }));
 
-import { useVehicleDetailViewModel } from "./useVehicleDetailViewModel";
+import { useVehicleDetailViewModel, filterLogEntries } from "./useVehicleDetailViewModel";
 
 const vehicle = {
   id: "v1",
@@ -104,5 +104,23 @@ describe("useVehicleDetailViewModel (hook shell)", () => {
     });
     expect(result.current.vehicle?.transferPending).toBe(false);
     expect(result.current.vehicle?.pendingTransfer).toBeNull();
+  });
+});
+
+const entry = (id: string, typeId: string) => ({ id, typeId }) as LogEntrySummary;
+const entries = [entry("1", "SERVICE"), entry("2", "REPAIR"), entry("3", "SERVICE")];
+
+describe("vehicleDetail.logic — filterLogEntries", () => {
+  it("returns every entry for the ALL filter", () => {
+    expect(filterLogEntries(entries, "ALL")).toBe(entries);
+  });
+
+  it("returns only entries matching the selected type", () => {
+    expect(filterLogEntries(entries, "SERVICE").map((e) => e.id)).toEqual(["1", "3"]);
+    expect(filterLogEntries(entries, "REPAIR").map((e) => e.id)).toEqual(["2"]);
+  });
+
+  it("returns an empty list when nothing matches", () => {
+    expect(filterLogEntries(entries, "INSPECTION")).toEqual([]);
   });
 });

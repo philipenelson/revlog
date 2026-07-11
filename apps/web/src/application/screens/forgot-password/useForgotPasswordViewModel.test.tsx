@@ -19,7 +19,7 @@ vi.mock("@/adapters/logging/logger", () => ({
   logger: { error: loggerError, warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
-import { useForgotPasswordViewModel } from "./useForgotPasswordViewModel";
+import { useForgotPasswordViewModel, resetPasswordRoute } from "./useForgotPasswordViewModel";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -55,5 +55,11 @@ describe("useForgotPasswordViewModel (hook shell)", () => {
     const h = await submit("rider@example.com");
     expect(h.getVm().formError).toBe(SERVICE_ERROR);
     expect(loggerError).not.toHaveBeenCalled();
+  });
+});
+
+describe("forgot-password.logic", () => {
+  it("routes to reset-password carrying the URL-encoded email", () => {
+    expect(resetPasswordRoute("a+b@example.com")).toBe("/reset-password?email=a%2Bb%40example.com");
   });
 });
