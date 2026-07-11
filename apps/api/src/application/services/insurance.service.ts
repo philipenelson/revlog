@@ -1,4 +1,4 @@
-import type { UpsertInsuranceInput } from '@maintenance-log/domain';
+import type { UpsertInsuranceInput } from '@maintenance-log/contracts';
 import type { VehicleInsurance, VehicleRepository, InsuranceRepository } from '../../domain';
 import { AppError } from '../../adapters/http/middleware/error';
 import { logger } from '../../lib/logger';

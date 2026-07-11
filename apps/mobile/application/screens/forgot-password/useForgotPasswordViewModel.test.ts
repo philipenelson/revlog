@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { ApiError, forgotPassword } from '@maintenance-log/api-client';
-import type { ForgotPasswordInput } from '@maintenance-log/domain';
+import type { ForgotPasswordInput } from '@maintenance-log/contracts';
 import { renderViewModel } from '../../../test/renderViewModel';
 import { useForgotPasswordViewModel, type ForgotPasswordViewModel } from './useForgotPasswordViewModel';
 import { logger } from '@/adapters/logging/logger';

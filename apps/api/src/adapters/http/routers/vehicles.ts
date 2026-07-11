@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { createVehicleSchema, updateVehicleSchema, initiateTransferSchema } from '@maintenance-log/domain';
+import { createVehicleSchema, updateVehicleSchema, initiateTransferSchema } from '@maintenance-log/contracts';
 import type { Vehicle, VehicleDetail } from '../../../domain';
 import type { VehicleService } from '../../../application/services/vehicle.service';
 import type { VehicleTransferService } from '../../../application/services/vehicle-transfer.service';

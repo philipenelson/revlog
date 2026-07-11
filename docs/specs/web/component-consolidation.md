@@ -409,7 +409,7 @@ Clickable vehicle summary card. Currently inline in `GarageScreen`.
 
 ```typescript
 export interface VehicleCardProps {
-  vehicle: VehicleSummary;  // from @maintenance-log/domain
+  vehicle: VehicleSummary;  // from @maintenance-log/contracts
 }
 ```
 
@@ -421,7 +421,7 @@ Clickable log entry card. Currently inline in `VehicleDetailScreen`. Composes `B
 
 ```typescript
 export interface LogEntryCardProps {
-  entry: LogEntrySummary;   // from @maintenance-log/domain
+  entry: LogEntrySummary;   // from @maintenance-log/contracts
   vehicleId: string;
 }
 ```

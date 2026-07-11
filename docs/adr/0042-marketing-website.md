@@ -1,5 +1,10 @@
 # Marketing website: Astro, shared design tokens, static-first build
 
+> **Renumbered 2026-07-10:** originally filed as ADR 0020, which collided with
+> [ADR 0020 — Web MVVM layered architecture](0020-web-mvvm-layered-architecture.md). Moved to
+> 0042 (the next free number) to make ADR numbers unique again. Content is unchanged;
+> inbound references were updated to point here.
+
 `apps/website` is the public marketing site for Revlog — a landing page covering the product, its features, the roadmap, and a newsletter signup, with a link into the real web app at `apps/web`. It is a separate app from `apps/web` (which remains the authenticated product) and from `apps/mobile` (which does not have a built UI yet).
 
 **Framework:** Astro (already scaffolded at `apps/website`, `astro@^6.4.4`). Astro's static-first, zero-JS-by-default model fits a content-heavy marketing page far better than a full React app, and keeps the production bundle minimal. `output: 'static'` (Astro's default) is used — no SSR adapter. This keeps the site deployable to any static host (e.g. Vercel/Netlify/Cloudflare Pages static hosting, or a CDN) with no Node server to run in production.

@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, spacing, fontSize, fontWeight, fontFamily, radius } from '@maintenance-log/ui-tokens';
-import type { LogEntryTypeId, ItemCategoryId } from '@maintenance-log/domain';
+import type { LogEntryTypeId, ItemCategoryId } from '@maintenance-log/contracts';
 import { formatShortDate } from '@/utils/format';
 import { parseIsoDate } from '@/utils/date';
 import { useEditLogEntryViewModel, type LogItemDraft } from './useEditLogEntryViewModel';

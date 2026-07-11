@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import type { LogEntrySummary } from '@maintenance-log/api-client';
 import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
-import { useVehicleDetailViewModel } from './useVehicleDetailViewModel';
+import { useVehicleDetailViewModel, deriveDetailLoadState, entryCountText } from './useVehicleDetailViewModel';
 
 // useFocusEffect stands in for a plain useEffect here: the test renderer has
 // no navigation container to actually gain/lose focus, and the real
@@ -324,5 +324,24 @@ describe('useVehicleDetailViewModel', () => {
 
     expect(result.current.cancelTransferError).toBe("Couldn't cancel the transfer. Try again in a moment.");
     expect(result.current.cancelTransferDialogOpen).toBe(true);
+  });
+});
+
+describe('vehicle-detail pure logic', () => {
+  describe('deriveDetailLoadState', () => {
+    it('is loading until the first read completes', () => {
+      expect(deriveDetailLoadState(false, false)).toBe('loading');
+      expect(deriveDetailLoadState(false, true)).toBe('loading');
+    });
+    it('is loaded/not-found once read, by presence of the vehicle', () => {
+      expect(deriveDetailLoadState(true, true)).toBe('loaded');
+      expect(deriveDetailLoadState(true, false)).toBe('not-found');
+    });
+  });
+  describe('entryCountText', () => {
+    it('shows the count, or None when empty', () => {
+      expect(entryCountText(3)).toBe('3');
+      expect(entryCountText(0)).toBe('None');
+    });
   });
 });

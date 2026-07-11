@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { useForm, type Control, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, type RegisterInput } from '@maintenance-log/domain';
-import { ApiError, register as registerRequest } from '@maintenance-log/api-client';
+import { registerSchema, type RegisterInput } from '@maintenance-log/contracts';
+import { register as registerRequest } from '@maintenance-log/api-client';
 import { tokenHttpClient } from '@/adapters/http/TokenHttpClient';
 import { logger } from '@/adapters/logging/logger';
+import { isUserFacingError, SERVICE_ERROR } from '@/domain/apiError';
 
 const REGISTER_USER_ERROR = "Couldn't create your account. Check your details and try again.";
-const SERVICE_ERROR = 'We stalled. Our mechanics are on it — try again in a moment.';
 
 export interface RegisterViewModel {
   control: Control<RegisterInput>;
@@ -36,7 +36,7 @@ export function useRegisterViewModel(): RegisterViewModel {
       await registerRequest(tokenHttpClient, data);
       router.push({ pathname: '/(auth)/verify-email', params: { email: data.email } });
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setError(REGISTER_USER_ERROR);
       } else {
         logger.error('registration request failed', { err });

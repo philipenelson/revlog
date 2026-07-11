@@ -1,7 +1,7 @@
 import { act, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { ApiError, register } from '@maintenance-log/api-client';
-import type { RegisterInput } from '@maintenance-log/domain';
+import type { RegisterInput } from '@maintenance-log/contracts';
 import { renderViewModel } from '../../../test/renderViewModel';
 import { useRegisterViewModel, type RegisterViewModel } from './useRegisterViewModel';
 import { logger } from '@/adapters/logging/logger';

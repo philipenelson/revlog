@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LogEntryService } from './log-entry.service';
-import type { CreateLogEntryInput } from '@maintenance-log/domain';
+import type { CreateLogEntryInput } from '@maintenance-log/contracts';
 import type { LogEntryRepository, VehicleRepository, MetadataRepository, LogEntry, LogEntrySummary, Vehicle } from '../../domain';
 
 const fixedNow = new Date('2026-01-01T00:00:00Z');

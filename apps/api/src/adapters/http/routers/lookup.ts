@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { LOG_ENTRY_TYPE, ITEM_CATEGORY } from '@maintenance-log/domain';
+import { LOG_ENTRY_TYPE, ITEM_CATEGORY } from '@maintenance-log/contracts';
 
 const LOG_ENTRY_TYPES = Object.values(LOG_ENTRY_TYPE);
 const ITEM_CATEGORIES = Object.values(ITEM_CATEGORY);

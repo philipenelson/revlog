@@ -2,13 +2,15 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, createVehicle, createVehicleWithPhoto, skipOnboarding } from "@maintenance-log/api-client";
+import { createVehicle, createVehicleWithPhoto, skipOnboarding } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { validateVehicleDraft } from "@/domain/validation/vehicleDraft";
 import type { VehicleDraft, VehicleDraftErrors } from "@/domain/types";
 import { logger } from "@/adapters/logging/logger";
 import { readFileAsDataUrl } from "@/utils/file";
 import { sessionStore } from '@/adapters/session/sessionStore';
+import { isUserFacingError } from "@/domain/apiError";
+import { vehicleDisplayLabel, buildVehiclePayload } from "@/domain/vehicleForm";
 
 export type OnboardingStep = 1 | 2 | 3;
 
@@ -96,13 +98,8 @@ export function useOnboardingViewModel(): OnboardingViewModel {
     setVehicleError(null);
     setSubmitting(true);
     try {
-      const payload = {
-        nickname: draft.nickname.trim() || undefined,
-        make: draft.make.trim(),
-        model: draft.model.trim(),
-        year: Number(draft.year.trim()),
-        mileage: Number(draft.mileage.trim().replace(/,/g, "")),
-      };
+      const { nickname, ...rest } = buildVehiclePayload(draft);
+      const payload = { ...rest, nickname: nickname ?? undefined };
       if (photoFile) {
         await createVehicleWithPhoto(cookieHttpClient, payload, photoFile);
       } else {
@@ -112,7 +109,7 @@ export function useOnboardingViewModel(): OnboardingViewModel {
       setVehicle({ ...draft });
       setStep(3);
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setVehicleError(VEHICLE_SAVE_ERROR);
       } else {
         logger.error("vehicle creation failed during onboarding", { err });
@@ -131,7 +128,7 @@ export function useOnboardingViewModel(): OnboardingViewModel {
       activateAccount();
       router.push("/garage");
     } catch (err) {
-      if (err instanceof ApiError && err.status < 500) {
+      if (isUserFacingError(err)) {
         setSkipError(SKIP_ERROR);
       } else {
         logger.error("skip onboarding failed", { err });
@@ -143,7 +140,7 @@ export function useOnboardingViewModel(): OnboardingViewModel {
   }
 
   const readyHeadline = vehicle
-    ? `${vehicle.nickname.trim() || `${vehicle.make.trim()} ${vehicle.model.trim()}`.trim()} is in your garage`
+    ? `${vehicleDisplayLabel(vehicle.nickname, vehicle.make, vehicle.model) ?? ""} is in your garage`
     : "";
 
   return {

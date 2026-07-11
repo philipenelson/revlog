@@ -11,6 +11,7 @@ import {
   saveDraftMedia,
   type LogEntryFormState,
 } from "@/domain/logEntryDraft";
+import { errorMessage } from "@/domain/apiError";
 
 export interface NewLogEntryViewModel {
   vehicleId: string;
@@ -43,7 +44,7 @@ export function useNewLogEntryViewModel(): NewLogEntryViewModel {
       await createLogEntry(cookieHttpClient, vehicleId, buildLogEntryPayload(formState, savedMedia));
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong — please try again");
+      setError(errorMessage(err, "Something went wrong — please try again"));
     } finally {
       setIsSaving(false);
     }

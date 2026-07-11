@@ -9,7 +9,7 @@
     "./types": "./src/types.ts"
   },
   "dependencies": {
-    "@maintenance-log/domain": "workspace:*"
+    "@maintenance-log/contracts": "workspace:*"
   },
   "devDependencies": {
     "@maintenance-log/typescript-config": "workspace:*",

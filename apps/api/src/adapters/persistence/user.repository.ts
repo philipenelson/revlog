@@ -1,6 +1,6 @@
 import type { PrismaClient } from '../../generated/prisma/client';
 import type { UserRepository, User, CreateUserData, NewUserRegistrationData, VerificationCodeData, PasswordResetCodeData, Account } from '../../domain';
-import type { AccountType } from '@maintenance-log/domain';
+import type { AccountType } from '@maintenance-log/contracts';
 
 export class PrismaUserRepository implements UserRepository {
   constructor(private readonly db: PrismaClient) {}

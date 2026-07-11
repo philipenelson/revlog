@@ -2,9 +2,9 @@
 
 import { useState, type ChangeEvent } from "react";
 import {
-  MAX_IMAGE_BYTES,
   MAX_MEDIA_FILES,
-  MAX_VIDEO_BYTES,
+  canSaveLogEntry,
+  classifyMediaFiles,
   itemsGrandTotal,
   type LogEntryFormState,
   type LogItemDraft,
@@ -33,7 +33,7 @@ export function useLogEntryFormViewModel(
 ): LogEntryFormViewModel {
   const [mediaError, setMediaError] = useState<string | null>(null);
 
-  const canSave = state.typeId.length > 0 && state.title.trim().length > 0 && !isSaving;
+  const canSave = canSaveLogEntry(state, isSaving);
 
   function setField<K extends keyof LogEntryFormState>(key: K, value: LogEntryFormState[K]) {
     onChange({ ...state, [key]: value });
@@ -66,27 +66,18 @@ export function useLogEntryFormViewModel(
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
 
-    if (state.mediaDrafts.length + files.length > MAX_MEDIA_FILES) {
-      setMediaError(`Maximum ${MAX_MEDIA_FILES} files allowed`);
-      return;
-    }
+    const { acceptedFiles, error } = classifyMediaFiles(state.mediaDrafts.length, files);
+    setMediaError(error);
+    // A count-cap violation rejects the whole batch and leaves the input as-is
+    // so nothing is silently dropped.
+    if (acceptedFiles.length === 0 && state.mediaDrafts.length + files.length > MAX_MEDIA_FILES) return;
 
-    const newDrafts: MediaDraft[] = [];
-    for (const file of files) {
-      const isVideo = file.type.startsWith("video/");
-      const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
-      if (file.size > maxBytes) {
-        const limit = isVideo ? "100 MB" : "10 MB";
-        setMediaError(`"${file.name}" exceeds the ${limit} limit`);
-        continue;
-      }
-      newDrafts.push({
-        id: crypto.randomUUID(),
-        file,
-        url: URL.createObjectURL(file),
-        caption: "",
-      });
-    }
+    const newDrafts: MediaDraft[] = acceptedFiles.map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      url: URL.createObjectURL(file),
+      caption: "",
+    }));
 
     onChange({ ...state, mediaDrafts: [...state.mediaDrafts, ...newDrafts] });
     // reset so the same file can be picked again
