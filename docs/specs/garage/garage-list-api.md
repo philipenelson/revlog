@@ -10,7 +10,7 @@
 
 Backend implementation of `GET /vehicles` — the endpoint the Garage screen (`docs/designs/revlog-garage-preview.html`, screen spec to follow from the team building that UI) reads to render an Owner's vehicle list, including its empty state.
 
-This is a read-only continuation of the [vehicle-creation-api.md](./vehicle-creation-api.md) spec, which explicitly deferred `GET /vehicles` to "separate Garage/Vehicle screen specs." It reuses that spec's authentication, account-scoping, and response-shape conventions, and the `DomainVehicle` types already in `@maintenance-log/domain`.
+This is a read-only continuation of the [vehicle-creation-api.md](./vehicle-creation-api.md) spec, which explicitly deferred `GET /vehicles` to "separate Garage/Vehicle screen specs." It reuses that spec's authentication, account-scoping, and response-shape conventions, and the `DomainVehicle` types already in `@maintenance-log/contracts`.
 
 The route requires authentication via the existing `authenticate` middleware (`apps/api/src/middleware/auth.ts`).
 

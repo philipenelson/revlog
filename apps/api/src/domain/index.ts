@@ -1,6 +1,6 @@
 // The API's private domain layer (ADR 0039): rich entity models + repository
 // (driven) port interfaces. Framework-free — imports only the shared contract
-// package (@maintenance-log/domain: Zod schemas, *Input types, lookup constants).
+// package (@maintenance-log/contracts: Zod schemas, *Input types, lookup constants).
 // Not shared with web/mobile; those consume the API's wire contract via api-client.
 
 export * from './models/Account';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { registerSchema } from '@maintenance-log/domain';
+import { registerSchema } from '@maintenance-log/contracts';
 
 const validBase = {
   fullName: 'Test User',

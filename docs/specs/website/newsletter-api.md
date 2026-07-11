@@ -12,7 +12,7 @@ Backend implementation for UC-WEBSITE-6 and UC-WEBSITE-7 from [`landing-page.md`
 
 - `POST /newsletter/subscribe` — records an email address for development/release updates
 
-Validation uses a Zod schema from `packages/domain` (see [ADR 0010](../../adr/0010-zod-validation.md)), following the same routes/services/repositories layering as the rest of `apps/api` (`apps/api/CLAUDE.md`). This endpoint is unauthenticated and unrelated to the Account/User domain — see [ADR 0020](../../adr/0020-marketing-website.md) for why it lives on the existing API rather than a new backend.
+Validation uses a Zod schema from `packages/domain` (see [ADR 0010](../../adr/0010-zod-validation.md)), following the same routes/services/repositories layering as the rest of `apps/api` (`apps/api/CLAUDE.md`). This endpoint is unauthenticated and unrelated to the Account/User domain — see [ADR 0042](../../adr/0042-marketing-website.md) for why it lives on the existing API rather than a new backend.
 
 ---
 

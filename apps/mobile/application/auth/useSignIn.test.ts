@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
 import { ApiError, login } from '@maintenance-log/api-client';
 import type { Session } from '@maintenance-log/api-client';
-import type { LoginInput } from '@maintenance-log/domain';
+import type { LoginInput } from '@maintenance-log/contracts';
 import { useSignIn } from './useSignIn';
 import { useAuth } from '@/application/providers/AuthProvider';
 import { credentialStore } from '@/adapters/storage/credentialStore';

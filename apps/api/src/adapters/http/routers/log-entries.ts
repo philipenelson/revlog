@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import { createLogEntrySchema, updateLogEntrySchema } from '@maintenance-log/domain';
+import { createLogEntrySchema, updateLogEntrySchema } from '@maintenance-log/contracts';
 import type { LogEntryService } from '../../../application/services/log-entry.service';
 import { authenticate } from '../middleware/auth';
 

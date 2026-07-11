@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { createVehicleSchema } from '@maintenance-log/domain';
+import { createVehicleSchema } from '@maintenance-log/contracts';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import type { PickedPhoto } from '@/domain/ports/PhotoStore';
 import { buildVehicleParseInput, collectFieldErrors, vehicleDisplayLabel } from '@/domain/vehicleForm';

@@ -1,4 +1,4 @@
-import type { CreateVehicleInput, UpdateVehicleInput } from '@maintenance-log/domain';
+import type { CreateVehicleInput, UpdateVehicleInput } from '@maintenance-log/contracts';
 import type { Vehicle, VehicleDetail, VehicleRepository, AccountRepository } from '../../domain';
 import { AppError } from '../../adapters/http/middleware/error';
 import { logger } from '../../lib/logger';

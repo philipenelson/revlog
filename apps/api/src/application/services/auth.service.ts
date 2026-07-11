@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import { randomInt } from 'node:crypto';
-import type { RegisterInput, LoginInput, VerifyEmailInput, ResendVerificationInput, ForgotPasswordInput, ResetPasswordInput, AccountStatus } from '@maintenance-log/domain';
+import type { RegisterInput, LoginInput, VerifyEmailInput, ResendVerificationInput, ForgotPasswordInput, ResetPasswordInput, AccountStatus } from '@maintenance-log/contracts';
 import type { UserRepository, RefreshTokenRepository, AccountRepository } from '../../domain';
 import type { EmailSender } from '../ports/EmailSender';
 import type { TokenService } from '../ports/TokenService';

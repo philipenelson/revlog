@@ -11,7 +11,7 @@
 
 The Revlog marketing site (`apps/website`) is the public, unauthenticated landing page for the product — the first thing a prospective rider sees before signing up in `apps/web`. It introduces Revlog, highlights the core feature set, previews the product (web app, with a "coming soon" mobile app), shows what's planned for future releases, links into the real web app, and offers an email signup for development/release updates.
 
-This spec covers a single page (`/`) built with Astro, reusing the dark "cockpit" design tokens and aesthetic established for `apps/web` (see [ADR 0005](../../adr/0005-design-system-and-visual-identity.md)) and the new marketing-site architecture in [ADR 0020](../../adr/0020-marketing-website.md). The web app preview and mobile app preview sections are recreated as token-driven "device frame" mockups based on the approved screen designs in `docs/designs/revlog-garage-preview.html` and `docs/designs/revlog-vehicle-detail-preview.html` — see ADR 0020 for why mockups are used instead of static screenshots.
+This spec covers a single page (`/`) built with Astro, reusing the dark "cockpit" design tokens and aesthetic established for `apps/web` (see [ADR 0005](../../adr/0005-design-system-and-visual-identity.md)) and the new marketing-site architecture in [ADR 0042](../../adr/0042-marketing-website.md). The web app preview and mobile app preview sections are recreated as token-driven "device frame" mockups based on the approved screen designs in `docs/designs/revlog-garage-preview.html` and `docs/designs/revlog-vehicle-detail-preview.html` — see ADR 0042 for why mockups are used instead of static screenshots.
 
 The newsletter form submits to `POST /newsletter/subscribe` on `apps/api` — see [`newsletter-api.md`](./newsletter-api.md).
 
@@ -63,7 +63,7 @@ The newsletter form submits to `POST /newsletter/subscribe` on `apps/api` — se
 **Milestones:** [V1](../../milestones/v1.md)
 
 1. Visitor scrolls to the web app showcase section
-2. System renders a heading, supporting copy, and two device-frame mockups recreating the Garage grid and Vehicle Detail screens (built from the same design tokens as `apps/web`, per [ADR 0020](../../adr/0020-marketing-website.md))
+2. System renders a heading, supporting copy, and two device-frame mockups recreating the Garage grid and Vehicle Detail screens (built from the same design tokens as `apps/web`, per [ADR 0042](../../adr/0042-marketing-website.md))
 
 ---
 
@@ -180,11 +180,11 @@ The newsletter form submits to `POST /newsletter/subscribe` on `apps/api` — se
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Visual showcase approach | Token-driven "device frame" mockups recreating `docs/designs/revlog-garage-preview.html` and `revlog-vehicle-detail-preview.html`, instead of static screenshots | See [ADR 0020](../../adr/0020-marketing-website.md) — avoids a headless-browser screenshot pipeline and keeps visuals in sync with token changes |
+| Visual showcase approach | Token-driven "device frame" mockups recreating `docs/designs/revlog-garage-preview.html` and `revlog-vehicle-detail-preview.html`, instead of static screenshots | See [ADR 0042](../../adr/0042-marketing-website.md) — avoids a headless-browser screenshot pipeline and keeps visuals in sync with token changes |
 | Mobile app section | Illustrative phone-frame mockup, explicitly labeled "Coming soon" | `apps/mobile` has no built screens yet (Expo scaffold only — [V2 milestone](../../milestones/v2.md)); avoids implying a downloadable app exists |
 | Roadmap content | Drawn from [V2 milestone](../../milestones/v2.md), rewritten in user-facing language (e.g. "Scheduled maintenance & due reminders" for "Scheduled maintenance items with mileage/time triggers") | Keeps the public roadmap honest and traceable to the actual backlog without exposing internal/technical items (e.g. OpenTelemetry) |
-| "Open the web app" destination | `PUBLIC_WEB_APP_URL` env var, default `http://localhost:3000` | Production domain not yet decided — placeholder per [ADR 0020](../../adr/0020-marketing-website.md) |
-| Newsletter backend | New `POST /newsletter/subscribe` on existing `apps/api` (see [`newsletter-api.md`](./newsletter-api.md)) | Reuses existing validation/logging/testing infrastructure; avoids a second backend or SSR adapter — see [ADR 0020](../../adr/0020-marketing-website.md) |
+| "Open the web app" destination | `PUBLIC_WEB_APP_URL` env var, default `http://localhost:3000` | Production domain not yet decided — placeholder per [ADR 0042](../../adr/0042-marketing-website.md) |
+| Newsletter backend | New `POST /newsletter/subscribe` on existing `apps/api` (see [`newsletter-api.md`](./newsletter-api.md)) | Reuses existing validation/logging/testing infrastructure; avoids a second backend or SSR adapter — see [ADR 0042](../../adr/0042-marketing-website.md) |
 | Feature copy source | `CONTEXT.md` domain glossary + approved screen designs | Keeps marketing copy aligned with in-product terminology |
 
 ---
@@ -192,7 +192,7 @@ The newsletter form submits to `POST /newsletter/subscribe` on `apps/api` — se
 ## Next steps (tracked follow-up)
 
 ### Real product screenshots
-Once the web app's Garage and Vehicle Detail screens are visually stable and a screenshot pipeline is justified elsewhere (e.g. visual regression testing), replace the device-frame mockups with real captures — see [ADR 0020](../../adr/0020-marketing-website.md) V2 consideration.
+Once the web app's Garage and Vehicle Detail screens are visually stable and a screenshot pipeline is justified elsewhere (e.g. visual regression testing), replace the device-frame mockups with real captures — see [ADR 0042](../../adr/0042-marketing-website.md) V2 consideration.
 
 ### Production domains
 Replace `PUBLIC_WEB_APP_URL` / `PUBLIC_API_URL` placeholder defaults once hosting/deployment is decided.

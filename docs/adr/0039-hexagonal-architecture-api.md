@@ -156,3 +156,16 @@ accepted
 - Optional rename of `@maintenance-log/domain` → a contract-oriented name.
 - Consolidating the API internal model vs. `api-client` wire DTO where a single shared
   contract type would serve both.
+
+## Update (2026-07-10) — package renamed to `@maintenance-log/contracts`
+
+The rename deferred above (and in ADR 0040) is now done: the shared package was renamed
+`@maintenance-log/domain` → **`@maintenance-log/contracts`**, reflecting its narrowed role
+(Zod schemas, inferred `*Input` types, lookup constants/enums). Only the **package name**
+changed; the **directory stays `packages/domain`** — keeping the ~30 historical
+`packages/domain` path references valid and avoiding any workspace-glob/tsconfig/Docker path
+surgery (the workspace resolves by `package.json` name via pnpm symlink, so a name≠directory
+is inert). All ~51 code import sites plus the five `package.json` declarations were updated;
+active docs (CLAUDE.md files, current specs) were repointed, while historical session notes
+and the original body of this ADR retain the former name as a snapshot. The prose above (which
+records the rename as *deferred*) is preserved intact per our amend-don't-rewrite convention.

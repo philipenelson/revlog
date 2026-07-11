@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { initiateTransferSchema } from '@maintenance-log/domain';
+import { initiateTransferSchema } from '@maintenance-log/contracts';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { vehicleDisplayLabel } from '@/domain/vehicleForm';
 

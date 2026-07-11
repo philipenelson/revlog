@@ -9,7 +9,7 @@ import {
   loginSchema,
   type RegisterInput,
   type LoginInput,
-} from "@maintenance-log/domain";
+} from "@maintenance-log/contracts";
 import { login as loginRequest, register as registerRequest } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";

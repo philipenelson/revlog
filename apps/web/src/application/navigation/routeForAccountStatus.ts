@@ -1,4 +1,4 @@
-import type { AccountStatus } from "@maintenance-log/domain";
+import type { AccountStatus } from "@maintenance-log/contracts";
 
 export function routeForAccountStatus(status: AccountStatus): string {
   switch (status) {

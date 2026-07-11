@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { type LogEntryTypeId, ITEM_CATEGORY, type ItemCategoryId } from '@maintenance-log/domain';
+import { type LogEntryTypeId, ITEM_CATEGORY, type ItemCategoryId } from '@maintenance-log/contracts';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { todayIso, toIsoDate } from '@/utils/date';
 import { itemRowTotal, itemsGrandTotal, validateLogEntryFields, buildLogItemsData } from '@/domain/logEntryForm';
@@ -17,7 +17,7 @@ export interface LogItemDraft {
 // Plain strings, not react-hook-form + zodResolver: mirrors Add/Edit
 // Vehicle's VehicleFormFields reasoning, plus mobile requires `mileage`
 // (UC-MOB-LOG-1) where the shared createLogEntrySchema
-// (@maintenance-log/domain) treats it as optional/nullable to match the web
+// (@maintenance-log/contracts) treats it as optional/nullable to match the web
 // spec — the two products have genuinely different rules here, so this
 // validates locally instead of forcing a schema mismatch. `typeId`, `title`,
 // `date`, and item shape limits (title <=100 etc.) still mirror the shared

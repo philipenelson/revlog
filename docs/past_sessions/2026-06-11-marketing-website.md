@@ -15,7 +15,7 @@ Build a public marketing site for Revlog at `apps/website`: a single landing pag
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Framework | Astro (`apps/website`, `astro@^6.4.4`), `output: 'static'` | Static-first, zero-JS-by-default model fits a content-heavy marketing page; no SSR adapter needed — see [ADR 0020](../adr/0020-marketing-website.md) |
+| Framework | Astro (`apps/website`, `astro@^6.4.4`), `output: 'static'` | Static-first, zero-JS-by-default model fits a content-heavy marketing page; no SSR adapter needed — see [ADR 0042](../adr/0042-marketing-website.md) |
 | Styling | Same token bridge as `apps/web` — `packages/ui/tokens/src/tokens.css` imported directly, identical `@theme inline` block in `apps/website/src/styles/global.css`, Tailwind v4 via `@tailwindcss/vite` | Single source of truth for tokens (Rule A), no divergence between apps |
 | Fonts | Self-hosted via `@fontsource-variable/{outfit,dm-sans,geist-mono}` | Astro has no `next/font`; matches `apps/web`'s three font families |
 | Web/mobile app previews | Token-driven "device frame" / "phone frame" mockups recreating `docs/designs/revlog-garage-preview.html` and `revlog-vehicle-detail-preview.html`, not raster screenshots | Avoids a headless-browser screenshot pipeline; mockups stay in sync with token changes automatically |
@@ -31,7 +31,7 @@ Build a public marketing site for Revlog at `apps/website`: a single landing pag
 ## What Was Built
 
 ### Documentation
-- [ADR 0020](../adr/0020-marketing-website.md) — marketing website stack and architecture (783c2fd)
+- [ADR 0042](../adr/0042-marketing-website.md) — marketing website stack and architecture (783c2fd)
 - [`docs/specs/website/landing-page.md`](../specs/website/landing-page.md) — UC-WEBSITE-1 through 7, acceptance criteria (783c2fd)
 - [`docs/specs/website/newsletter-api.md`](../specs/website/newsletter-api.md) — `POST /newsletter/subscribe` contract (783c2fd)
 - `docs/milestones/v1.md` — added and checked off the "Marketing site" section (783c2fd, this session)
@@ -78,7 +78,7 @@ Build a public marketing site for Revlog at `apps/website`: a single landing pag
 
 ## Out of Scope
 
-- Real product screenshots — device-frame mockups are a deliberate V1 choice; revisit if a visual-regression screenshot pipeline is built (ADR 0020 V2 consideration)
+- Real product screenshots — device-frame mockups are a deliberate V1 choice; revisit if a visual-regression screenshot pipeline is built (ADR 0042 V2 consideration)
 - Production domains for `PUBLIC_WEB_APP_URL` / `PUBLIC_API_URL` / `WEBSITE_URL` / `APP_URL` — still `localhost` placeholders pending a deployment decision
 - `apps/web`'s pre-existing divergent `vehicle-detail.module.css` entry-type colors — left untouched; only additive tokens were introduced
 - Unsubscribe flow, double opt-in, and actual newsletter campaign sending — deferred to V2 per `newsletter-api.md`

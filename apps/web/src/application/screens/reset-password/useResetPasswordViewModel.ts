@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { resetPasswordSchema, type ResetPasswordInput } from "@maintenance-log/domain";
+import { resetPasswordSchema, type ResetPasswordInput } from "@maintenance-log/contracts";
 import { resetPassword, forgotPassword } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { useAuth } from "@/application/providers/AuthProvider";

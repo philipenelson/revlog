@@ -1,5 +1,5 @@
 import { Router, type Router as ExpressRouter, type Request, type Response, type NextFunction } from 'express';
-import { newsletterSubscribeSchema } from '@maintenance-log/domain';
+import { newsletterSubscribeSchema } from '@maintenance-log/contracts';
 import type { NewsletterService } from '../../../application/services/newsletter.service';
 
 const SUBSCRIBED_MESSAGE = "You're subscribed — thanks for following along.";

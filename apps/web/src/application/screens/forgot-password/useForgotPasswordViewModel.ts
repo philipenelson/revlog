@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { forgotPasswordSchema, type ForgotPasswordInput } from "@maintenance-log/domain";
+import { forgotPasswordSchema, type ForgotPasswordInput } from "@maintenance-log/contracts";
 import { forgotPassword } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";

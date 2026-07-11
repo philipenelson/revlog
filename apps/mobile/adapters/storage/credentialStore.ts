@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import type { AccountStatus } from '@maintenance-log/domain';
+import type { AccountStatus } from '@maintenance-log/contracts';
 
 // Keychain/Keystore-backed store for the Owner's login credentials plus the
 // session-identity fields needed to rebuild a Session offline (ADR 0036).
