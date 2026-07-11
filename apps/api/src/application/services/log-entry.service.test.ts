@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { LogEntryService } from './log-entry.service';
-import { AppError } from '../../adapters/http/middleware/error';
 import type { CreateLogEntryInput } from '@maintenance-log/contracts';
 import type { LogEntryRepository, VehicleRepository, MetadataRepository, LogEntry, LogEntrySummary, Vehicle } from '../../domain';
 
