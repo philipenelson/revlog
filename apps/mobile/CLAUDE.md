@@ -121,11 +121,16 @@ Never use the `style={{}}` prop inline in JSX. Use `StyleSheet.create()` exclusi
 
 ## Testing (non-negotiable)
 
-### Humble object pattern
+### ViewModels — Pure Functional Core + Framework Hook Shell (ADR 0043)
 
-Screen components are logic-free and are not unit-tested. Unit tests cover viewmodels, repositories, and services only.
+ViewModels follow the same pattern as web: extract validations, calculations, data transforms, and business rules into **stateless pure functions** in a co-located `<screen>.logic.ts` (or a shared `domain/*` module — e.g. `domain/apiError.ts`, `domain/vehicleForm.ts`, `domain/logEntryForm.ts`), and keep `use<Screen>ViewModel.ts` a thin coordination shell that only binds them to React's lifecycle.
 
-- **ViewModels** — unit test all state transitions, effect logic, and validation paths
+- **Pure logic** → unit-tested **directly** in `<screen>.logic.ts` / `domain/*.test.ts` (no framework) — where exhaustive branch coverage lives.
+- **Hook shell** → tested via the `renderViewModel` harness (`apps/mobile/test/renderViewModel.tsx`, `@testing-library/react-native`) for state transitions, effects, and handler orchestration — not the business rules.
+- A viewmodel that is pure coordination (e.g. `welcome`, `enable-biometrics`) has no `.logic.ts` — its hook-shell test is enough.
+
+Screen components are logic-free and are not unit-tested.
+
 - **Repositories** — unit test with fake `Store<T>` / `OutboxWriter<T>` / `PhotoStore` ports injected; verify write + outbox enqueue in same transaction
 - **Services** (`packages/api-client`) — unit test with a mock `HttpClient`
 

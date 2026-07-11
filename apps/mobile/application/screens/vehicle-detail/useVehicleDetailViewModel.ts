@@ -5,6 +5,8 @@ import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useSync } from '@/application/providers/SyncProvider';
 import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import { formatCurrencyWhole, formatShortDate } from '@/utils/format';
+import { vehicleDisplayLabel } from '@/domain/vehicleForm';
+import { deriveDetailLoadState, entryCountText } from './vehicleDetail.logic';
 
 type LoadState = 'loading' | 'not-found' | 'loaded';
 
@@ -155,12 +157,12 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
     }
   }
 
-  const loadState: LoadState = !hasLoadedOnce ? 'loading' : vehicle ? 'loaded' : 'not-found';
+  const loadState: LoadState = deriveDetailLoadState(hasLoadedOnce, vehicle !== null);
 
-  const displayName = vehicle ? (vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`) : '';
+  const displayName = vehicle ? (vehicleDisplayLabel(vehicle.nickname ?? '', vehicle.make, vehicle.model) ?? '') : '';
   const subMeta = vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.mileage.toLocaleString()} mi` : '';
 
-  const entryCountLabel = logEntries.length > 0 ? String(logEntries.length) : 'None';
+  const entryCountLabel = entryCountText(logEntries.length);
   const lastLoggedLabel = vehicle?.lastLoggedAt ? formatShortDate(vehicle.lastLoggedAt) : 'Never';
   const totalSpent = vehicle?.totalSpent ? parseFloat(vehicle.totalSpent) : 0;
   const totalSpentLabel = totalSpent > 0 ? formatCurrencyWhole(totalSpent) : '—';
