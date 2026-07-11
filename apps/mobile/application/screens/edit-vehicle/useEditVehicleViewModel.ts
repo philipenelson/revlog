@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { createVehicleSchema } from '@maintenance-log/domain';
 import { useDatabase } from '@/application/providers/DatabaseProvider';
 import type { PickedPhoto } from '@/domain/ports/PhotoStore';
+import { buildVehicleParseInput, collectFieldErrors, vehicleDisplayLabel } from '@/domain/vehicleForm';
 
 type LoadState = 'loading' | 'not-found' | 'ready';
 
@@ -75,7 +76,7 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
         year: String(vehicle.year),
         mileage: String(vehicle.mileage),
       });
-      setVehicleDisplayName(vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`);
+      setVehicleDisplayName(vehicleDisplayLabel(vehicle.nickname ?? '', vehicle.make, vehicle.model) ?? '');
       setSavedPhotoUrl(vehicle.photoUrl);
       setLoadState('ready');
     });
@@ -109,26 +110,10 @@ export function useEditVehicleViewModel(): EditVehicleViewModel {
   async function handleSubmit(): Promise<void> {
     if (!vehicleRepository || !vehicleId) return;
 
-    const result = createVehicleSchema.safeParse({
-      nickname: fields.nickname,
-      make: fields.make,
-      model: fields.model,
-      year: fields.year,
-      // Defensive, matches the web draft validator: an Owner may type
-      // "12,500" into the mileage field even though it's never pre-filled
-      // with commas.
-      mileage: fields.mileage.replace(/,/g, ''),
-    });
+    const result = createVehicleSchema.safeParse(buildVehicleParseInput(fields));
 
     if (!result.success) {
-      const nextErrors: VehicleFormErrors = {};
-      for (const issue of result.error.issues) {
-        const field = issue.path[0];
-        if (typeof field === 'string' && !(field in nextErrors)) {
-          nextErrors[field as keyof VehicleFormFields] = issue.message;
-        }
-      }
-      setErrors(nextErrors);
+      setErrors(collectFieldErrors(result.error.issues) as VehicleFormErrors);
       return;
     }
 

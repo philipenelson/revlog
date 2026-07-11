@@ -5,6 +5,21 @@ import { useDatabase } from '@/application/providers/DatabaseProvider';
 import { useSync } from '@/application/providers/SyncProvider';
 import type { LocalVehicleDetail } from '@/domain/repositories/VehicleRepository';
 import { formatCurrencyWhole, formatShortDate } from '@/utils/format';
+import { vehicleDisplayLabel } from '@/domain/vehicleForm';
+// loading until the first local read completes; then loaded if the vehicle was
+// found, not-found otherwise.
+export function deriveDetailLoadState(
+  hasLoadedOnce: boolean,
+  hasVehicle: boolean,
+): 'loading' | 'loaded' | 'not-found' {
+  if (!hasLoadedOnce) return 'loading';
+  return hasVehicle ? 'loaded' : 'not-found';
+}
+
+// The log-entry count chip: the number, or "None" when there are no entries.
+export function entryCountText(count: number): string {
+  return count > 0 ? String(count) : 'None';
+}
 
 type LoadState = 'loading' | 'not-found' | 'loaded';
 
@@ -155,12 +170,12 @@ export function useVehicleDetailViewModel(): VehicleDetailViewModel {
     }
   }
 
-  const loadState: LoadState = !hasLoadedOnce ? 'loading' : vehicle ? 'loaded' : 'not-found';
+  const loadState: LoadState = deriveDetailLoadState(hasLoadedOnce, vehicle !== null);
 
-  const displayName = vehicle ? (vehicle.nickname ?? `${vehicle.make} ${vehicle.model}`) : '';
+  const displayName = vehicle ? (vehicleDisplayLabel(vehicle.nickname ?? '', vehicle.make, vehicle.model) ?? '') : '';
   const subMeta = vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.mileage.toLocaleString()} mi` : '';
 
-  const entryCountLabel = logEntries.length > 0 ? String(logEntries.length) : 'None';
+  const entryCountLabel = entryCountText(logEntries.length);
   const lastLoggedLabel = vehicle?.lastLoggedAt ? formatShortDate(vehicle.lastLoggedAt) : 'Never';
   const totalSpent = vehicle?.totalSpent ? parseFloat(vehicle.totalSpent) : 0;
   const totalSpentLabel = totalSpent > 0 ? formatCurrencyWhole(totalSpent) : '—';
