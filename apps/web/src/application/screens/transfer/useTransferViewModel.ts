@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ApiError,
   getTransferDetails,
   acceptTransfer,
   declineTransfer,
@@ -12,6 +11,7 @@ import {
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
 import { useAuth } from "@/application/providers/AuthProvider";
+import { classifyTransferLoadError, transferActionError } from "./transfer.logic";
 
 export type TransferLoadState =
   | "loading"
@@ -58,12 +58,9 @@ export function useTransferViewModel(): TransferViewModel {
         setLoadState("pending");
       })
       .catch((err) => {
-        if (err instanceof ApiError && err.status === 404) {
-          setLoadState("not-found");
-        } else {
-          logger.error("failed to load transfer", { err });
-          setLoadState("error");
-        }
+        const outcome = classifyTransferLoadError(err);
+        if (outcome === "error") logger.error("failed to load transfer", { err });
+        setLoadState(outcome);
       });
   }, [token, session, isRestoring, router]);
 
@@ -75,11 +72,7 @@ export function useTransferViewModel(): TransferViewModel {
       setLoadState("accepted");
       router.push(`/garage/${vehicleId}`);
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message ?? "Failed to accept transfer."
-          : "Something went wrong. Try again.";
-      setActionError(msg);
+      setActionError(transferActionError(err, "Failed to accept transfer."));
       setAccepting(false);
     }
   }
@@ -91,11 +84,7 @@ export function useTransferViewModel(): TransferViewModel {
       await declineTransfer(cookieHttpClient, token);
       setLoadState("declined");
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message ?? "Failed to decline transfer."
-          : "Something went wrong. Try again.";
-      setActionError(msg);
+      setActionError(transferActionError(err, "Failed to decline transfer."));
       setDeclining(false);
     }
   }

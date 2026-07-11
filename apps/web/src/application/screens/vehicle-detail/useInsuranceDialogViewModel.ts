@@ -2,17 +2,9 @@
 
 import { useState } from "react";
 import type { InsuranceInput, InsuranceRecord } from "@maintenance-log/api-client";
+import { buildInsuranceInput, type InsuranceDialogDraft } from "./insuranceDialog.logic";
 
-export interface InsuranceDialogDraft {
-  company: string;
-  policyNumber: string;
-  startDate: string;
-  expiryDate: string;
-  premium: string;
-  premiumPeriod: string;
-  towNumber: string;
-  notes: string;
-}
+export type { InsuranceDialogDraft };
 
 export interface InsuranceDialogViewModel {
   editMode: boolean;
@@ -54,16 +46,7 @@ export function useInsuranceDialogViewModel(
     setSaveError(null);
     setIsSaving(true);
     try {
-      await onSave({
-        company: draft.company.trim() || null,
-        policyNumber: draft.policyNumber.trim() || null,
-        startDate: draft.startDate || null,
-        expiryDate: draft.expiryDate || null,
-        premium: draft.premium ? parseFloat(draft.premium) : null,
-        premiumPeriod: (draft.premiumPeriod as InsuranceInput["premiumPeriod"]) || null,
-        towNumber: draft.towNumber.trim() || null,
-        notes: draft.notes.trim() || null,
-      });
+      await onSave(buildInsuranceInput(draft));
       onClose();
     } catch {
       setSaveError("Couldn't save insurance details. Please try again.");

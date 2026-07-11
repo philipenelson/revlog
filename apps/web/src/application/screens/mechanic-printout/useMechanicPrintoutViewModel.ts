@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { getMechanicPrintout, type MechanicPrintout } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
-import { vehicleDisplayName } from "@/domain/types";
 import { logger } from "@/adapters/logging/logger";
+import { printoutDisplayName } from "./mechanicPrintout.logic";
 
 export type PrintoutLoadState = "loading" | "loaded" | "not-found" | "error";
 
@@ -35,9 +35,7 @@ export function useMechanicPrintoutViewModel(shareToken: string): MechanicPrinto
       });
   }, [shareToken]);
 
-  const displayName = printout
-    ? vehicleDisplayName(printout.vehicle)
-    : "Service History";
+  const displayName = printoutDisplayName(printout);
 
   const generatedDate = new Date().toLocaleDateString("en-US", {
     month: "short",
