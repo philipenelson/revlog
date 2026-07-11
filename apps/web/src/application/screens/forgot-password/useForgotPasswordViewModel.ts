@@ -10,7 +10,13 @@ import { forgotPassword } from "@maintenance-log/api-client";
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
 import { isUserFacingError, SERVICE_ERROR } from "@/domain/apiError";
-import { resetPasswordRoute } from "./forgot-password.logic";
+
+// Where a successful request advances to: the reset screen, carrying the email
+// so the OTP screen prefills it. The endpoint is enumeration-safe (always 200),
+// so this runs regardless of whether the account exists (ADR 0038).
+export function resetPasswordRoute(email: string): string {
+  return `/reset-password?email=${encodeURIComponent(email)}`;
+}
 
 export interface ForgotPasswordViewModel {
   field: UseFormRegister<ForgotPasswordInput>;

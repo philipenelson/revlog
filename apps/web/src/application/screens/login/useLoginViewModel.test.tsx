@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ApiError } from "@maintenance-log/api-client";
 import { renderViewModelForm, renderHook, act, waitFor } from "@/test/renderViewModel";
-import { SIGN_IN_USER_ERROR, REGISTER_USER_ERROR, SERVICE_ERROR } from "./login.logic";
+import { SIGN_IN_USER_ERROR, REGISTER_USER_ERROR } from "./useLoginViewModel";
+import { SERVICE_ERROR } from "@/domain/apiError";
 
 // ── Mocks: isolate the hook shell from routing, auth context, and the network.
 // vi.mock factories are hoisted above these declarations, so the fns they close

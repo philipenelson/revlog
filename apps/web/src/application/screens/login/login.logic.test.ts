@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { safeNextPath, resolvePostAuthRoute, verifyEmailRoute } from "./login.logic";
+import { safeNextPath, resolvePostAuthRoute, verifyEmailRoute } from "./useLoginViewModel";
 
 describe("login.logic", () => {
   describe("safeNextPath", () => {

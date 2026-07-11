@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { MechanicPrintout } from "@maintenance-log/api-client";
-import { printoutDisplayName } from "./mechanicPrintout.logic";
+import { printoutDisplayName } from "./useMechanicPrintoutViewModel";
 
 describe("mechanicPrintout.logic — printoutDisplayName", () => {
   it("falls back to 'Service History' before the printout loads", () => {

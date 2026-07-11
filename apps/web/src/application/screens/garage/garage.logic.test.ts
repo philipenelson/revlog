@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveGarageFlags } from "./garage.logic";
+import { deriveGarageFlags } from "./useGarageViewModel";
 
 describe("garage.logic — deriveGarageFlags", () => {
   it("is neither empty nor populated while loading", () => {

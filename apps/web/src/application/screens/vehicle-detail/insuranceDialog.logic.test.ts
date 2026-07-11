@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildInsuranceInput, type InsuranceDialogDraft } from "./insuranceDialog.logic";
+import { buildInsuranceInput, type InsuranceDialogDraft } from "./useInsuranceDialogViewModel";
 
 const empty: InsuranceDialogDraft = {
   company: "",

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { LogEntrySummary } from "@maintenance-log/api-client";
-import { filterLogEntries } from "./vehicleDetail.logic";
+import { filterLogEntries } from "./useVehicleDetailViewModel";
 
 const entry = (id: string, typeId: string) => ({ id, typeId }) as LogEntrySummary;
 const entries = [entry("1", "SERVICE"), entry("2", "REPAIR"), entry("3", "SERVICE")];

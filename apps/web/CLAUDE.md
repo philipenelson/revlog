@@ -109,12 +109,12 @@ Use React Hook Form + Zod resolver. Validation schemas are imported from `@maint
 
 ViewModels follow **Pure Functional Core, Framework Hook Shell** (ADR 0043), the same pattern as mobile. Run with `pnpm --filter @maintenance-log/web test` (vitest + jsdom).
 
-- **Pure functional core** — extract validations, conditional display calculations, data transformers, and business rules into **stateless pure functions** in a co-located `<screen>.logic.ts` (no React, no I/O; collaborators passed as args). Unit-test them **directly** in `<screen>.logic.test.ts` — this is where exhaustive branch coverage lives.
-- **Hook shell** — `use<Screen>ViewModel.ts` stays an idiomatic hook that uses `useState`/`useEffect`/`useMemo` (+ RHF/router/providers) **only** to bind those pure functions to React's lifecycle and handlers. No business rules inline in the hook.
+- **Pure functional core** — extract validations, conditional display calculations, data transformers, and business rules into **stateless pure functions** (no React, no I/O; collaborators passed as args). Declare them at **module scope in the same `use<Screen>ViewModel.ts` file** (outside the hook body) and export them — *not* a separate `<screen>.logic.ts`, which just splits one screen's code for no gain. Only when logic is **shared across multiple screens** does it move to its own module in `domain/` (e.g. `domain/apiError.ts`, `domain/vehicleForm.ts`). Unit-test the pure functions **directly** — this is where exhaustive branch coverage lives.
+- **Hook shell** — the `use<Screen>ViewModel` function stays an idiomatic hook that uses `useState`/`useEffect`/`useMemo` (+ RHF/router/providers) **only** to bind those pure functions to React's lifecycle and handlers. No business rules inline in the hook body.
 - **Hook-shell tests** — `use<Screen>ViewModel.test.tsx` uses the harness at `@/test/renderViewModel` (`renderHook` for logic-only hooks; `renderViewModelForm` to drive RHF `register`-bound submit paths) to verify state transitions, effects, and handler orchestration — not the business rules (already covered by the pure tests).
 - **Views stay dumb** — components are logic-free and are not unit-tested; Cypress covers the rendered whole.
 
-Example: `application/screens/login/` — `login.logic.ts` (`safeNextPath`, `isUserFacingError`, `resolvePostAuthRoute`, …) + `login.logic.test.ts`; `useLoginViewModel.ts` (shell) + `useLoginViewModel.test.tsx`.
+Example: `application/screens/login/useLoginViewModel.ts` exports `safeNextPath`, `resolvePostAuthRoute`, `verifyEmailRoute` (module scope) alongside the hook; `login.logic.test.ts` imports them from the viewmodel; `useLoginViewModel.test.tsx` covers the shell. Shared error helpers come from `@/domain/apiError`.
 
 ---
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  ApiError,
   getTransferDetails,
   acceptTransfer,
   declineTransfer,
@@ -11,7 +12,21 @@ import {
 import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { logger } from "@/adapters/logging/logger";
 import { useAuth } from "@/application/providers/AuthProvider";
-import { classifyTransferLoadError, transferActionError } from "./transfer.logic";
+
+export type TransferLoadOutcome = "not-found" | "error";
+
+// A 404 means the transfer token is unknown/consumed (show not-found); any
+// other load failure is a genuine error worth logging.
+export function classifyTransferLoadError(err: unknown): TransferLoadOutcome {
+  return err instanceof ApiError && err.status === 404 ? "not-found" : "error";
+}
+
+// The message for a failed accept/decline: an ApiError surfaces its own message
+// (with a per-action fallback); anything else is a generic retry prompt.
+export function transferActionError(err: unknown, apiFallback: string): string {
+  if (err instanceof ApiError) return err.message ?? apiFallback;
+  return "Something went wrong. Try again.";
+}
 
 export type TransferLoadState =
   | "loading"

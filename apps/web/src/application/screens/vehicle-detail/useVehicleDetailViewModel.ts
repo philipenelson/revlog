@@ -15,7 +15,12 @@ import { cookieHttpClient } from "@/adapters/http/CookieHttpClient";
 import { vehicleDisplayName } from "@/domain/types";
 import { logger } from "@/adapters/logging/logger";
 import { classifyVehicleLoadError } from "@/domain/vehicleForm";
-import { filterLogEntries } from "./vehicleDetail.logic";
+
+// The log entries shown for the active type filter: "ALL" shows everything,
+// otherwise only entries of that type. Deterministic given the inputs.
+export function filterLogEntries(entries: LogEntrySummary[], typeFilter: string): LogEntrySummary[] {
+  return typeFilter === "ALL" ? entries : entries.filter((e) => e.typeId === typeFilter);
+}
 
 export type VehicleDetailLoadState = "loading" | "loaded" | "error" | "not-found";
 

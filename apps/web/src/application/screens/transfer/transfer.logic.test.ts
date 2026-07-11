@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ApiError } from "@maintenance-log/api-client";
-import { classifyTransferLoadError, transferActionError } from "./transfer.logic";
+import { classifyTransferLoadError, transferActionError } from "./useTransferViewModel";
 
 describe("transfer.logic", () => {
   describe("classifyTransferLoadError", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resetPasswordRoute } from "./forgot-password.logic";
+import { resetPasswordRoute } from "./useForgotPasswordViewModel";
 
 describe("forgot-password.logic", () => {
   it("routes to reset-password carrying the URL-encoded email", () => {
