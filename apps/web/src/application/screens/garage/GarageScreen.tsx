@@ -9,13 +9,12 @@ import {
   VehicleGlyphIcon,
 } from "@/application/components/icons";
 import { Wordmark } from "@/application/components/Wordmark";
+import { AccountMenu } from "@/application/screens/account-menu/AccountMenu";
 import { vehicleDisplayName } from "@/domain/types";
 import type { VehicleSummary } from "@maintenance-log/api-client";
 import { pluralize } from "@/utils/format";
 import { useGarageViewModel } from "./useGarageViewModel";
 import styles from "./garage.module.css";
-
-const CURRENT_USER = { name: "Jordan Reyes", initials: "JR" };
 
 const LOAD_ERROR = "We couldn't load your garage. Our mechanics are on it — try again in a moment.";
 
@@ -34,9 +33,7 @@ export function GarageScreen() {
             <PlusIcon />
             Add vehicle
           </Link>
-          <div className={styles.avatar} title={CURRENT_USER.name} data-testid="avatar">
-            {CURRENT_USER.initials}
-          </div>
+          <AccountMenu />
         </div>
       </header>
 

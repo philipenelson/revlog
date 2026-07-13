@@ -4,6 +4,8 @@ const VEHICLES_FIXTURE = [
   { id: "project-garage-find", nickname: "Project Garage Find", make: "Honda", model: "CB350", year: 1972, mileage: 31118, photoUrl: null, logEntryCount: 0 },
 ];
 
+const ACCOUNT_PROFILE = { id: "e2e-user", fullName: "Jordan Reyes", email: "jordan@example.com", role: "OWNER" };
+
 /**
  * Stubs the session-issuing and Vehicle-listing endpoints and drives the real
  * login form to reach `/garage` with an in-memory session populated — `apiFetch`
@@ -16,6 +18,9 @@ const VEHICLES_FIXTURE = [
  *
  * `stubVehicles` sets up the `GET /vehicles` intercept — the caller controls its
  * shape (and timing) per scenario, so it must run before `cy.visit` fires the request.
+ * `GET /users/me` (account menu info, `docs/specs/web/account-menu.md`) is stubbed
+ * with a default profile here since every Garage mount fetches it; override with a
+ * fresh `cy.intercept` in a test that needs different account data.
  */
 function signIntoGarage(stubVehicles: () => void) {
   cy.setCookie("refreshToken", "e2e-garage-session");
@@ -28,6 +33,7 @@ function signIntoGarage(stubVehicles: () => void) {
       account: { id: "e2e-account", status: "ACTIVE" },
     },
   }).as("login");
+  cy.intercept("GET", "**/users/me", { statusCode: 200, body: ACCOUNT_PROFILE }).as("getMe");
 
   stubVehicles();
 
@@ -241,6 +247,65 @@ describe("Garage screen", () => {
       cy.get('[data-testid="vehicle-card"][data-vehicle-id="the-daily"]').within(() => {
         cy.get("img").should("have.attr", "src", "http://localhost:3001/uploads/vehicles/bike.jpg");
       });
+    });
+  });
+
+  describe("account menu", () => {
+    beforeEach(() => {
+      signIntoGarage(stubVehiclesWith({ statusCode: 200, body: { vehicles: VEHICLES_FIXTURE } }));
+      cy.wait("@getVehicles");
+      cy.wait("@getMe");
+    });
+
+    it("opens on avatar click, shows account info, legal links, support, and log out; closes on outside click", () => {
+      cy.get('[data-testid="account-menu"]').should("not.exist");
+
+      cy.get('[data-testid="avatar"]').click();
+      cy.get('[data-testid="account-menu"]').should("be.visible");
+      cy.get('[data-testid="account-menu-name"]').should("have.text", "Jordan Reyes");
+      cy.get('[data-testid="account-menu-email"]').should("have.text", "jordan@example.com");
+      cy.get('[data-testid="account-menu-terms"]').should("have.attr", "href", "/terms");
+      cy.get('[data-testid="account-menu-privacy"]').should("have.attr", "href", "/privacy");
+      cy.get('[data-testid="account-menu-cookies"]').should("have.attr", "href", "/cookies");
+      cy.get('[data-testid="account-menu-support"]').should("have.attr", "href", "mailto:hello@revlog.app");
+      cy.get('[data-testid="account-menu-logout"]').should("contain", "Log out");
+
+      cy.get("body").click(0, 0);
+      cy.get('[data-testid="account-menu"]').should("not.exist");
+    });
+
+    it("closes on Escape", () => {
+      cy.get('[data-testid="avatar"]').click();
+      cy.get('[data-testid="account-menu"]').should("be.visible");
+      cy.get("body").type("{esc}");
+      cy.get('[data-testid="account-menu"]').should("not.exist");
+    });
+
+    it("navigates to the Terms page and closes the menu", () => {
+      cy.get('[data-testid="avatar"]').click();
+      cy.get('[data-testid="account-menu-terms"]').click();
+      cy.location("pathname").should("eq", "/terms");
+    });
+
+    it("logs out: calls POST /auth/logout, clears the session, and redirects to /login", () => {
+      cy.intercept("POST", "**/auth/logout", { statusCode: 204 }).as("logout");
+
+      cy.get('[data-testid="avatar"]').click();
+      cy.get('[data-testid="account-menu-logout"]').click();
+
+      cy.wait("@logout");
+      cy.location("pathname").should("eq", "/login");
+    });
+
+    it("keeps the session and shows an error when logout fails with no server response", () => {
+      cy.intercept("POST", "**/auth/logout", { forceNetworkError: true }).as("logoutFailed");
+
+      cy.get('[data-testid="avatar"]').click();
+      cy.get('[data-testid="account-menu-logout"]').click();
+
+      cy.wait("@logoutFailed");
+      cy.location("pathname").should("eq", "/garage");
+      cy.get('[data-testid="account-menu-logout-error"]').should("contain", "You need to be online to log out.");
     });
   });
 });
