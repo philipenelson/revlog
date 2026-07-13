@@ -30,16 +30,33 @@
   }
 
   /* No status bar, no safe-area padding: a native splash screen is exactly
-     one full-bleed background color plus one centered static image -- there
-     is no live UI to design beyond that. */
+     one full-bleed background color plus one centered static image --
+     everything inside .scene (mark + wordmark) is baked into that one
+     image, there's no separate live text layer. See ADR 0032's 2026-07-13
+     update. */
   .scene {
     position: relative;
     height: 800px;
     overflow: hidden;
     background: var(--surface-base);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 20px;
+  }
+  .wordmark {
+    display: flex;
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-size: 40px;
+  }
+  .wordmark .rev {
+    font-weight: 400;
+    color: #EDF0F8;
+  }
+  .wordmark .log {
+    font-weight: 700;
+    color: #14B8D4;
   }
 </style>
 </head>
@@ -56,6 +73,7 @@
         <circle cx="18" cy="18" r="2.2" fill="#14B8D4"/>
         <circle cx="30.1" cy="11" r="1.5" fill="#F87171" opacity="0.8"/>
       </svg>
+      <div class="wordmark"><span class="rev">Rev</span><span class="log">log</span></div>
     </div>
   </div>
 </div>

@@ -160,6 +160,39 @@ The `TokenHttpClient` reads tokens from secure storage and injects `Authorizatio
 
 ## Bundle identifier
 
-- **iOS:** `dev.revlog`
-- **Android:** `dev.revlog`
 - **Domain:** `revlog.dev`
+- **Production:** `dev.revlog` (iOS bundle ID and Android package)
+
+Non-production variants get a suffixed identifier so they can be installed side by side on the
+same device (ADR 0044) — set via `APP_VARIANT` in each `eas.json` build profile, branched in
+`app.config.ts`:
+
+| `APP_VARIANT` | Bundle ID / package | App name |
+|---|---|---|
+| `production` | `dev.revlog` | Revlog |
+| `staging` | `dev.revlog.staging` | Revlog Staging |
+| `qa` | `dev.revlog.qa` | Revlog QA |
+| `development` | `dev.revlog.dev` | Revlog Dev |
+
+## Production builds (ADR 0044)
+
+Builds run locally via EAS CLI in `--local` mode (no cloud build service/cost):
+
+```
+pnpm --filter @maintenance-log/mobile build:android:<profile>
+pnpm --filter @maintenance-log/mobile build:ios:<profile>
+```
+
+where `<profile>` is `development`, `qa`, `staging`, or `production` (see `eas.json`). These run
+entirely on your machine — no cloud build minutes — but still require `eas login` once (a free
+Expo account) since EAS CLI resolves config/credentials against a project identity even locally.
+Signing credentials are managed per-machine via `eas credentials`, not checked into the repo.
+
+`qa` and `staging` already produce a directly-installable Android `.apk` (their `internal`
+distribution defaults to it). `production` produces an `.aab` — the Google Play upload format,
+not directly installable — so `pnpm --filter @maintenance-log/mobile build:android:production-apk`
+exists for a sideloadable Android artifact with the same production identity/signing when you
+need to test the production config on a device rather than upload it. There is no iOS
+equivalent: `.ipa` is the only iOS artifact type, and `distribution: internal` (`qa`/`staging`)
+vs. `store` (`production`) already governs sideloadability there — `store`-signed iOS builds
+only run via TestFlight/App Store, never ad-hoc.

@@ -67,3 +67,17 @@ accepted
 - The splash icon PNG and the live `RevlogMark` SVG component both encode the same path data by hand in two places (a one-off generation script and the component). Given the shape is fixed brand geometry that doesn't change often, this duplication was accepted rather than building tooling to derive one from the other for a single icon — revisit if more icons are added.
 - `fontFamily.sans` / `fontFamily.mono` remain unloaded on mobile; the first screen that needs body text or monospace styling picks this back up.
 - Register gained real keyboard-avoidance it didn't have before, fixing a genuine (if previously unnoticed) usability gap on top of the design-fidelity fix this ADR set out to make.
+
+### Update — 2026-07-13: splash screen gains the "Revlog" wordmark
+
+Direct product request: show the "Revlog" wordmark below the logo mark on the native splash screen, not just the icon. This reverses this ADR's original splash decision ("just the surface color and the logo mark centered, since that's genuinely all a platform splash screen can show").
+
+`expo-splash-screen` still only supports one static raster image — there is no live text layer, so this can't be done the way the wordmark renders on Welcome/Login/Register (two sibling `Text` nodes in `fontFamily.display` / `fontFamily.displayBold`). Instead the wordmark is rasterized into the same offline generation step that already produces `splash-icon.png` from `RevlogMark`'s path data (see "Splash asset generation" above): "Rev" and "log" are converted to SVG glyph outlines from the actual `Outfit_400Regular` / `Outfit_700Bold` `.ttf` files bundled by `@expo-google-fonts/outfit`, positioned below the mark, and composited into one transparent PNG with `sharp` — so the baked-in text is pixel-faithful to the live font, not an approximation.
+
+This same generation step also fills in the two other asset gaps discovered alongside this request:
+- `icon` (`apps/mobile/assets/icon.png`, 1024×1024, opaque — iOS rejects icons with alpha) was never set in `app.config.ts`; the app was shipping Expo's blank default icon.
+- Android's adaptive icon had a `backgroundColor` but no `foregroundImage`; `apps/mobile/assets/adaptive-icon.png` (transparent, mark sized within the ~66% safe zone) fills that in.
+
+Both reuse the same `RevlogMark` geometry on the `neutral[800]` surface, so app icon, adaptive icon, and splash all stay visually identical to the in-app mark.
+
+[`revlog-mobile-splash.html`](../designs/mobile/revlog-mobile-splash.html) is updated to match — the mark plus wordmark, and the comment claiming a splash screen has "no live UI to design beyond" the icon is removed since that's no longer the constraint being designed around (the constraint is now "one static image," not "icon only").

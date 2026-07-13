@@ -18,6 +18,7 @@ allowBuilds:
   appium-ios-tuntap: true
   bcrypt: true
   cypress: true
+  dtrace-provider: false
   edgedriver: false
   esbuild: true
   geckodriver: false
@@ -47,6 +48,12 @@ minimumReleaseAgeExclude:
   - expo@57.0.1
   - '@expo/metro-runtime@57.0.2'
   - expo-image-picker@57.0.2
+  - '@expo/eas-build-job@21.0.0'
+  - '@expo/eas-json@21.0.0'
+  - '@expo/logger@21.0.0'
+  - '@expo/steps@21.0.0'
+  - '@expo/turtle-spawn@21.0.0'
+  - eas-cli@21.0.0
 
 # Expo's own tooling deep-imports into metro's internals without declaring
 # metro (or metro-cache) as a dependency -- works under npm/yarn's flat
