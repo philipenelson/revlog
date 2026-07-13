@@ -51,3 +51,11 @@ Doc-first, one logical step per commit.
 - Language selector for web — needs its own ADR (persistence mechanism; ADR 0035 is `expo-secure-store`-specific and doesn't transfer)
 - Account name/email/password editing — future online + OTP-confirmed flow, same as mobile
 - A standalone `/settings` route — explicitly decided against; revisit only if the dropdown's content outgrows it
+
+---
+
+## Update — 2026-07-13: extracted into its own module (`b0b80aa`)
+
+User feedback after the initial merge attempt: the account menu's only real relationship to Garage was living in the same viewmodel/file — it has no dependency on the vehicle list, so it reads better as its own view that happens to be embedded in the Garage header, not part of Garage itself. Also surfaced that this session had committed straight to `main` under the bg-job's "work in place" default, bypassing the worktree-branch-then-PR flow this doc describes — reset locally and redone as branch `web-account-menu` (PR [#10](https://github.com/philipenelson/revlog/pull/10)), and `CLAUDE.md` gained a rule that Claude never commits/merges to `main` without the user explicitly asking in the current request.
+
+Moved `accountMenu` out of `useGarageViewModel` into `application/screens/account-menu/` (`AccountMenu.tsx` + `useAccountMenuViewModel.ts` + `account-menu.module.css`), following this repo's `<Screen>.tsx` + `use<Screen>ViewModel.ts` convention even though it isn't routed — `components/` is reserved for logic-free reusable pieces, and this has real business logic (profile fetch, logout). `GarageScreen` now renders `<AccountMenu />` with no props; `useGarageViewModel` goes back to owning only the vehicle list. DOM/testids unchanged, so `garage.cy.ts` needed no edits and stayed green (21/22 — the 1 failure is the same pre-existing flake noted above). `pnpm --filter @maintenance-log/web test` — 153 passed (20 files, split from 19); typecheck and lint clean.
