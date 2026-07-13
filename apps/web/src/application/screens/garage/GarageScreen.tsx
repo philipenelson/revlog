@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import {
   ArrowIcon,
   DashedVehicleGlyphIcon,
@@ -10,12 +11,12 @@ import {
 } from "@/application/components/icons";
 import { Wordmark } from "@/application/components/Wordmark";
 import { vehicleDisplayName } from "@/domain/types";
-import type { VehicleSummary } from "@maintenance-log/api-client";
+import type { UserProfile, VehicleSummary } from "@maintenance-log/api-client";
 import { pluralize } from "@/utils/format";
-import { useGarageViewModel } from "./useGarageViewModel";
+import { initialsFromName, useGarageViewModel, type AccountMenuViewModel } from "./useGarageViewModel";
 import styles from "./garage.module.css";
 
-const CURRENT_USER = { name: "Jordan Reyes", initials: "JR" };
+const SUPPORT_EMAIL = "hello@revlog.app";
 
 const LOAD_ERROR = "We couldn't load your garage. Our mechanics are on it — try again in a moment.";
 
@@ -34,9 +35,7 @@ export function GarageScreen() {
             <PlusIcon />
             Add vehicle
           </Link>
-          <div className={styles.avatar} title={CURRENT_USER.name} data-testid="avatar">
-            {CURRENT_USER.initials}
-          </div>
+          <AccountMenuTrigger accountMenu={vm.accountMenu} />
         </div>
       </header>
 
@@ -82,6 +81,124 @@ export function GarageScreen() {
 }
 
 /* ── Presentational sub-components ──────────────────────────────── */
+
+function AccountMenuTrigger({ accountMenu }: { accountMenu: AccountMenuViewModel }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Outside-click and Escape both close the menu — same dismiss pattern as
+  // the app's other dropdowns/dialogs (e.g. EditVehicleScreen's
+  // DeleteConfirmDialog); state itself lives in the viewmodel.
+  useEffect(() => {
+    if (!accountMenu.isOpen) return;
+
+    function handlePointerDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        accountMenu.close();
+      }
+    }
+    function handleKey(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape") accountMenu.close();
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [accountMenu]);
+
+  const displayName = accountMenu.profile?.fullName ?? "";
+
+  return (
+    <div className={styles.accountMenuWrap} ref={containerRef}>
+      <button
+        type="button"
+        className={styles.avatar}
+        title={displayName || undefined}
+        data-testid="avatar"
+        aria-haspopup="menu"
+        aria-expanded={accountMenu.isOpen}
+        onClick={accountMenu.toggle}
+      >
+        {initialsFromName(displayName)}
+      </button>
+      {accountMenu.isOpen && <AccountMenu accountMenu={accountMenu} />}
+    </div>
+  );
+}
+
+function AccountMenu({ accountMenu }: { accountMenu: AccountMenuViewModel }) {
+  function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Escape") accountMenu.close();
+  }
+
+  return (
+    <div
+      role="menu"
+      className={styles.accountMenu}
+      data-testid="account-menu"
+      onKeyDown={handleKeyDown}
+    >
+      <AccountMenuInfo profile={accountMenu.profile} />
+
+      <div className={styles.accountMenuGroup}>
+        <Link href="/terms" className={styles.accountMenuItem} role="menuitem" data-testid="account-menu-terms" onClick={accountMenu.close}>
+          Terms of Service
+        </Link>
+        <Link href="/privacy" className={styles.accountMenuItem} role="menuitem" data-testid="account-menu-privacy" onClick={accountMenu.close}>
+          Privacy Policy
+        </Link>
+        <Link href="/cookies" className={styles.accountMenuItem} role="menuitem" data-testid="account-menu-cookies" onClick={accountMenu.close}>
+          Cookie Policy
+        </Link>
+      </div>
+
+      <div className={styles.accountMenuGroup}>
+        <a
+          href={`mailto:${SUPPORT_EMAIL}`}
+          className={styles.accountMenuItem}
+          role="menuitem"
+          data-testid="account-menu-support"
+          onClick={accountMenu.close}
+        >
+          Support
+        </a>
+      </div>
+
+      <div className={styles.accountMenuGroup}>
+        {accountMenu.logoutError && (
+          <p className={styles.accountMenuError} role="alert" data-testid="account-menu-logout-error">
+            {accountMenu.logoutError}
+          </p>
+        )}
+        <button
+          type="button"
+          className={styles.accountMenuLogout}
+          role="menuitem"
+          data-testid="account-menu-logout"
+          disabled={accountMenu.isLoggingOut}
+          onClick={accountMenu.onLogout}
+        >
+          {accountMenu.isLoggingOut ? "Logging out…" : "Log out"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AccountMenuInfo({ profile }: { profile: UserProfile | null }) {
+  return (
+    <div className={styles.accountMenuInfo}>
+      <p className={styles.accountMenuName} data-testid="account-menu-name">
+        {profile?.fullName ?? "—"}
+      </p>
+      <p className={styles.accountMenuEmail} data-testid="account-menu-email">
+        {profile?.email ?? "—"}
+      </p>
+    </div>
+  );
+}
 
 function VehicleCard({ vehicle }: { vehicle: VehicleSummary }) {
   const hasLogEntries = vehicle.logEntryCount > 0;
