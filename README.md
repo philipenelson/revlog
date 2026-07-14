@@ -49,6 +49,18 @@ Itemized parts and labor with running totals — the record a mechanic (or a fut
 </tr>
 </table>
 
+## Marketing site
+
+`apps/website` is Revlog's public-facing marketing site — Astro + Tailwind, the same design tokens as the app. It's a separate deployable from the product itself: a hero, feature highlights, and live showcases of both the web and mobile apps (below).
+
+![Marketing site](docs/screenshots/website.png)
+
+## Mobile app
+
+`apps/mobile` is a React Native (Expo) app sharing the same API, the same design tokens, and the same domain contracts as the web app — in progress, not yet published to an app store.
+
+<img src="docs/screenshots/mobile-garage.png" alt="Mobile garage screen" width="360">
+
 ## Design system
 
 The interface follows a single documented design language — **"Precision Dark"**: a dark navy base, one electric-teal accent, and geometric type (`Outfit` for display, `DM Sans` for body, `Geist Mono` for numbers) inspired by digital instrument clusters. A few deliberate choices worth pointing out:
@@ -197,21 +209,34 @@ Key variables:
 
 ## Project structure
 
+This is a pnpm/Turborepo monorepo — four deployables in `apps/`, sharing code through `packages/`.
+
 ```
 apps/
-  api/          Express API — layered arch (Routes → Services → Repositories)
-  web/          Next.js web app — App Router
-  mobile/       React Native (Expo) — V2
+  api/          Express API — hexagonal arch (domain → application → adapters), Prisma/Postgres
+  web/          Next.js web app — App Router, hexagonal MVVM (ADR 0040)
+  mobile/       React Native (Expo) app — same API, tokens, and contracts as web; in progress
+  website/      Astro + Tailwind marketing site — public landing page, separate deployable
 packages/
-  domain/       Shared Zod schemas and repository interfaces (no framework deps)
+  domain/           (@maintenance-log/contracts) Zod schemas + inferred types shared by every
+                    client and validated identically by the API
+  api-client/       Typed service functions (auth, vehicles, log entries, …) over a shared
+                    HttpClient port — web and mobile call the same functions (ADR 0024)
   ui/
-    tokens/     Design token source of truth (colours, spacing, typography)
+    tokens/           (@maintenance-log/ui-tokens) Design token source of truth — colour,
+                      spacing, radius, typography — the only place raw values may be defined
+    components/       (@maintenance-log/ui-components) Shared DOM component system for web +
+                      website; scaffolded, not yet populated — see Roadmap
+  eslint-config/    Shared ESLint flat config (includes the no-inline-style rule)
+  prettier-config/  Shared Prettier config
+  typescript-config/ Shared tsconfig bases
 docs/
-  adr/          Architecture Decision Records
-  specs/        Feature specs with use cases and acceptance criteria
-  milestones/   V1 and V2 scope and progress tracking
-  designs/      Static HTML design previews used to build each screen
-  screenshots/  Screenshots used in this README
+  adr/            Architecture Decision Records — every significant technical choice
+  specs/          Feature specs — use cases, acceptance criteria, API contracts
+  milestones/     V1 and V2 scope and progress tracking
+  designs/        Static HTML design previews used to build each screen (web + mobile)
+  screenshots/    Screenshots used in this README
+  past_sessions/  Dated summaries of past development sessions (goal, decisions, what shipped)
 scripts/
   pre-commit    Git hook: blocks raw hex colors outside the token package
   smoke-auth.sh End-to-end auth smoke test
@@ -228,5 +253,8 @@ scripts/
 | `docs/adr/` | Architecture Decision Records — every significant technical choice |
 | `docs/specs/` | Feature specs — use cases, acceptance criteria, API contracts |
 | `docs/milestones/` | V1 and V2 scope and progress |
+| `docs/designs/` | Static HTML design previews each screen was built from |
+| `docs/past_sessions/` | Dated write-ups of past development sessions |
 | `apps/api/CLAUDE.md` | API-specific rules — layered arch, DI, testing |
 | `apps/web/CLAUDE.md` | Web-specific rules — style, logging, error boundaries |
+| `apps/mobile/CLAUDE.md` | Mobile-specific rules — offline sync, outbox pattern |
