@@ -59,7 +59,31 @@ Itemized parts and labor with running totals — the record a mechanic (or a fut
 
 `apps/mobile` is a React Native (Expo) app sharing the same API, the same design tokens, and the same domain contracts as the web app — in progress, not yet published to an app store.
 
-<img src="docs/screenshots/mobile-garage.png" alt="Mobile garage screen" width="360">
+<table>
+<tr>
+<td align="center" width="33%">
+
+**Login**
+
+<img src="docs/screenshots/mobile-login.png" alt="Mobile login screen" width="240">
+
+</td>
+<td align="center" width="33%">
+
+**Garage**
+
+<img src="docs/screenshots/mobile-garage.png" alt="Mobile garage screen" width="240">
+
+</td>
+<td align="center" width="33%">
+
+**Vehicle detail**
+
+<img src="docs/screenshots/mobile-vehicle-detail.png" alt="Mobile vehicle detail screen" width="240">
+
+</td>
+</tr>
+</table>
 
 ## Design system
 
