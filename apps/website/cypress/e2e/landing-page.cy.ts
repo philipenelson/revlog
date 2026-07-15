@@ -51,9 +51,9 @@ describe("Landing page", () => {
     cy.get('[data-testid="webapp-showcase-mockups"]').children().should("have.length", 2);
   });
 
-  it("renders the mobile app showcase with a Coming soon badge and no app-store links", () => {
+  it("renders the mobile app showcase with an In development badge and no app-store links", () => {
     cy.contains("h2", "Revlog, in your pocket").should("be.visible");
-    cy.get('[data-testid="mobile-coming-soon-badge"]').should("contain.text", "Coming soon");
+    cy.get('[data-testid="mobile-in-development-badge"]').should("contain.text", "In development");
     cy.get('[data-testid="mobile-app-mockup"]').should("be.visible");
     cy.get('a[href*="apps.apple.com"], a[href*="play.google.com"]').should("not.exist");
   });

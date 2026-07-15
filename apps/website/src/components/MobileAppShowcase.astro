@@ -1,6 +1,5 @@
 ---
 import PhoneFrame from './mockups/PhoneFrame.astro';
-import MobileGarageMockup from './mockups/MobileGarageMockup.astro';
 ---
 
 <section class="border-t border-border-muted px-6 py-20 sm:py-28">
@@ -15,19 +14,19 @@ import MobileGarageMockup from './mockups/MobileGarageMockup.astro';
       </h2>
       <p class="mt-4 text-lg text-text-secondary">
         A native app for logging maintenance trackside, in the garage, or at the pump — wherever your
-        bike is. We're building it now.
+        bike is. Same garage, same service history, built for React Native.
       </p>
       <span
-        data-testid="mobile-coming-soon-badge"
+        data-testid="mobile-in-development-badge"
         class="mt-6 inline-flex items-center gap-2 rounded-full border border-accent bg-accent-muted px-4 py-1.5 text-xs font-semibold tracking-wide text-accent-light uppercase"
       >
-        Coming soon
+        In development
       </span>
     </div>
 
     <div data-testid="mobile-app-mockup" class="order-1 lg:order-2">
       <PhoneFrame>
-        <MobileGarageMockup />
+        <img src="/screenshots/mobile-garage.png" alt="Revlog mobile — a rider's garage on iOS" class="w-full" />
       </PhoneFrame>
     </div>
   </div>
